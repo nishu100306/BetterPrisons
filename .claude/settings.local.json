@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(.gradlew.bat build:*)",
+      "Bash(./gradlew build:*)",
+      "Bash(cat:*)",
+      "Bash(./gradlew clean build:*)",
+      "Bash(unzip:*)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:docs.architectury.dev)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:wiki.fabricmc.net)",
+      "Bash(python3:*)",
+      "WebFetch(domain:maven.fabricmc.net)",
+      "Bash(find:*)",
+      "Bash(javap:*)",
+      "Bash(jar tf:*)",
+      "Bash(\"/c/Program Files/Java/jdk-21/bin/javap.exe\" -c -p mike/prisonsutil/mixin/PeacefulMixin.class)",
+      "Bash(\"/c/Program Files/Java/jdk-21/bin/javap.exe\" -c -p mike/prisonsutil/mixin/InteractionManagerMixin.class)",
+      "Bash(\"/c/Program Files/Java/jdk-21/bin/javap.exe\" -c -p mike/prisonsutil/mixin/GameRendererMixin.class)",
+      "Bash(\"/c/Program Files/Java/jdk-21/bin/javap.exe\" -v mike/prisonsutil/mixin/GameRendererMixin.class)",
+      "Bash(\"/c/Program Files/Java/jdk-21/bin/javap.exe\" -cp \"build/loom-cache/remapped_mods/net.fabricmc.fabric-api/fabric-api/0.114.0+1.21.8/1/fabric-api-0.114.0+1.21.8.jar:C:/Users/Nishu/.gradle/caches/fabric-loom/1.21.8/net.minecraft.client-1.21.8-mergedv2.jar\" -c net.minecraft.client.render.GameRenderer)"
+    ]
+  }
+}

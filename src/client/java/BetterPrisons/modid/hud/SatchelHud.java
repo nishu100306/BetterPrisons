@@ -1,0 +1,418 @@
+package BetterPrisons.modid.hud;
+
+import BetterPrisons.modid.BetterPrisonsClient;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.DrawContext;
+import net.minecraft.entity.player.PlayerInventory;
+import net.minecraft.item.ItemStack;
+import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.LoreComponent;
+import net.minecraft.text.Text;
+import net.minecraft.text.Style;
+import net.minecraft.util.Formatting;
+import org.joml.Matrix3x2fStack;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+public class SatchelHud extends BaseHud {
+    public List<SatchelInfo> foundSatchels = new ArrayList<>();
+    private int lastInventoryHash = 0;
+    private boolean scanning = false;
+
+    // Whitelist of valid satchel names
+    private static final List<String> VALID_SATCHELS = List.of(
+        "Coal Ore Satchel",
+        "Coal Satchel",
+        "Iron Ore Satchel",
+        "Iron Satchel",
+        "Lapis Ore Satchel",
+        "Lapis Satchel",
+        "Redstone Ore Satchel",
+        "Redstone Satchel",
+        "Gold Ore Satchel",
+        "Gold Satchel",
+        "Diamond Ore Satchel",
+        "Diamond Satchel",
+        "Emerald Ore Satchel",
+        "Emerald Satchel"
+    );
+
+    public SatchelHud() {
+        super("satchel");
+    }
+
+    int count = 0;
+    @Override
+    public void tick(MinecraftClient client) {
+        count++;
+        if (!enabled || scanning) return;
+        if (client.player == null) return;
+
+        if (count % 5 == 0) {
+            rescan(client.player.getInventory());
+        }
+        /*
+        // Only rescan when inventory changes
+        int hash = computeInventoryHash(client.player.getInventory());
+        if (hash != lastInventoryHash) {
+            lastInventoryHash = hash;
+            rescan(client.player.getInventory());
+        }
+        */
+    }
+
+    private void rescan(PlayerInventory inv) {
+        scanning = true;
+        foundSatchels.clear();
+        for (int i = 0; i < inv.size(); i++) {
+            ItemStack stack = inv.getStack(i);
+            if (isSatchel(stack)) {
+                foundSatchels.add(parseSatchel(stack));
+            }
+        }
+        boolean shouldCombine = BetterPrisonsClient.config.combineSimilarSatchels;
+        if (shouldCombine) {
+            combineSimilarSatchels();
+        }
+        scanning = false;
+    }
+
+    private void combineSimilarSatchels() {
+        try {
+            List<SatchelInfo> combined = new ArrayList<>();
+
+            while (!foundSatchels.isEmpty()) {
+                SatchelInfo satchel = foundSatchels.get(0);
+                foundSatchels.remove(satchel);
+                combined.add(satchel);
+                String thisSatchelType = "";
+                for (String validName : VALID_SATCHELS) {
+                    String satchelName = satchel.name;
+                    if (satchelName.startsWith(validName)) {
+                        thisSatchelType = validName;
+                        satchel.displayName = Text.literal(validName).setStyle(satchel.displayName.getStyle());
+                    }
+                }
+                for (int j = 0; j < foundSatchels.size(); j++) {
+                    SatchelInfo other = foundSatchels.get(j);
+                    String otherSatchelType = "";
+                    for (String validName : VALID_SATCHELS) {
+                        String satchelName = other.name;
+                        if (satchelName.startsWith(validName)) {
+                            otherSatchelType = validName;
+                        }
+                    }
+                    if (thisSatchelType.equals(otherSatchelType)) {
+                        // Combine
+                        satchel.current += other.current;
+                        satchel.max += other.max;
+                        foundSatchels.remove(other);
+                        j--;
+                    }
+                }
+            }
+            this.foundSatchels = combined;
+        } catch (Exception e) {
+            BetterPrisonsClient.LOGGER.warn("Error combining similar satchels: " + e.getClass().getName() + " - " + e.getMessage());
+        }
+    }
+
+    private boolean isSatchel(ItemStack stack) {
+        if (stack.isEmpty()) return false;
+
+        // Get the display name and parse it (remove capacity part)
+        String displayName = stack.getName().getString();
+        String satchelName = displayName.split("\\(")[0].trim();
+
+
+        // Check if the parsed name is in the whitelist
+        for (String validName : VALID_SATCHELS) {
+            if (satchelName.startsWith(validName)) {
+                return true;
+            }
+        }
+        return VALID_SATCHELS.contains(satchelName);
+
+    }
+
+    /**
+     * Parses the style from the first sibling in the toString() representation of a Text object.
+     * Example input: "empty[siblings=[literal{Redstone Ore Satchel }[style={color=red,bold,!italic}], ...]]"
+     * Returns a Style object with the parsed formatting.
+     */
+    private Style parseStyleFromToString(String textToString) {
+        Style style = Style.EMPTY;
+
+        try {
+            // Pattern to match the first [style={...}] block
+            Pattern stylePattern = Pattern.compile("\\[style=\\{([^}]+)\\}\\]");
+            Matcher matcher = stylePattern.matcher(textToString);
+
+            if (matcher.find()) {
+                String styleString = matcher.group(1);
+
+                // Split by comma to get individual style attributes
+                String[] attributes = styleString.split(",");
+
+                for (String attr : attributes) {
+                    attr = attr.trim();
+
+                    // Handle color
+                    if (attr.startsWith("color=")) {
+                        String colorName = attr.substring(6); // Remove "color="
+                        Formatting color = parseColor(colorName);
+                        if (color != null) {
+                            style = style.withColor(color);
+                        }
+                    }
+                    // Handle bold
+                    else if (attr.equals("bold")) {
+                        style = style.withBold(true);
+                    } else if (attr.equals("!bold")) {
+                        style = style.withBold(false);
+                    }
+                    // Handle italic
+                    else if (attr.equals("italic")) {
+                        style = style.withItalic(true);
+                    } else if (attr.equals("!italic")) {
+                        style = style.withItalic(false);
+                    }
+                    // Handle underline
+                    else if (attr.equals("underlined")) {
+                        style = style.withUnderline(true);
+                    } else if (attr.equals("!underlined")) {
+                        style = style.withUnderline(false);
+                    }
+                    // Handle strikethrough
+                    else if (attr.equals("strikethrough")) {
+                        style = style.withStrikethrough(true);
+                    } else if (attr.equals("!strikethrough")) {
+                        style = style.withStrikethrough(false);
+                    }
+                    // Handle obfuscated
+                    else if (attr.equals("obfuscated")) {
+                        style = style.withObfuscated(true);
+                    } else if (attr.equals("!obfuscated")) {
+                        style = style.withObfuscated(false);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            BetterPrisonsClient.LOGGER.warn("Error parsing style from toString: " + e.getMessage());
+        }
+
+        return style;
+    }
+
+    /**
+     * Parses a color name to a Formatting enum value.
+     */
+    private Formatting parseColor(String colorName) {
+        try {
+            // Try to match Minecraft formatting colors
+            switch (colorName.toLowerCase()) {
+                case "black": return Formatting.BLACK;
+                case "dark_blue": return Formatting.DARK_BLUE;
+                case "dark_green": return Formatting.DARK_GREEN;
+                case "dark_aqua": return Formatting.DARK_AQUA;
+                case "dark_red": return Formatting.DARK_RED;
+                case "dark_purple": return Formatting.DARK_PURPLE;
+                case "gold": return Formatting.GOLD;
+                case "gray": return Formatting.GRAY;
+                case "dark_gray": return Formatting.DARK_GRAY;
+                case "blue": return Formatting.BLUE;
+                case "green": return Formatting.GREEN;
+                case "aqua": return Formatting.AQUA;
+                case "red": return Formatting.RED;
+                case "light_purple": return Formatting.LIGHT_PURPLE;
+                case "yellow": return Formatting.YELLOW;
+                case "white": return Formatting.WHITE;
+                default:
+                    BetterPrisonsClient.LOGGER.warn("Unknown color: " + colorName);
+                    return null;
+            }
+        } catch (Exception e) {
+            BetterPrisonsClient.LOGGER.warn("Error parsing color: " + colorName);
+            return null;
+        }
+    }
+
+    private SatchelInfo parseSatchel(ItemStack stack) {
+        SatchelInfo info = new SatchelInfo();
+
+        // Get the full display name with color/formatting
+        Text fullName = stack.getName();
+        String fullNameString = fullName.getString();
+
+        // Parse the trimmed name (remove capacity part)
+        String trimmedName = fullNameString.split("\\(")[0].trim();
+        info.name = trimmedName;
+
+        // Parse the style from toString() and create a Text object with the trimmed name
+        try {
+            String textToString = fullName.toString();
+            //BetterPrisonsClient.LOGGER.info("Full name toString: " + textToString);
+
+            Style parsedStyle = parseStyleFromToString(textToString);
+            info.displayName = Text.literal(trimmedName).setStyle(parsedStyle);
+        } catch (Exception e) {
+            BetterPrisonsClient.LOGGER.warn("Failed to parse satchel style, using default: " + e.getMessage());
+            info.displayName = Text.literal(trimmedName);
+        }
+
+        info.itemStack = stack.copy(); // Store the ItemStack for icon rendering
+
+        LoreComponent lore = stack.get(DataComponentTypes.LORE);
+        if (lore != null) {
+
+            try {
+                List<Text> lines = lore.lines();
+                String line = lines.get(9).getString();
+                info.current = Integer.parseInt(line.split("/")[0].replace("\\(", "")
+                        .strip().replaceAll(",", ""));
+                info.max = Integer.parseInt(line.split("/")[1].replace("\\)", "")
+                        .strip().replaceAll(",", ""));
+            } catch (NumberFormatException e) {
+                BetterPrisonsClient.LOGGER.warn("Unable to read satchel values");
+            }
+        }
+
+        // Ensure max is at least 1 to avoid division by zero
+        if (info.max <= 0) {
+            info.max = 1;
+        }
+
+        return info;
+    }
+
+    private int computeInventoryHash(PlayerInventory inv) {
+        // Simple hash to detect changes
+        return inv.hashCode();
+    }
+
+    @Override
+    public void render(DrawContext ctx, MinecraftClient client) {
+        this.scale = BetterPrisonsClient.config.satchelHudScale;
+        this.scale = this.scale / 100.0f;
+        if (!enabled || foundSatchels.isEmpty()) return;
+
+        // Calculate maximum text width (considering both name and fill text)
+        int maxTextWidth = 0;
+        for (SatchelInfo satchel : foundSatchels) {
+            // Check name width
+            if (satchel.displayName != null) {
+                int nameWidth = client.textRenderer.getWidth(satchel.displayName);
+                nameWidth = (int)(nameWidth * scale); // Apply scaling
+                maxTextWidth = Math.max(maxTextWidth, nameWidth);
+            }
+
+            // Check fill text width
+            String fillText;
+            if (BetterPrisonsClient.config.satchelShowPercentage) {
+                // Show as percentage
+                double percentage = (satchel.current * 100.0) / satchel.max;
+                fillText = String.format("%.1f%%", percentage);
+            } else {
+                // Show as actual values
+                fillText = formatNumber(satchel.current) + " / " + formatNumber(satchel.max);
+            }
+            int fillTextWidth = client.textRenderer.getWidth(Text.literal(fillText));
+            fillTextWidth = (int)(fillTextWidth * scale); // Apply scaling
+            maxTextWidth = Math.max(maxTextWidth, fillTextWidth);
+        }
+
+        // Draw background with custom styling (with scaling applied)
+        // Layout: [Icon 16px] [spacing 4px] [text content]
+        // Each satchel: 20px height (icon + small padding)
+        int bgWidth = scaled(16 + 4) + maxTextWidth; // icon + spacing + text + padding
+        int bgHeight = foundSatchels.size() * scaled(23); // 24px per satchel (scaled)
+
+        // Combine RGB color with opacity to create ARGB
+        int bgColor = (BetterPrisonsClient.config.satchelBgOpacity << 24) | (BetterPrisonsClient.config.satchelBgColor & 0xFFFFFF);
+        int borderColor = (BetterPrisonsClient.config.satchelBorderOpacity << 24) | (BetterPrisonsClient.config.satchelBorderColor & 0xFFFFFF);
+        int thickness = scaled(BetterPrisonsClient.config.satchelBorderThickness);
+        int padding = 4;
+        if (scale < 1) padding = scaled(padding);
+
+        // Draw background
+        ctx.fill(x - padding, y - padding, x + bgWidth + padding, y + bgHeight + padding, bgColor);
+
+        // Draw border outside the background (no overlap)
+        // Top border
+        ctx.fill(x - padding, y - padding - thickness, x + bgWidth + padding, y - padding, borderColor);
+        // Bottom border
+        ctx.fill(x - padding, y + bgHeight + padding, x + bgWidth + padding, y + bgHeight + padding + thickness, borderColor);
+        // Left border
+        ctx.fill(x - padding - thickness, y - padding - thickness, x - padding, y + bgHeight + padding + thickness, borderColor);
+        // Right border
+        ctx.fill(x + bgWidth + padding, y - padding - thickness, x + bgWidth + padding + thickness, y + bgHeight + padding + thickness, borderColor);
+
+        int yOffset = 0;
+        int rowHeight = scaled(24);
+        int iconSpacing = scaled(20);
+        int textLineSpacing = scaled(10);
+        int iconYOffset = 0;
+
+        Matrix3x2fStack matrices = ctx.getMatrices();
+        for (SatchelInfo satchel : foundSatchels) {
+            // Draw satchel item icon on the left
+            if (satchel.itemStack != null) {
+                //BetterPrisonsClient.LOGGER.info("x: " + x + ", y: " + (y + yOffset + iconYOffset));
+                matrices.pushMatrix();
+                matrices.scale(scale);
+                matrices.translate(x/scale, (y + yOffset + iconYOffset)/scale);
+                ctx.drawItem(satchel.itemStack, 0, 0);
+                matrices.popMatrix();
+            }
+
+            // Draw satchel name next to the icon (first line)
+            if (satchel.displayName != null) {
+                matrices.pushMatrix();
+                matrices.scale(scale);
+                matrices.translate((x + iconSpacing)/scale, (y + yOffset)/scale);
+                ctx.drawText(client.textRenderer, satchel.displayName, 0, 0, 0xFFFFFFFF, true);
+                matrices.popMatrix();
+            }
+
+            // Draw capacity text directly under the name (second line)
+            String fillText;
+            if (BetterPrisonsClient.config.satchelShowPercentage) {
+                // Show as percentage
+                double percentage = (satchel.current * 100.0) / satchel.max;
+                fillText = String.format("%.1f%%", percentage);
+            } else {
+                // Show as actual values
+                fillText = formatNumber(satchel.current) + " / " + formatNumber(satchel.max);
+            }
+            matrices.pushMatrix();
+            matrices.scale(scale);
+            matrices.translate((x + iconSpacing)/scale, (y + yOffset + textLineSpacing)/scale);
+            ctx.drawTextWithShadow(client.textRenderer, Text.literal(fillText), 0, 0, 0xFFAAAAAA);
+            matrices.popMatrix();
+
+            yOffset += rowHeight; // Space for next satchel
+        }
+    }
+
+    @Override
+    public int getHeight() {
+        return foundSatchels.size() * scaled(24); // 24px per satchel (scaled)
+    }
+
+    private String formatNumber(long num) {
+        // Format as "1,234" or "1.2M" etc.
+        return String.format("%,d", num);
+    }
+
+    public static class SatchelInfo {
+        public String name = "";
+        public Text displayName; // Stores the trimmed name with original color/formatting
+        public ItemStack itemStack;
+        public long current = 0;
+        public long max = 1;
+        public float getFillPercent() { return (float) current / max; }
+    }
+}

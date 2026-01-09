@@ -1,0 +1,18 @@
+{
+	"required": true,
+	"package": "BetterPrisons.modid.mixin.client",
+	"compatibilityLevel": "JAVA_21",
+	"refmap": "client-betterprisons-refmap.json",
+	"client": [
+		"ChatMixin",
+		"ChatReceiveMixin",
+		"ParticleDebugMixin",
+		"PeacefulMiningMixin",
+		"ClientPlayerInteractionMixin",
+		"GameRendererMixin",
+		"UseItemWhileMiningMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}
