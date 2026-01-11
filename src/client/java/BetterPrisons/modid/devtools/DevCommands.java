@@ -1,6 +1,7 @@
 package BetterPrisons.modid.devtools;
 
 import BetterPrisons.modid.BetterPrisonsClient;
+import BetterPrisons.modid.JsonLoader;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
@@ -32,6 +33,9 @@ public class DevCommands {
         // Register /bpblock command to get block coordinates
         dispatcher.register(ClientCommandManager.literal("bpblock")
                 .executes(DevCommands::getBlockLookingAt));
+
+        dispatcher.register(ClientCommandManager.literal("bploadcmd")
+                .executes(DevCommands::createDefaultCommands));
     }
 
     private static int inspectHeldItem(CommandContext<FabricClientCommandSource> context) {
@@ -186,6 +190,12 @@ public class DevCommands {
         String message = "§aBlock: §f" + blockPos.getX() + ", " + blockPos.getY() + ", " + blockPos.getZ();
         context.getSource().sendFeedback(Text.literal(message));
 
+        return 1;
+    }
+
+    private static int createDefaultCommands(CommandContext<FabricClientCommandSource> context) {
+        JsonLoader.createDefaultCommands();
+        context.getSource().sendFeedback(Text.literal("§aDefault commands configuration created/overwritten."));
         return 1;
     }
 }

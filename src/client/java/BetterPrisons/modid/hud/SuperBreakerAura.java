@@ -5,6 +5,7 @@ import BetterPrisons.modid.enchants.BaseEnchant;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.text.Text;
+import org.joml.Matrix3x2fStack;
 
 public class SuperBreakerAura {
 
@@ -18,10 +19,14 @@ public class SuperBreakerAura {
         }
         if (!superBreaker.isActive) return;
 
+        // Get scale from config
+        float scale = BetterPrisonsClient.config.superBreakerAuraScale / 100.0f;
+        Matrix3x2fStack matrices = ctx.getMatrices();
+
         int screenWidth = client.getWindow().getScaledWidth();
         int screenHeight = client.getWindow().getScaledHeight();
 
-        // Center position
+        // Center position (screen center)
         int centerX = screenWidth / 2;
         int centerY = screenHeight / 2;
 
@@ -38,11 +43,20 @@ public class SuperBreakerAura {
 
         int timerColor = 0xFFFFFFFF; // White timer
 
-        // Draw two semicircles (left and right halves)
+        // Base dimensions
         int radius = 100;
         int thickness = 10;
 
-        // First, draw full arcs in dark/base color
+        // Push matrix to apply scaling around the center point
+        matrices.pushMatrix();
+        // Translate to center
+        matrices.translate(centerX, centerY);
+        // Scale around the center
+        matrices.scale(scale, scale);
+        // Translate back so we draw at (0, 0)
+        matrices.translate(-centerX, -centerY);
+
+        // Draw two semicircles (left and right halves) - now at absolute centerX, centerY which will be scaled
         drawSemicircle(ctx, centerX, centerY, radius, thickness, baseColor, true, 1.0);
         drawSemicircle(ctx, centerX, centerY, radius, thickness, baseColor, false, 1.0);
 
@@ -50,12 +64,15 @@ public class SuperBreakerAura {
         drawSemicircle(ctx, centerX, centerY, radius, thickness, lightColor, true, progress);
         drawSemicircle(ctx, centerX, centerY, radius, thickness, lightColor, false, progress);
 
-        // Draw countdown timer in center
+        // Draw countdown timer in center (using the same transformation)
         int timerWidth = client.textRenderer.getWidth(timeText);
         int timerX = centerX - timerWidth / 2;
         int timerY = centerY - 4;
 
         ctx.drawTextWithShadow(client.textRenderer, Text.literal(timeText), timerX, timerY, timerColor);
+
+        // Pop matrix to restore original transformation
+        matrices.popMatrix();
     }
 
     private void drawSemicircle(DrawContext ctx, int centerX, int centerY, int radius, int thickness, int color, boolean isLeft, double fillProgress) {

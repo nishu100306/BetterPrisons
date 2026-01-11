@@ -10,7 +10,9 @@
 		"PeacefulMiningMixin",
 		"ClientPlayerInteractionMixin",
 		"GameRendererMixin",
-		"UseItemWhileMiningMixin"
+		"UseItemWhileMiningMixin",
+		"HandledScreenMixin",
+		"GenericContainerScreenMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

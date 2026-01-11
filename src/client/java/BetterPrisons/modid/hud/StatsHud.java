@@ -1,6 +1,7 @@
 package BetterPrisons.modid.hud;
 
 import BetterPrisons.modid.BetterPrisonsClient;
+import BetterPrisons.modid.Config;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.item.ItemStack;
@@ -9,6 +10,7 @@ import net.minecraft.scoreboard.ScoreboardObjective;
 import net.minecraft.scoreboard.ScoreboardEntry;
 import net.minecraft.scoreboard.ScoreboardDisplaySlot;
 import net.minecraft.scoreboard.Team;
+import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import org.joml.Matrix3x2fStack;
 
@@ -32,9 +34,8 @@ public class StatsHud extends BaseHud {
     private long lastTickXP = 0;
     public long totalSessionXPGained = 0;
 
-    // Energy gain tracking (past minute for energy/hr calculation)
-    private List<EnergyGain> energyGainHistory = new ArrayList<>();
-    private long lastTickEnergy = 0;
+    // Energy reading tracking (past minute for energy/hr calculation)
+    private List<EnergyReading> energyReadings = new ArrayList<>();
     private ItemStack lastPickaxe = ItemStack.EMPTY;
     public long totalSessionEnergyGained = 0;
 
@@ -57,14 +58,19 @@ public class StatsHud extends BaseHud {
         Scoreboard scoreboard = client.world.getScoreboard();
         parseScoreboard(scoreboard);
 
-        // Auto-start tracking on first valid data
-        if (!trackingActive && currentXP > 0) {
+        // Get current pickaxe and parse energy
+        ItemStack currentPickaxe = client.player.getMainHandStack();
+        long currentEnergyFromPickaxe = parseEnergyFromPickaxe(currentPickaxe);
+        if (currentEnergyFromPickaxe > 0) {
+            currentEnergy = currentEnergyFromPickaxe;
+        }
+
+        // Auto-start tracking on first valid data (XP or Energy)
+        if (!trackingActive && (currentXP > 0 || currentEnergy > 0)) {
             startTracking();
         }
 
         if (trackingActive) {
-            // Get current pickaxe
-            ItemStack currentPickaxe = client.player.getMainHandStack();
             boolean pickaxeChanged = !ItemStack.areEqual(currentPickaxe, lastPickaxe);
 
             // Track XP gains (only if pickaxe hasn't changed and XP increased)
@@ -75,24 +81,106 @@ public class StatsHud extends BaseHud {
                 totalSessionXPGained += xpGain;
             }
 
-            // Track energy gains (only if pickaxe hasn't changed and energy increased)
-            if (!pickaxeChanged && lastTickEnergy > 0 && currentEnergy > lastTickEnergy) {
-                long energyGain = currentEnergy - lastTickEnergy;
+            // Track energy readings
+            if (currentEnergyFromPickaxe > 0) {
                 long now = System.currentTimeMillis();
-                energyGainHistory.add(new EnergyGain(energyGain, now));
-                totalSessionEnergyGained += energyGain;
+
+                // Check if energy decreased compared to last reading
+                boolean energyDecreased = false;
+                if (!energyReadings.isEmpty()) {
+                    EnergyReading lastReading = energyReadings.get(energyReadings.size() - 1);
+                    if (currentEnergy < lastReading.energy) {
+                        energyDecreased = true;
+                        // Energy went down - discard all prior data but keep session totals
+                        energyReadings.clear();
+                        // Don't add the current reading - skip this tick's data point
+                    }
+                }
+
+                // Only add reading if energy didn't decrease
+                if (!energyDecreased) {
+                    // Add new reading
+                    energyReadings.add(new EnergyReading(currentEnergy, now));
+
+                    // Remove readings older than 1 minute
+                    long oneMinuteAgo = now - 60000;
+                    energyReadings.removeIf(reading -> reading.timestamp < oneMinuteAgo);
+
+                    // Track session energy gain if we have previous data
+                    if (energyReadings.size() >= 2) {
+                        EnergyReading previousReading = energyReadings.get(energyReadings.size() - 2);
+                        EnergyReading currentReading = energyReadings.get(energyReadings.size() - 1);
+                        if (currentReading.energy > previousReading.energy) {
+                            // Energy increased, track gain for session stats
+                            long energyGain = currentReading.energy - previousReading.energy;
+                            totalSessionEnergyGained += energyGain;
+                        }
+                    }
+                }
             }
 
-            // Remove gains older than 1 minute
+            // Remove XP gains older than 1 minute
             long oneMinuteAgo = System.currentTimeMillis() - 60000;
             xpGainHistory.removeIf(gain -> gain.timestamp < oneMinuteAgo);
-            energyGainHistory.removeIf(gain -> gain.timestamp < oneMinuteAgo);
 
             // Update tracking variables
             lastTickXP = currentXP;
-            lastTickEnergy = currentEnergy;
             lastPickaxe = currentPickaxe.copy();
         }
+    }
+
+    /**
+     * Parse energy from pickaxe lore
+     * Looks for "Cosmic Energy" line, then reads the value 2 lines below
+     * Format: "(3,079 / 859,200)" where first number is current energy
+     * Returns -1 if not found or error parsing
+     */
+    private long parseEnergyFromPickaxe(ItemStack pickaxe) {
+        if (pickaxe == null || pickaxe.isEmpty()) return -1;
+
+        try {
+            net.minecraft.component.type.LoreComponent lore = pickaxe.get(net.minecraft.component.DataComponentTypes.LORE);
+            if (lore == null || lore.lines().isEmpty()) return -1;
+
+            // Convert lore to list of plain text strings
+            List<String> loreLines = new ArrayList<>();
+            for (Text text : lore.lines()) {
+                String line = text.getString().replaceAll("§.", "");
+                loreLines.add(line);
+            }
+
+            // Find "Cosmic Energy" line
+            for (int i = 0; i < loreLines.size(); i++) {
+                String line = loreLines.get(i);
+                if (line.contains("Cosmic Energy")) {
+                    // Look 2 lines below
+                    int energyLineIndex = i + 2;
+                    if (energyLineIndex < loreLines.size()) {
+                        String energyLine = loreLines.get(energyLineIndex);
+
+                        // Parse format: "(3,079 / 859,200)"
+                        // Extract the first number
+                        if (energyLine.contains("(") && energyLine.contains("/")) {
+                            int startIdx = energyLine.indexOf("(");
+                            int slashIdx = energyLine.indexOf("/");
+                            if (startIdx != -1 && slashIdx != -1 && slashIdx > startIdx) {
+                                String energyText = energyLine.substring(startIdx + 1, slashIdx).trim();
+                                // Parse using the existing number parser
+                                long parsed = BetterPrisonsClient.enchantParsing.parseFormattedNumber(energyText);
+                                if (parsed > 0) {
+                                    return parsed;
+                                }
+                            }
+                        }
+                    }
+                    break;
+                }
+            }
+        } catch (Exception e) {
+            // Ignore parse errors
+        }
+
+        return -1;
     }
 
     private void parseScoreboard(Scoreboard scoreboard) {
@@ -113,7 +201,7 @@ public class StatsHud extends BaseHud {
                 Text displayText = getDisplayText(scoreboard, entry);
                 String stripped = displayText.getString().replaceAll("§.", "");
 
-                if (stripped.trim().equalsIgnoreCase("Level")) {
+                if (stripped.trim().startsWith("Level")) {
                     levelValue = entry.value();
                     break;
                 }
@@ -122,32 +210,13 @@ public class StatsHud extends BaseHud {
             }
         }
 
-        // Parse each line looking for XP and Energy
+        // Parse each line looking for XP
         for (ScoreboardEntry entry : entries) {
             try {
                 // Get the full display text (including team formatting)
                 Text displayText = getDisplayText(scoreboard, entry);
                 String fullText = displayText.getString();
                 String stripped = fullText.replaceAll("§.", "");
-
-                // Look for Energy pattern: "(153,116 / 295,200)"
-                // Pattern: (number / number) - use the first number
-                if (stripped.matches(".*\\(.*\\s*/\\s*.*\\).*")) {
-                    try {
-                        // Extract the first number from the pattern
-                        String[] parts = stripped.split("/");
-                        if (parts.length >= 1) {
-                            // Get the part before the slash and extract the number
-                            String firstPart = parts[0].replaceAll("[^0-9,]", "");
-                            long parsed = BetterPrisonsClient.enchantParsing.parseFormattedNumber(firstPart);
-                            if (parsed > 0) {
-                                currentEnergy = parsed;
-                            }
-                        }
-                    } catch (Exception e) {
-                        // Ignore parse errors for energy
-                    }
-                }
 
                 // Look for XP pattern: "   100 (118,686,166 XP)"
                 // This line has value = (Level line value - 1)
@@ -229,9 +298,8 @@ public class StatsHud extends BaseHud {
         sessionStartEnergy = currentEnergy;
         sessionStartTime = System.currentTimeMillis();
         xpGainHistory.clear();
-        energyGainHistory.clear();
+        energyReadings.clear();
         lastTickXP = currentXP;
-        lastTickEnergy = currentEnergy;
         totalSessionXPGained = 0;
         totalSessionEnergyGained = 0;
         lastStatsUpdateTime = 0;
@@ -247,9 +315,8 @@ public class StatsHud extends BaseHud {
         sessionStartEnergy = currentEnergy;
         sessionStartTime = System.currentTimeMillis();
         xpGainHistory.clear();
-        energyGainHistory.clear();
+        energyReadings.clear();
         lastTickXP = currentXP;
-        lastTickEnergy = currentEnergy;
         totalSessionXPGained = 0;
         totalSessionEnergyGained = 0;
         lastStatsUpdateTime = 0;
@@ -296,44 +363,24 @@ public class StatsHud extends BaseHud {
 
     public long getEnergyPerMinute() {
         if (!trackingActive) return 0;
-        if (energyGainHistory.isEmpty()) return 0;
+        if (energyReadings.size() < 2) return 0;
 
-        // Sum up all gains in history
-        long totalGains = 0;
-        for (EnergyGain gain : energyGainHistory) {
-            totalGains += gain.amount;
-        }
+        // Get oldest and newest readings
+        EnergyReading oldestReading = energyReadings.get(0);
+        EnergyReading newestReading = energyReadings.get(energyReadings.size() - 1);
 
-        if (totalGains == 0) return 0;
+        // Calculate energy gained
+        long energyGained = newestReading.energy - oldestReading.energy;
+        if (energyGained <= 0) return 0;
 
-        // Calculate the actual time span of the data we have
-        long now = System.currentTimeMillis();
-        long oldestTimestamp = energyGainHistory.get(0).timestamp;
-
-        // Use the time from oldest gain to now (not sessionStartTime!)
-        double elapsedSeconds = (now - oldestTimestamp) / 1000.0;
+        // Calculate time elapsed in seconds
+        double elapsedSeconds = (newestReading.timestamp - oldestReading.timestamp) / 1000.0;
 
         // Need at least 5 seconds of data for reasonable accuracy
         if (elapsedSeconds < 5.0) return 0;
 
         // Calculate rate per minute
-        return (long) ((totalGains / elapsedSeconds) * 60.0);
-    }
-
-    public long getTotalXPPerMinute() {
-        if (!trackingActive || sessionStartTime == 0) return 0;
-        long elapsed = System.currentTimeMillis() - sessionStartTime;
-        if (elapsed < 1000) return 0;
-        double minutes = elapsed / 60000.0;
-        return (long) (totalSessionXPGained / minutes);
-    }
-
-    public long getTotalEnergyPerMinute() {
-        if (!trackingActive || sessionStartTime == 0) return 0;
-        long elapsed = System.currentTimeMillis() - sessionStartTime;
-        if (elapsed < 1000) return 0;
-        double minutes = elapsed / 60000.0;
-        return (long) (totalSessionEnergyGained / minutes);
+        return (long) ((energyGained / elapsedSeconds) * 60.0);
     }
 
     public String getSessionDuration() {
@@ -378,6 +425,8 @@ public class StatsHud extends BaseHud {
             lastStatsUpdateTime = now;
         }
 
+        boolean showTitle = BetterPrisonsClient.config.showStatsHudTitle;
+
         // Build list of visible elements
         java.util.List<String> visibleElements = new java.util.ArrayList<>();
 
@@ -409,18 +458,33 @@ public class StatsHud extends BaseHud {
             visibleElements.add("Session: " + getSessionDuration());
         }
 
-        // If no elements are visible, don't render
-        if (visibleElements.isEmpty()) return;
+        boolean hasContent = !visibleElements.isEmpty();
+
+        // If no title and no elements are visible, don't render
+        if (!showTitle && !hasContent) return;
+
+        // Calculate title dimensions
+        int titleHeight = 0;
+        int titleWidth = 0;
+        if (showTitle) {
+            Text titleText = Text.literal("Stats HUD");
+            titleWidth = (int)(client.textRenderer.getWidth(titleText) * scale);
+            titleHeight = scaled(10); // Text height + spacing
+        }
 
         // Calculate maximum text width from visible elements
-        int maxWidth = 0;
-        for (String text : visibleElements) {
-            maxWidth = Math.max(maxWidth, client.textRenderer.getWidth(Text.literal(text)));
+        int maxWidth = titleWidth;
+        if (hasContent) {
+            for (String text : visibleElements) {
+                int textWidth = (int)(client.textRenderer.getWidth(Text.literal(text)) * scale);
+                maxWidth = Math.max(maxWidth, textWidth);
+            }
         }
 
         // Draw background with custom styling and dynamic width/height
-        int bgWidth = scaled(maxWidth + 4);
-        int bgHeight = scaled(visibleElements.size() * 12 - 2); // 12px per line, -2 for bottom padding
+        int bgWidth = scaled((int)(maxWidth/scale) + 4);
+        int contentHeight = hasContent ? scaled(visibleElements.size() * 12 - 2) : 0; // 12px per line, -2 for bottom padding
+        int bgHeight = titleHeight + contentHeight;
 
         // Combine RGB color with opacity to create ARGB
         int bgColor = (BetterPrisonsClient.config.statsBgOpacity << 24) | (BetterPrisonsClient.config.statsBgColor & 0xFFFFFF);
@@ -440,31 +504,62 @@ public class StatsHud extends BaseHud {
         // Right border
         ctx.fill(x + bgWidth + 2, y - 2 - thickness, x + bgWidth + 2 + thickness, y + bgHeight + thickness, borderColor);
 
-        // Render all visible elements
         int yOffset = 0;
-        for (int i = 0; i < visibleElements.size(); i++) {
-            String text = visibleElements.get(i);
 
-            // Determine color based on element type
-            int color;
-            if (text.startsWith("XP:") || text.startsWith("CE:")) {
-                color = 0xFFFFFFFF; // White for current values
-            } else if (text.startsWith("Session:")) {
-                color = 0xFF888888; // Gray for session duration
-            } else {
-                color = 0xFFAAAAAA; // Light gray for other stats
-            }
+        // Draw title if enabled
+        if (showTitle) {
+            Text titleText = Text.literal("Stats HUD").setStyle(Style.EMPTY.withUnderline(true));
+            int titleColor = 0xFF000000 | BetterPrisonsClient.config.statsHudTitleColor;
             matrices.pushMatrix();
             matrices.scale(scale);
-            matrices.translate(x/scale, (y + yOffset)/scale);
-            ctx.drawTextWithShadow(client.textRenderer, Text.literal(text), 0, 0, color);
+            matrices.translate(x/scale, y/scale);
+            ctx.drawTextWithShadow(client.textRenderer, titleText, 0, 0, titleColor);
             matrices.popMatrix();
-            yOffset += scaled(12);
+            yOffset += titleHeight;
+        }
+
+        // Render all visible elements
+        if (hasContent) {
+            for (int i = 0; i < visibleElements.size(); i++) {
+                String text = visibleElements.get(i);
+
+                // Determine color based on element type using config
+                int color;
+                if (text.startsWith("XP:")) {
+                    color = 0xFF000000 | BetterPrisonsClient.config.statsCurrentXPColor;
+                } else if (text.startsWith("XP/hr:")) {
+                    color = 0xFF000000 | BetterPrisonsClient.config.statsXPPerHourColor;
+                } else if (text.startsWith("XP/min:")) {
+                    color = 0xFF000000 | BetterPrisonsClient.config.statsXPPerMinuteColor;
+                } else if (text.startsWith("Session XP:")) {
+                    color = 0xFF000000 | BetterPrisonsClient.config.statsSessionXPColor;
+                } else if (text.startsWith("CE:")) {
+                    color = 0xFF000000 | BetterPrisonsClient.config.statsCurrentCEColor;
+                } else if (text.startsWith("CE/hr:")) {
+                    color = 0xFF000000 | BetterPrisonsClient.config.statsCEPerHourColor;
+                } else if (text.startsWith("CE/min:")) {
+                    color = 0xFF000000 | BetterPrisonsClient.config.statsCEPerMinuteColor;
+                } else if (text.startsWith("Session CE:")) {
+                    color = 0xFF000000 | BetterPrisonsClient.config.statsSessionCEColor;
+                } else if (text.startsWith("Session:")) {
+                    color = 0xFF000000 | BetterPrisonsClient.config.statsSessionDurationColor;
+                } else {
+                    color = 0xFFFFFFFF; // Default to white
+                }
+                matrices.pushMatrix();
+                matrices.scale(scale);
+                matrices.translate(x/scale, (y + yOffset)/scale);
+                ctx.drawTextWithShadow(client.textRenderer, Text.literal(text), 0, 0, color);
+                matrices.popMatrix();
+                yOffset += scaled(12);
+            }
         }
     }
 
     @Override
     public int getHeight() {
+        int titleHeight = BetterPrisonsClient.config.showStatsHudTitle ? scaled(10) : 0;
+
         // Count visible elements
         int visibleCount = 0;
         if (BetterPrisonsClient.config.statsShowCurrentXP) visibleCount++;
@@ -477,7 +572,7 @@ public class StatsHud extends BaseHud {
         if (BetterPrisonsClient.config.statsShowSessionCE) visibleCount++;
         if (BetterPrisonsClient.config.statsShowSessionDuration) visibleCount++;
 
-        return visibleCount * 12;
+        return titleHeight + (visibleCount * 12);
     }
 
     private String formatNumber(long num) {
@@ -513,13 +608,13 @@ public class StatsHud extends BaseHud {
         }
     }
 
-    // Helper class to track energy gains with timestamps
-    private static class EnergyGain {
-        long amount;
+    // Helper class to track energy readings with timestamps
+    private static class EnergyReading {
+        long energy;
         long timestamp;
 
-        EnergyGain(long amount, long timestamp) {
-            this.amount = amount;
+        EnergyReading(long energy, long timestamp) {
+            this.energy = energy;
             this.timestamp = timestamp;
         }
     }

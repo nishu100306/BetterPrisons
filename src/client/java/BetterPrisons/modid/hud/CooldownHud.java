@@ -5,7 +5,13 @@ import BetterPrisons.modid.BetterPrisonsClient;
 import BetterPrisons.modid.JsonLoader;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
+import net.minecraft.registry.Registries;
 import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
+import org.joml.Matrix3x2fStack;
+import net.minecraft.text.Style;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,38 +31,129 @@ public class CooldownHud extends BaseHud {
         definitions = JsonLoader.loadCommands();
     }
 
+    // Helper method to check if a command is enabled based on its display name
+    private boolean isCommandEnabled(String displayName) {
+        switch (displayName) {
+            case "Home": return BetterPrisonsClient.config.homeEnabled;
+            case "Jet": return BetterPrisonsClient.config.jetEnabled;
+            case "Feed": return BetterPrisonsClient.config.feedEnabled;
+            case "Fix": return BetterPrisonsClient.config.fixEnabled;
+            case "Combat": return BetterPrisonsClient.config.combatEnabled;
+            default: return true; // Default to enabled for unknown commands
+        }
+    }
+
+    // Helper method to get the color for a command based on its display name
+    private int getCommandColor(String displayName) {
+        switch (displayName) {
+            case "Home": return BetterPrisonsClient.config.homeColor;
+            case "Jet": return BetterPrisonsClient.config.jetColor;
+            case "Feed": return BetterPrisonsClient.config.feedColor;
+            case "Fix": return BetterPrisonsClient.config.fixColor;
+            case "Combat": return BetterPrisonsClient.config.combatColor;
+            default: return 0xFFFFFF; // Default to white for unknown commands
+        }
+    }
+
     // Called by ChatMixin when a command is sent
     public void onCommandSent(String command) {
         BetterPrisonsClient.LOGGER.info("Command sent: " + command);
         for (CommandDef def : definitions) {
             if (matches(command, def)) {
                 BetterPrisonsClient.LOGGER.info("Command matched");
-                if (def.activeDuration > 0) {
-                    // Command has active phase + cooldown
-                    addCooldownWithActive(def.displayName, def.activeDuration, def.cooldownDuration);
-                } else {
-                    // Command has only cooldown
-                    addCooldown(def.displayName, def.cooldown);
+
+                // Check if command is enabled
+                if (!isCommandEnabled(def.displayName)) {
+                    BetterPrisonsClient.LOGGER.info("Command is disabled, skipping");
+                    return;
+                }
+
+                // Special handling for /home and /fix to set chat patterns dynamically
+                if (command.startsWith("/home ")) {
+                    // Check if cooldown already active, dont set chatPattern if alr active
+                    for (ActiveCooldown cd : activeCooldowns) {
+                        if (cd.name.equals(def.displayName)) {
+                            return; // Cooldown already active, don't set a new one
+                        }
+                    }
+                    String homeName = command.split(" ")[1].toLowerCase();
+                    BetterPrisonsClient.LOGGER.info("Home name: " + homeName);
+                    if (homeName.isEmpty() ||
+                            homeName.contains(" ") ||
+                            homeName.equals("delete") ||
+                            homeName.equals("list") ||
+                            homeName.equals("set"))
+                    { return;}
+                    def.chatPattern = String.format("§a§l(!) §aTeleported to §a§n%s§a!", homeName);
+                }
+                if (def.command.equals("/fix")) {
+                    // Check if cooldown already active, dont set chatPattern if alr active
+                    for (ActiveCooldown cd : activeCooldowns) {
+                        if (cd.name.equals(def.displayName)) {
+                            return; // Cooldown already active, don't set a new one
+                        }
+                    }
+                    def.chatPattern = "§a§l(!) §aYour item has been restored!";
+                }
+                if (def.command.equals("/jet")) {
+                    // Check if cooldown already active, dont set chatPattern if alr active
+                    for (ActiveCooldown cd : activeCooldowns) {
+                        if (cd.name.equals(def.displayName)) {
+                            return; // Cooldown already active, don't set a new one
+                        }
+                    }
+                    def.chatPattern = "§a§lJETPACK ENGAGED: §f§lprepare for launch!";
+                }
+                if (def.command.equals("/feed")) {
+                    // Check if cooldown already active, dont set chatPattern if alr active
+                    for (ActiveCooldown cd : activeCooldowns) {
+                        if (cd.name.equals(def.displayName)) {
+                            return; // Cooldown already active, don't set a new one
+                        }
+                    }
+                    def.chatPattern = "§a§l(!) §aYou have been satiated.";
+                }
+
+                // Only add cooldown if no chat pattern is defined (command-triggered)
+                if (def.chatPattern == null || def.chatPattern.isEmpty()) {
+                    addCooldown(def.displayName, def.cooldown, def.icon, getCommandColor(def.displayName));
                 }
                 break;
             }
         }
     }
 
-    // Called by enchants or other systems to add a simple cooldown
-    public void addCooldown(String name, int durationSeconds) {
-        // Don't add if a cooldown with the same name already exists
-        for (ActiveCooldown cd : activeCooldowns) {
-            if (cd.name.equals(name)) {
-                return; // Already exists, don't add duplicate
+    // Called by ChatReceiveMixin when a chat message is received
+    public void onChatReceived(String message) {
+        for (CommandDef def : definitions) {
+            // Only check if this command uses chat pattern detection
+            if (def.chatPattern != null && !def.chatPattern.isEmpty()) {
+                if (message.equals(def.chatPattern)) {
+                    //BetterPrisonsClient.LOGGER.info("Cooldown triggered by chat pattern: " + def.displayName);
+                    if (isCommandEnabled(def.displayName)) {
+                        addCooldown(def.displayName, def.cooldown, def.icon, getCommandColor(def.displayName));
+                    }
+                    if (def.command.equals("/fix") || def.command.equals("/home") || def.command.equals("/jet") || def.command.equals("/feed")) {
+                        def.chatPattern = null; // Reset after use
+                    }
+                    break;
+                }
             }
         }
-        // Add the new cooldown
-        activeCooldowns.add(new ActiveCooldown(name, 0, durationSeconds, System.currentTimeMillis()));
     }
 
-    // Add a cooldown with active duration
-    public void addCooldownWithActive(String name, int activeDuration, int cooldownDuration) {
+    // Called by enchants or other systems to add a simple cooldown
+    public void addCooldown(String name, int durationSeconds) {
+        addCooldown(name, durationSeconds, null, 0xFFFFFF);
+    }
+
+    // Add cooldown with icon
+    public void addCooldown(String name, int durationSeconds, String icon) {
+        addCooldown(name, durationSeconds, icon, 0xFFFFFF);
+    }
+
+    // Add cooldown with icon and color
+    public void addCooldown(String name, int durationSeconds, String icon, int color) {
         // Don't add if a cooldown with the same name already exists
         for (ActiveCooldown cd : activeCooldowns) {
             if (cd.name.equals(name)) {
@@ -64,7 +161,7 @@ public class CooldownHud extends BaseHud {
             }
         }
         // Add the new cooldown
-        activeCooldowns.add(new ActiveCooldown(name, activeDuration, cooldownDuration, System.currentTimeMillis()));
+        activeCooldowns.add(new ActiveCooldown(name, durationSeconds, System.currentTimeMillis(), icon, color));
     }
 
     @Override
@@ -76,129 +173,201 @@ public class CooldownHud extends BaseHud {
 
     @Override
     public void render(DrawContext ctx, MinecraftClient client) {
-        if (!enabled || activeCooldowns.isEmpty()) return;
+        this.scale = BetterPrisonsClient.config.cooldownHudScale;
+        this.scale = this.scale / 100.0f;
 
-        // Calculate maximum width needed
-        int maxWidth = 0;
-        for (ActiveCooldown cd : activeCooldowns) {
-            int nameWidth = client.textRenderer.getWidth(Text.literal(cd.name));
-            String timeText = cd.getRemainingSeconds() + "s";
-            int timeWidth = client.textRenderer.getWidth(Text.literal(timeText));
-            int totalWidth = nameWidth + 10 + timeWidth; // 10px offset between name and time
-            maxWidth = Math.max(maxWidth, totalWidth);
+        boolean showTitle = BetterPrisonsClient.config.showCooldownHudTitle;
+        boolean hasContent = !activeCooldowns.isEmpty();
+
+        // Don't render if HUD is disabled and there's nothing to show
+        if (!enabled || (!showTitle && !hasContent)) return;
+
+        // Calculate title dimensions
+        int titleHeight = 0;
+        int titleWidth = 0;
+        if (showTitle) {
+            Text titleText = Text.literal("Cooldown HUD");
+            titleWidth = (int)(client.textRenderer.getWidth(titleText) * scale);
+            titleHeight = scaled(10); // Text height + spacing
         }
 
-        // Draw background with custom styling
-        int bgWidth = maxWidth + 4; // Add some padding
-        int bgHeight = activeCooldowns.size() * 12;
+        // Calculate maximum width needed for content (scaled)
+        int iconSpace = scaled(20); // 16px icon + 4px spacing
+        int maxWidth = titleWidth;
+        if (hasContent) {
+            for (ActiveCooldown cd : activeCooldowns) {
+                int nameWidth = client.textRenderer.getWidth(Text.literal(cd.name));
+                nameWidth = (int)(nameWidth * scale); // Apply scaling
+                String timeText = cd.getRemainingSeconds() + "s";
+                int timeWidth = client.textRenderer.getWidth(Text.literal(timeText));
+                timeWidth = (int)(timeWidth * scale); // Apply scaling
+                int totalWidth = iconSpace + nameWidth + scaled(10) + timeWidth; // icon + name + spacing + time
+                maxWidth = Math.max(maxWidth, totalWidth);
+            }
+        }
+
+        // Draw background with custom styling (with scaling applied)
+        int bgWidth = maxWidth; // Width already includes padding from maxWidth calculation
+        int contentHeight = hasContent ? activeCooldowns.size() * scaled(18) : 0;
+        int bgHeight = titleHeight + contentHeight;
 
         // Combine RGB color with opacity to create ARGB
         int bgColor = (BetterPrisonsClient.config.cooldownBgOpacity << 24) | (BetterPrisonsClient.config.cooldownBgColor & 0xFFFFFF);
         int borderColor = (BetterPrisonsClient.config.cooldownBorderOpacity << 24) | (BetterPrisonsClient.config.cooldownBorderColor & 0xFFFFFF);
-        int thickness = BetterPrisonsClient.config.cooldownBorderThickness;
+        int thickness = scaled(BetterPrisonsClient.config.cooldownBorderThickness);
+        int padding = 4;
+        if (scale < 1) padding = scaled(padding);
 
         // Draw background
-        ctx.fill(x - 2, y - 2, x + bgWidth + 2, y + bgHeight + 2, bgColor);
+        ctx.fill(x - padding, y - padding, x + bgWidth + padding, y + bgHeight + padding, bgColor);
 
         // Draw border outside the background (no overlap)
         // Top border
-        ctx.fill(x - 2, y - 2 - thickness, x + bgWidth + 2, y - 2, borderColor);
+        ctx.fill(x - padding, y - padding - thickness, x + bgWidth + padding, y - padding, borderColor);
         // Bottom border
-        ctx.fill(x - 2, y + bgHeight + 2, x + bgWidth + 2, y + bgHeight + 2 + thickness, borderColor);
+        ctx.fill(x - padding, y + bgHeight + padding, x + bgWidth + padding, y + bgHeight + padding + thickness, borderColor);
         // Left border
-        ctx.fill(x - 2 - thickness, y - 2 - thickness, x - 2, y + bgHeight + 2 + thickness, borderColor);
+        ctx.fill(x - padding - thickness, y - padding - thickness, x - padding, y + bgHeight + padding + thickness, borderColor);
         // Right border
-        ctx.fill(x + bgWidth + 2, y - 2 - thickness, x + bgWidth + 2 + thickness, y + bgHeight + 2 + thickness, borderColor);
+        ctx.fill(x + bgWidth + padding, y - padding - thickness, x + bgWidth + padding + thickness, y + bgHeight + padding + thickness, borderColor);
 
+        Matrix3x2fStack matrices = ctx.getMatrices();
         int yOffset = 0;
-        for (ActiveCooldown cd : activeCooldowns) {
-            // Determine if in active or cooldown phase
-            boolean isActive = cd.isInActivePhase();
-            int textColor = isActive ? 0xFF00FF00 : 0xFFFFFFFF; // Green if active, white if cooldown
 
-            // Draw label
-            ctx.drawTextWithShadow(client.textRenderer, Text.literal(cd.name), x, y + yOffset, textColor);
+        // Draw title if enabled
+        if (showTitle) {
+            Text titleText = Text.literal("Cooldown HUD").setStyle(Style.EMPTY.withUnderline(true));
+            int titleColor = 0xFF000000 | BetterPrisonsClient.config.cooldownHudTitleColor;
+            matrices.pushMatrix();
+            matrices.scale(scale);
+            matrices.translate(x/scale, y/scale);
+            ctx.drawTextWithShadow(client.textRenderer, titleText, 0, 0, titleColor);
+            matrices.popMatrix();
 
-            // Calculate timer position with offset
-            int nameWidth = client.textRenderer.getWidth(Text.literal(cd.name));
-            int timerX = x + nameWidth + 10; // 10px offset after name
 
-            // Draw remaining time with same color as name
-            String timeText = cd.getRemainingSeconds() + "s";
-            ctx.drawTextWithShadow(client.textRenderer, Text.literal(timeText), timerX, y + yOffset, textColor);
-            yOffset += 12;
+            yOffset += titleHeight;
+        }
+
+        // Draw cooldown content
+        if (hasContent) {
+            int rowHeight = scaled(18);
+            int iconYOffset = scaled(1);
+            int textYOffset = scaled(4);
+
+            for (ActiveCooldown cd : activeCooldowns) {
+                int textColor = 0xFF000000 | cd.color; // Use configured color with full alpha
+
+                // Draw icon if available
+                if (cd.icon != null && !cd.icon.isEmpty()) {
+                    try {
+                        Identifier itemId = Identifier.of(cd.icon);
+                        ItemStack iconStack = new ItemStack(Registries.ITEM.get(itemId));
+                        if (!iconStack.isEmpty()) {
+                            matrices.pushMatrix();
+                            matrices.scale(scale);
+                            matrices.translate(x/scale, (y + yOffset + iconYOffset)/scale);
+                            ctx.drawItem(iconStack, 0, 0);
+                            matrices.popMatrix();
+                        }
+                    } catch (Exception e) {
+                        BetterPrisonsClient.LOGGER.warn("Failed to render icon for cooldown: " + cd.icon);
+                    }
+                }
+
+                // Draw label (positioned after icon)
+                matrices.pushMatrix();
+                matrices.scale(scale);
+                matrices.translate((x + iconSpace)/scale, (y + yOffset + textYOffset)/scale);
+                ctx.drawTextWithShadow(client.textRenderer, Text.literal(cd.name), 0, 0, textColor);
+                matrices.popMatrix();
+
+                // Calculate timer position with offset
+                int nameWidth = client.textRenderer.getWidth(Text.literal(cd.name));
+                int timerX = iconSpace + (int)(nameWidth * scale) + scaled(10);
+
+                // Draw remaining time
+                String timeText = cd.getRemainingSeconds() + "s";
+                matrices.pushMatrix();
+                matrices.scale(scale);
+                matrices.translate((x + timerX)/scale, (y + yOffset + textYOffset)/scale);
+                ctx.drawTextWithShadow(client.textRenderer, Text.literal(timeText), 0, 0, textColor);
+                matrices.popMatrix();
+
+                yOffset += rowHeight;
+            }
         }
     }
 
     @Override
     public int getHeight() {
-        return activeCooldowns.size() * 12;
+        int titleHeight = BetterPrisonsClient.config.showCooldownHudTitle ? scaled(10) : 0;
+        int contentHeight = activeCooldowns.size() * scaled(18);
+        return titleHeight + contentHeight;
     }
 
     // Inner classes
     public static class CommandDef {
         public String command;
         public String matchType; // "exact" or "startsWith"
-        public int cooldown; // Simple cooldown (if no active duration)
-        public int activeDuration; // Duration command is active (0 if not applicable)
-        public int cooldownDuration; // Cooldown after active phase
+        public int cooldown; // Cooldown duration in seconds
         public String displayName;
+        public String chatPattern; // Optional: server message pattern to trigger cooldown
+        public List<String> aliases; // Optional: alternative commands that trigger the same cooldown
+        public String icon; // Optional: item ID for icon display (e.g., "minecraft:blaze_powder")
     }
 
     public static class ActiveCooldown {
         public String name;
-        public int activeDuration; // 0 if no active phase
-        public int cooldownDuration;
+        public int duration;
         public long startTime;
+        public String icon; // Item ID for icon display
+        public int color; // RGB color for text
 
-        public ActiveCooldown(String name, int activeDuration, int cooldownDuration, long startTime) {
+        public ActiveCooldown(String name, int duration, long startTime, String icon, int color) {
             this.name = name;
-            this.activeDuration = activeDuration;
-            this.cooldownDuration = cooldownDuration;
+            this.duration = duration;
             this.startTime = startTime;
-        }
-
-        public boolean isInActivePhase() {
-            if (activeDuration == 0) return false;
-            long elapsed = System.currentTimeMillis() - startTime;
-            return elapsed < (activeDuration * 1000L);
+            this.icon = icon;
+            this.color = color;
         }
 
         public float getProgress() {
             long elapsed = System.currentTimeMillis() - startTime;
-            if (isInActivePhase()) {
-                // Active phase progress
-                return 1.0f - (float) elapsed / (activeDuration * 1000f);
-            } else {
-                // Cooldown phase progress
-                long cooldownElapsed = elapsed - (activeDuration * 1000L);
-                return 1.0f - (float) cooldownElapsed / (cooldownDuration * 1000f);
-            }
+            return 1.0f - (float) elapsed / (duration * 1000f);
         }
 
         public int getRemainingSeconds() {
             long elapsed = System.currentTimeMillis() - startTime;
-            if (isInActivePhase()) {
-                // Active phase remaining time
-                return Math.max(0, activeDuration - (int)(elapsed / 1000));
-            } else {
-                // Cooldown phase remaining time
-                long cooldownElapsed = elapsed - (activeDuration * 1000L);
-                return Math.max(0, cooldownDuration - (int)(cooldownElapsed / 1000));
-            }
+            return Math.max(0, duration - (int)(elapsed / 1000));
         }
 
         public boolean isExpired(long now) {
-            long totalDuration = (activeDuration + cooldownDuration) * 1000L;
-            return now > startTime + totalDuration;
+            return now > startTime + (duration * 1000L);
         }
     }
 
     private boolean matches(String command, CommandDef def) {
+        // Check main command
+        boolean mainMatch = false;
         if ("exact".equals(def.matchType)) {
-            return command.equalsIgnoreCase(def.command);
+            mainMatch = command.equalsIgnoreCase(def.command);
         } else {
-            return command.toLowerCase().startsWith(def.command.toLowerCase());
+            mainMatch = command.toLowerCase().startsWith(def.command.toLowerCase());
         }
+
+        if (mainMatch) return true;
+
+        // Check aliases
+        if (def.aliases != null && !def.aliases.isEmpty()) {
+            for (String alias : def.aliases) {
+                if ("exact".equals(def.matchType)) {
+                    if (command.equalsIgnoreCase(alias)) return true;
+                } else {
+                    if (command.toLowerCase().startsWith(alias.toLowerCase())) return true;
+                }
+            }
+        }
+
+        return false;
     }
 }

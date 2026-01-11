@@ -8,9 +8,11 @@ import BetterPrisons.modid.enchants.EnchantParsing;
 import BetterPrisons.modid.enchants.EnchantTracker;
 import BetterPrisons.modid.hud.CooldownHud;
 import BetterPrisons.modid.hud.EnchantHud;
+import BetterPrisons.modid.hud.MeteorHud;
 import BetterPrisons.modid.hud.SatchelHud;
 import BetterPrisons.modid.hud.StatsHud;
 import BetterPrisons.modid.hud.SuperBreakerAura;
+import BetterPrisons.modid.misc.EasyView;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -34,10 +36,14 @@ public class BetterPrisonsClient implements ClientModInitializer {
     public static SatchelHud satchelHud;
     public static StatsHud statsHud;
     public static EnchantHud enchantHud;
+    public static MeteorHud meteorHud;
 
     // Enchant detection system
     public static EnchantParsing enchantParsing;
     public static EnchantTracker enchantTracker;
+
+    // Misc features
+    public static EasyView easyView;
 
     // Debug listeners
     public static SoundDebugListener soundDebugListener;
@@ -62,6 +68,7 @@ public class BetterPrisonsClient implements ClientModInitializer {
         satchelHud = new SatchelHud();
         statsHud = new StatsHud();
         enchantHud = new EnchantHud();
+        meteorHud = new MeteorHud();
 
         // Load positions and settings from config
         cooldownHud.x = config.cooldownHudX;
@@ -88,6 +95,12 @@ public class BetterPrisonsClient implements ClientModInitializer {
         enchantHud.scale = config.enchantHudScale;
         LOGGER.info("EnchantHud: x={}, y={}, enabled={}, scale={}", enchantHud.x, enchantHud.y, enchantHud.enabled, enchantHud.scale);
 
+        meteorHud.x = config.meteorHudX;
+        meteorHud.y = config.meteorHudY;
+        meteorHud.enabled = config.meteorHudEnabled;
+        meteorHud.scale = config.meteorHudScale;
+        LOGGER.info("MeteorHud: x={}, y={}, enabled={}, scale={}", meteorHud.x, meteorHud.y, meteorHud.enabled, meteorHud.scale);
+
         // HudRenderer coordinates all HUDs
         hudRenderer = new HudRenderer();
 
@@ -97,6 +110,9 @@ public class BetterPrisonsClient implements ClientModInitializer {
         // Enchant system
         enchantParsing = new EnchantParsing();
         enchantTracker = new EnchantTracker();
+
+        // Misc features
+        easyView = new EasyView();
 
         // Debug listeners
         soundDebugListener = new SoundDebugListener();
@@ -120,6 +136,8 @@ public class BetterPrisonsClient implements ClientModInitializer {
             statsHud.tick(client);
             enchantTracker.tick(client);
             enchantHud.tick();
+            meteorHud.tick();
+            easyView.tick(client);
 
             // Clear debug caches at end of tick
             soundDebugListener.clearTickCache();

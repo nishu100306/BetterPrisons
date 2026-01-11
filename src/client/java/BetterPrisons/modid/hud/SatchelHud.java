@@ -297,38 +297,55 @@ public class SatchelHud extends BaseHud {
     public void render(DrawContext ctx, MinecraftClient client) {
         this.scale = BetterPrisonsClient.config.satchelHudScale;
         this.scale = this.scale / 100.0f;
-        if (!enabled || foundSatchels.isEmpty()) return;
+
+        boolean showTitle = BetterPrisonsClient.config.showSatchelHudTitle;
+        boolean hasContent = !foundSatchels.isEmpty();
+
+        // Don't render if HUD is disabled and there's nothing to show
+        if (!enabled || (!showTitle && !hasContent)) return;
+
+        // Calculate title dimensions
+        int titleHeight = 0;
+        int titleWidth = 0;
+        if (showTitle) {
+            Text titleText = Text.literal("Satchel HUD").setStyle(Style.EMPTY.withUnderline(true));
+            titleWidth = (int)(client.textRenderer.getWidth(titleText) * scale);
+            titleHeight = scaled(10); // Text height + spacing
+        }
 
         // Calculate maximum text width (considering both name and fill text)
-        int maxTextWidth = 0;
-        for (SatchelInfo satchel : foundSatchels) {
-            // Check name width
-            if (satchel.displayName != null) {
-                int nameWidth = client.textRenderer.getWidth(satchel.displayName);
-                nameWidth = (int)(nameWidth * scale); // Apply scaling
-                maxTextWidth = Math.max(maxTextWidth, nameWidth);
-            }
+        int maxTextWidth = titleWidth;
+        if (hasContent) {
+            for (SatchelInfo satchel : foundSatchels) {
+                // Check name width
+                if (satchel.displayName != null) {
+                    int nameWidth = client.textRenderer.getWidth(satchel.displayName);
+                    nameWidth = (int)(nameWidth * scale); // Apply scaling
+                    maxTextWidth = Math.max(maxTextWidth, nameWidth);
+                }
 
-            // Check fill text width
-            String fillText;
-            if (BetterPrisonsClient.config.satchelShowPercentage) {
-                // Show as percentage
-                double percentage = (satchel.current * 100.0) / satchel.max;
-                fillText = String.format("%.1f%%", percentage);
-            } else {
-                // Show as actual values
-                fillText = formatNumber(satchel.current) + " / " + formatNumber(satchel.max);
+                // Check fill text width
+                String fillText;
+                if (BetterPrisonsClient.config.satchelShowPercentage) {
+                    // Show as percentage
+                    double percentage = (satchel.current * 100.0) / satchel.max;
+                    fillText = String.format("%.1f%%", percentage);
+                } else {
+                    // Show as actual values
+                    fillText = formatNumber(satchel.current) + " / " + formatNumber(satchel.max);
+                }
+                int fillTextWidth = client.textRenderer.getWidth(Text.literal(fillText));
+                fillTextWidth = (int)(fillTextWidth * scale); // Apply scaling
+                maxTextWidth = Math.max(maxTextWidth, fillTextWidth);
             }
-            int fillTextWidth = client.textRenderer.getWidth(Text.literal(fillText));
-            fillTextWidth = (int)(fillTextWidth * scale); // Apply scaling
-            maxTextWidth = Math.max(maxTextWidth, fillTextWidth);
         }
 
         // Draw background with custom styling (with scaling applied)
         // Layout: [Icon 16px] [spacing 4px] [text content]
-        // Each satchel: 20px height (icon + small padding)
-        int bgWidth = scaled(16 + 4) + maxTextWidth; // icon + spacing + text + padding
-        int bgHeight = foundSatchels.size() * scaled(23); // 24px per satchel (scaled)
+        // Each satchel: 24px height (icon + small padding)
+        int bgWidth = hasContent ? (scaled(16 + 4) + maxTextWidth) : maxTextWidth; // icon + spacing + text
+        int contentHeight = hasContent ? foundSatchels.size() * scaled(23) : 0;
+        int bgHeight = titleHeight + contentHeight;
 
         // Combine RGB color with opacity to create ARGB
         int bgColor = (BetterPrisonsClient.config.satchelBgOpacity << 24) | (BetterPrisonsClient.config.satchelBgColor & 0xFFFFFF);
@@ -350,56 +367,93 @@ public class SatchelHud extends BaseHud {
         // Right border
         ctx.fill(x + bgWidth + padding, y - padding - thickness, x + bgWidth + padding + thickness, y + bgHeight + padding + thickness, borderColor);
 
-        int yOffset = 0;
-        int rowHeight = scaled(24);
-        int iconSpacing = scaled(20);
-        int textLineSpacing = scaled(10);
-        int iconYOffset = 0;
-
         Matrix3x2fStack matrices = ctx.getMatrices();
-        for (SatchelInfo satchel : foundSatchels) {
-            // Draw satchel item icon on the left
-            if (satchel.itemStack != null) {
-                //BetterPrisonsClient.LOGGER.info("x: " + x + ", y: " + (y + yOffset + iconYOffset));
-                matrices.pushMatrix();
-                matrices.scale(scale);
-                matrices.translate(x/scale, (y + yOffset + iconYOffset)/scale);
-                ctx.drawItem(satchel.itemStack, 0, 0);
-                matrices.popMatrix();
-            }
+        int yOffset = 0;
 
-            // Draw satchel name next to the icon (first line)
-            if (satchel.displayName != null) {
-                matrices.pushMatrix();
-                matrices.scale(scale);
-                matrices.translate((x + iconSpacing)/scale, (y + yOffset)/scale);
-                ctx.drawText(client.textRenderer, satchel.displayName, 0, 0, 0xFFFFFFFF, true);
-                matrices.popMatrix();
-            }
-
-            // Draw capacity text directly under the name (second line)
-            String fillText;
-            if (BetterPrisonsClient.config.satchelShowPercentage) {
-                // Show as percentage
-                double percentage = (satchel.current * 100.0) / satchel.max;
-                fillText = String.format("%.1f%%", percentage);
-            } else {
-                // Show as actual values
-                fillText = formatNumber(satchel.current) + " / " + formatNumber(satchel.max);
-            }
+        // Draw title if enabled
+        if (showTitle) {
+            Text titleText = Text.literal("Satchel HUD");
+            int titleColor = 0xFF000000 | BetterPrisonsClient.config.satchelHudTitleColor;
             matrices.pushMatrix();
             matrices.scale(scale);
-            matrices.translate((x + iconSpacing)/scale, (y + yOffset + textLineSpacing)/scale);
-            ctx.drawTextWithShadow(client.textRenderer, Text.literal(fillText), 0, 0, 0xFFAAAAAA);
+            matrices.translate(x/scale, y/scale);
+            ctx.drawTextWithShadow(client.textRenderer, titleText, 0, 0, titleColor);
             matrices.popMatrix();
 
-            yOffset += rowHeight; // Space for next satchel
+            // Draw underline below title
+            int underlineY = y + scaled(9);
+            ctx.fill(x, underlineY, x + titleWidth, underlineY + 1, titleColor);
+
+            yOffset += titleHeight;
+        }
+
+        // Draw satchel content
+        if (hasContent) {
+            int rowHeight = scaled(24);
+            int iconSpacing = scaled(20);
+            int textLineSpacing = scaled(10);
+            int iconYOffset = 0;
+
+            for (SatchelInfo satchel : foundSatchels) {
+                // Draw satchel item icon on the left
+                if (satchel.itemStack != null) {
+                    matrices.pushMatrix();
+                    matrices.scale(scale);
+                    matrices.translate(x/scale, (y + yOffset + iconYOffset)/scale);
+                    ctx.drawItem(satchel.itemStack, 0, 0);
+                    matrices.popMatrix();
+                }
+
+                // Draw satchel name next to the icon (first line)
+                if (satchel.displayName != null) {
+                    matrices.pushMatrix();
+                    matrices.scale(scale);
+                    matrices.translate((x + iconSpacing)/scale, (y + yOffset)/scale);
+                    ctx.drawText(client.textRenderer, satchel.displayName, 0, 0, 0xFFFFFFFF, true);
+                    matrices.popMatrix();
+                }
+
+                // Draw capacity text directly under the name (second line)
+                // Calculate percentage for color determination
+                double percentage = (satchel.current * 100.0) / satchel.max;
+
+                String fillText;
+                if (BetterPrisonsClient.config.satchelShowPercentage) {
+                    // Show as percentage
+                    fillText = String.format("%.1f%%", percentage);
+                } else {
+                    // Show as actual values
+                    fillText = formatNumber(satchel.current) + " / " + formatNumber(satchel.max);
+                }
+
+                // Determine color based on capacity threshold
+                int capacityColor;
+                if (percentage < 20.0) {
+                    capacityColor = 0xFF000000 | BetterPrisonsClient.config.satchelColorUnder20;
+                } else if (percentage < 60.0) {
+                    capacityColor = 0xFF000000 | BetterPrisonsClient.config.satchelColor20to60;
+                } else if (percentage < 95.0) {
+                    capacityColor = 0xFF000000 | BetterPrisonsClient.config.satchelColor60to95;
+                } else {
+                    capacityColor = 0xFF000000 | BetterPrisonsClient.config.satchelColor95Plus;
+                }
+
+                matrices.pushMatrix();
+                matrices.scale(scale);
+                matrices.translate((x + iconSpacing)/scale, (y + yOffset + textLineSpacing)/scale);
+                ctx.drawTextWithShadow(client.textRenderer, Text.literal(fillText), 0, 0, capacityColor);
+                matrices.popMatrix();
+
+                yOffset += rowHeight; // Space for next satchel
+            }
         }
     }
 
     @Override
     public int getHeight() {
-        return foundSatchels.size() * scaled(24); // 24px per satchel (scaled)
+        int titleHeight = BetterPrisonsClient.config.showSatchelHudTitle ? scaled(10) : 0;
+        int contentHeight = foundSatchels.size() * scaled(24);
+        return titleHeight + contentHeight;
     }
 
     private String formatNumber(long num) {

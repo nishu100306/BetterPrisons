@@ -4,6 +4,7 @@ import BetterPrisons.modid.BetterPrisonsClient;
 import BetterPrisons.modid.enchants.BaseEnchant;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import org.joml.Matrix3x2fStack;
 
@@ -25,17 +26,32 @@ public class EnchantHud extends BaseHud {
         Matrix3x2fStack matrices = ctx.getMatrices();
         if (!enabled) return;
 
+        boolean showTitle = BetterPrisonsClient.config.showEnchantHudTitle;
+
         // Get active enchants from tracker
         List<BaseEnchant> activeEnchants = BetterPrisonsClient.enchantTracker.getActiveEnchants();
+        boolean hasContent = !activeEnchants.isEmpty();
+
+        // Don't render if no title and no content
+        if (!showTitle && !hasContent) return;
+
+        // Calculate title dimensions
+        int titleHeight = 0;
+        int titleWidth = 0;
+        if (showTitle) {
+            Text titleText = Text.literal("Enchant HUD").setStyle(Style.EMPTY.withUnderline(true));
+            titleWidth = (int)(client.textRenderer.getWidth(titleText) * scale);
+            titleHeight = scaled(10); // Text height + spacing
+        }
 
         int bgWidth;
         int bgHeight;
+        int contentYOffset = titleHeight;
 
-        if (activeEnchants.isEmpty()) {
-            // Show "No Active Enchants" when there are none
-            Text noEnchantsText = Text.literal("No Active Enchants");
-            bgWidth = scaled(client.textRenderer.getWidth(noEnchantsText));
-            bgHeight = scaled(14);
+        if (!hasContent) {
+            // No active enchants - only show title if enabled
+            bgWidth = titleWidth;
+            bgHeight = titleHeight;
 
             // Combine RGB color with opacity to create ARGB
             int bgColor = (BetterPrisonsClient.config.enchantBgOpacity << 24) | (BetterPrisonsClient.config.enchantBgColor & 0xFFFFFF);
@@ -55,22 +71,26 @@ public class EnchantHud extends BaseHud {
             // Right border
             ctx.fill(x + bgWidth + 2, y - 2 - thickness, x + bgWidth + 2 + thickness, y + bgHeight + 2 + thickness, borderColor);
 
-            // Draw text
-            matrices.pushMatrix();
-            matrices.scale(scale);
-            matrices.translate(x/scale, y/scale);
-            ctx.drawTextWithShadow(client.textRenderer, noEnchantsText, 0, 0, 0xFF888888);
-            matrices.popMatrix();
+            // Draw title if enabled
+            if (showTitle) {
+                Text titleText = Text.literal("Enchant HUD").setStyle(Style.EMPTY.withUnderline(true));
+                int titleColor = 0xFF000000 | BetterPrisonsClient.config.enchantHudTitleColor;
+                matrices.pushMatrix();
+                matrices.scale(scale);
+                matrices.translate(x/scale, y/scale);
+                ctx.drawTextWithShadow(client.textRenderer, titleText, 0, 0, titleColor);
+                matrices.popMatrix();
+            }
         } else {
             // Calculate maximum width needed
-            int maxWidth = 0;
+            int maxWidth = titleWidth;
             for (BaseEnchant enchant : activeEnchants) {
                 Text nameText = enchant.displayText != null ? enchant.displayText : Text.literal(enchant.displayName);
                 String timeText = String.format("%.1f", enchant.getRemainingSeconds()) + "s";
 
                 int nameWidth = client.textRenderer.getWidth(nameText);
                 int timeWidth = client.textRenderer.getWidth(timeText);
-                int totalWidth = nameWidth + 10 + timeWidth; // 10px spacing between name and time
+                int totalWidth = (int)((nameWidth + 10 + timeWidth) * scale); // 10px spacing between name and time
 
                 if (totalWidth > maxWidth) {
                     maxWidth = totalWidth;
@@ -78,8 +98,9 @@ public class EnchantHud extends BaseHud {
             }
 
             // Draw background with custom styling
-            bgWidth = scaled(maxWidth);
-            bgHeight = scaled(activeEnchants.size() * 14);
+            bgWidth = scaled((int)(maxWidth/scale));
+            int contentHeight = scaled(activeEnchants.size() * 14);
+            bgHeight = titleHeight + contentHeight;
 
             // Combine RGB color with opacity to create ARGB
             int bgColor = (BetterPrisonsClient.config.enchantBgOpacity << 24) | (BetterPrisonsClient.config.enchantBgColor & 0xFFFFFF);
@@ -99,7 +120,18 @@ public class EnchantHud extends BaseHud {
             // Right border
             ctx.fill(x + bgWidth + 2, y - 2 - thickness, x + bgWidth + 2 + thickness, y + bgHeight + 2 + thickness, borderColor);
 
-            int yOffset = 0;
+            // Draw title if enabled
+            if (showTitle) {
+                Text titleText = Text.literal("Enchant HUD");
+                int titleColor = 0xFF000000 | BetterPrisonsClient.config.enchantHudTitleColor;
+                matrices.pushMatrix();
+                matrices.scale(scale);
+                matrices.translate(x/scale, y/scale);
+                ctx.drawTextWithShadow(client.textRenderer, titleText, 0, 0, titleColor);
+                matrices.popMatrix();
+            }
+
+            int yOffset = contentYOffset;
             for (BaseEnchant enchant : activeEnchants) {
                 // Draw enchant name (use displayText with its color if available, otherwise use displayName with green)
                 Text nameText;
@@ -127,6 +159,8 @@ public class EnchantHud extends BaseHud {
 
     @Override
     public int getHeight() {
-        return BetterPrisonsClient.enchantTracker.getActiveEnchants().size() * 14;
+        int titleHeight = BetterPrisonsClient.config.showEnchantHudTitle ? scaled(10) : 0;
+        int contentHeight = BetterPrisonsClient.enchantTracker.getActiveEnchants().size() * 14;
+        return titleHeight + contentHeight;
     }
 }

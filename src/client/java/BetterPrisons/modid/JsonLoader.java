@@ -14,12 +14,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class JsonLoader {
-    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-    private static final File COMMANDS_FILE = new File("config/betterprisons/commands.json");
+    public static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+    public static final File COMMANDS_FILE = new File("config/betterprisons/commands.json");
     private static final File ENCHANTS_FILE = new File("config/betterprisons/enchants.json");
 
     public static List<CooldownHud.CommandDef> loadCommands() {
         if (!COMMANDS_FILE.exists()) {
+            createDefaultCommands();
+        } else {
             createDefaultCommands();
         }
 
@@ -33,23 +35,73 @@ public class JsonLoader {
         }
     }
 
-    private static void createDefaultCommands() {
+    public static void saveCommands(List<CooldownHud.CommandDef> commands) {
+        COMMANDS_FILE.getParentFile().mkdirs();
+        CommandsWrapper wrapper = new CommandsWrapper();
+        wrapper.commands = commands;
+
+        try (FileWriter writer = new FileWriter(COMMANDS_FILE)) {
+            GSON.toJson(wrapper, writer);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void createDefaultCommands() {
         COMMANDS_FILE.getParentFile().mkdirs();
         List<CooldownHud.CommandDef> defaults = new ArrayList<>();
 
-        CooldownHud.CommandDef sellAll = new CooldownHud.CommandDef();
-        sellAll.command = "/sell all";
-        sellAll.matchType = "exact";
-        sellAll.cooldown = 30;
-        sellAll.displayName = "Sell All";
-        defaults.add(sellAll);
+        CooldownHud.CommandDef home = new CooldownHud.CommandDef();
+        home.command = "/home";
+        home.matchType = "startsWith";
+        home.cooldown = 60;
+        home.displayName = "Home";
+        home.chatPattern = null; // Command-triggered
+        home.aliases = null;
+        home.icon = "minecraft:red_bed";
+        defaults.add(home);
+
+        CooldownHud.CommandDef jet = new CooldownHud.CommandDef();
+        jet.command = "/jet";
+        jet.matchType = "exact";
+        jet.cooldown = 30;
+        jet.displayName = "Jet";
+        jet.chatPattern = null; // Command-triggered
+        jet.aliases = new ArrayList<>();
+        jet.aliases.add("/jetpack");
+        jet.icon = "minecraft:blaze_powder";
+        defaults.add(jet);
+
+        CooldownHud.CommandDef feed = new CooldownHud.CommandDef();
+        feed.command = "/feed";
+        feed.matchType = "startsWith";
+        feed.cooldown = 180;
+        feed.displayName = "Feed";
+        feed.chatPattern = null; // Command-triggered
+        feed.aliases = new ArrayList<>();
+        feed.aliases.add("/eat");
+        feed.icon = "minecraft:cooked_beef";
+        defaults.add(feed);
 
         CooldownHud.CommandDef fix = new CooldownHud.CommandDef();
         fix.command = "/fix";
         fix.matchType = "startsWith";
-        fix.cooldown = 300;
-        fix.displayName = "Fix All";
+        fix.cooldown = 180;
+        fix.displayName = "Fix";
+        fix.chatPattern = null; // Command-triggered
+        fix.aliases = null;
+        fix.icon = "minecraft:anvil";
         defaults.add(fix);
+
+        CooldownHud.CommandDef combat = new CooldownHud.CommandDef();
+        combat.command = "";
+        combat.matchType = "exact";
+        combat.cooldown = 10;
+        combat.displayName = "Combat";
+        combat.chatPattern = "§c§l(!) §cYou have entered combat. Do not log out for 10s!";
+        combat.aliases = null;
+        combat.icon = "minecraft:diamond_sword";
+        defaults.add(combat);
 
         CommandsWrapper wrapper = new CommandsWrapper();
         wrapper.commands = defaults;

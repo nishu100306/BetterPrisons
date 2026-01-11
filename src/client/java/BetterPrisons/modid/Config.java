@@ -25,6 +25,7 @@ public class Config {
     public boolean satchelHudEnabled = true;
     public boolean statsHudEnabled = true;
     public boolean enchantHudEnabled = true;
+    public boolean meteorHudEnabled = true;
     public boolean useCommaFormatting = false;
     public boolean peacefulMiningEnabled = false;
     public boolean satchelShowPercentage = false;
@@ -39,6 +40,8 @@ public class Config {
     public int statsHudY = 200;
     public int enchantHudX = 10;
     public int enchantHudY = 300;
+    public int meteorHudX = 10;
+    public int meteorHudY = 400;
 
     // Colors (as integers)
     public int cooldownBarColor = 0xFF00FF;
@@ -60,6 +63,8 @@ public class Config {
     public int satchelHudScale = 100;
     public int statsHudScale = 100;
     public int enchantHudScale = 100;
+    public int meteorHudScale = 100;
+    public int superBreakerAuraScale = 100;
 
     // Cooldown HUD styling
     public int cooldownBgColor = 0x000000;
@@ -89,6 +94,13 @@ public class Config {
     public int enchantBorderOpacity = 128;
     public int enchantBorderThickness = 2;
 
+    // Meteor HUD styling
+    public int meteorBgColor = 0x000000;
+    public int meteorBgOpacity = 128;
+    public int meteorBorderColor = 0xFFFFFF;
+    public int meteorBorderOpacity = 128;
+    public int meteorBorderThickness = 2;
+
     // Stats HUD element toggles
     public boolean statsShowCurrentXP = true;
     public boolean statsShowXPPerHour = true;
@@ -100,6 +112,53 @@ public class Config {
     public boolean statsShowSessionCE = true;
     public boolean statsShowSessionDuration = true;
     public boolean statsShowMillisOnSessionDuration = false;
+
+    // Stats HUD text colors (RGB, no alpha)
+    public int statsCurrentXPColor = 0xFFFFFF;
+    public int statsXPPerHourColor = 0xAAAAAA;
+    public int statsXPPerMinuteColor = 0xAAAAAA;
+    public int statsSessionXPColor = 0xAAAAAA;
+    public int statsCurrentCEColor = 0xFFFFFF;
+    public int statsCEPerHourColor = 0xAAAAAA;
+    public int statsCEPerMinuteColor = 0xAAAAAA;
+    public int statsSessionCEColor = 0xAAAAAA;
+    public int statsSessionDurationColor = 0x888888;
+
+    // Satchel HUD capacity threshold colors (RGB, no alpha)
+    public int satchelColorUnder20 = 0xAA0000;    // Dark red - nearly empty
+    public int satchelColor20to60 = 0xFF8800;     // Orange - low
+    public int satchelColor60to95 = 0xFFFF00;     // Yellow - medium
+    public int satchelColor95Plus = 0x00AA00;     // Green - nearly full
+
+    // Cooldown command configs (enabled and color for each command)
+    public boolean homeEnabled = true;
+    public int homeColor = 0xFFFFFF;
+    public boolean jetEnabled = true;
+    public int jetColor = 0xFFFFFF;
+    public boolean feedEnabled = true;
+    public int feedColor = 0xFFFFFF;
+    public boolean fixEnabled = true;
+    public int fixColor = 0xFFFFFF;
+    public boolean combatEnabled = true;
+    public int combatColor = 0xFFFFFF;
+
+    // HUD titles (show/hide and color for each HUD)
+    public boolean showCooldownHudTitle = true;
+    public int cooldownHudTitleColor = 0xFFFFFF;
+    public boolean showSatchelHudTitle = true;
+    public int satchelHudTitleColor = 0xFFFFFF;
+    public boolean showStatsHudTitle = true;
+    public int statsHudTitleColor = 0xFFFFFF;
+    public boolean showEnchantHudTitle = true;
+    public int enchantHudTitleColor = 0xFFFFFF;
+    public boolean showMeteorHudTitle = true;
+    public int meteorHudTitleColor = 0xFFFFFF;
+
+    // Meteor HUD text color
+    public int meteorTextColor = 0xFFFFFF;
+
+    // Meteor HUD icon
+    public String meteorIconItemId = "minecraft:nether_quartz_ore";
 
     public void load() {
         if (!CONFIG_FILE.exists()) {
@@ -114,6 +173,7 @@ public class Config {
                 this.satchelHudEnabled = loaded.satchelHudEnabled;
                 this.statsHudEnabled = loaded.statsHudEnabled;
                 this.enchantHudEnabled = loaded.enchantHudEnabled;
+                this.meteorHudEnabled = loaded.meteorHudEnabled;
                 this.useCommaFormatting = loaded.useCommaFormatting;
                 this.peacefulMiningEnabled = loaded.peacefulMiningEnabled;
                 this.cooldownHudX = loaded.cooldownHudX;
@@ -124,6 +184,8 @@ public class Config {
                 this.statsHudY = loaded.statsHudY;
                 this.enchantHudX = loaded.enchantHudX;
                 this.enchantHudY = loaded.enchantHudY;
+                this.meteorHudX = loaded.meteorHudX;
+                this.meteorHudY = loaded.meteorHudY;
                 this.cooldownBarColor = loaded.cooldownBarColor;
                 this.satchelBarColor = loaded.satchelBarColor;
 
@@ -152,6 +214,12 @@ public class Config {
                 this.enchantBorderOpacity = loaded.enchantBorderOpacity;
                 this.enchantBorderThickness = loaded.enchantBorderThickness;
 
+                this.meteorBgColor = loaded.meteorBgColor;
+                this.meteorBgOpacity = loaded.meteorBgOpacity;
+                this.meteorBorderColor = loaded.meteorBorderColor;
+                this.meteorBorderOpacity = loaded.meteorBorderOpacity;
+                this.meteorBorderThickness = loaded.meteorBorderThickness;
+
                 // Load Stats HUD element toggles
                 this.statsShowCurrentXP = loaded.statsShowCurrentXP;
                 this.statsShowXPPerHour = loaded.statsShowXPPerHour;
@@ -163,6 +231,53 @@ public class Config {
                 this.statsShowSessionCE = loaded.statsShowSessionCE;
                 this.statsShowSessionDuration = loaded.statsShowSessionDuration;
                 this.statsShowMillisOnSessionDuration = loaded.statsShowMillisOnSessionDuration;
+
+                // Load Stats HUD text colors
+                this.statsCurrentXPColor = loaded.statsCurrentXPColor;
+                this.statsXPPerHourColor = loaded.statsXPPerHourColor;
+                this.statsXPPerMinuteColor = loaded.statsXPPerMinuteColor;
+                this.statsSessionXPColor = loaded.statsSessionXPColor;
+                this.statsCurrentCEColor = loaded.statsCurrentCEColor;
+                this.statsCEPerHourColor = loaded.statsCEPerHourColor;
+                this.statsCEPerMinuteColor = loaded.statsCEPerMinuteColor;
+                this.statsSessionCEColor = loaded.statsSessionCEColor;
+                this.statsSessionDurationColor = loaded.statsSessionDurationColor;
+
+                // Load Satchel HUD threshold colors
+                this.satchelColorUnder20 = loaded.satchelColorUnder20;
+                this.satchelColor20to60 = loaded.satchelColor20to60;
+                this.satchelColor60to95 = loaded.satchelColor60to95;
+                this.satchelColor95Plus = loaded.satchelColor95Plus;
+
+                // Load Cooldown command configs
+                this.homeEnabled = loaded.homeEnabled;
+                this.homeColor = loaded.homeColor;
+                this.jetEnabled = loaded.jetEnabled;
+                this.jetColor = loaded.jetColor;
+                this.feedEnabled = loaded.feedEnabled;
+                this.feedColor = loaded.feedColor;
+                this.fixEnabled = loaded.fixEnabled;
+                this.fixColor = loaded.fixColor;
+                this.combatEnabled = loaded.combatEnabled;
+                this.combatColor = loaded.combatColor;
+
+                // Load HUD title settings
+                this.showCooldownHudTitle = loaded.showCooldownHudTitle;
+                this.cooldownHudTitleColor = loaded.cooldownHudTitleColor;
+                this.showSatchelHudTitle = loaded.showSatchelHudTitle;
+                this.satchelHudTitleColor = loaded.satchelHudTitleColor;
+                this.showStatsHudTitle = loaded.showStatsHudTitle;
+                this.statsHudTitleColor = loaded.statsHudTitleColor;
+                this.showEnchantHudTitle = loaded.showEnchantHudTitle;
+                this.enchantHudTitleColor = loaded.enchantHudTitleColor;
+                this.showMeteorHudTitle = loaded.showMeteorHudTitle;
+                this.meteorHudTitleColor = loaded.meteorHudTitleColor;
+
+                // Load Meteor HUD text color
+                this.meteorTextColor = loaded.meteorTextColor;
+
+                // Load Meteor HUD icon
+                this.meteorIconItemId = loaded.meteorIconItemId;
 
                 // Load super breaker aura settings
                 this.superBreakerBaseColor = loaded.superBreakerBaseColor;
@@ -180,6 +295,8 @@ public class Config {
                 this.satchelHudScale = loaded.satchelHudScale;
                 this.statsHudScale = loaded.statsHudScale;
                 this.enchantHudScale = loaded.enchantHudScale;
+                this.meteorHudScale = loaded.meteorHudScale;
+                this.superBreakerAuraScale = loaded.superBreakerAuraScale;
 
                 // Load satchel percentage option
                 this.satchelShowPercentage = loaded.satchelShowPercentage;
@@ -238,6 +355,13 @@ public class Config {
                     BetterPrisonsClient.enchantHud.enabled = val;
                 })
                 .build());
+        toggles.addEntry(entryBuilder.startBooleanToggle(Text.literal("Meteor HUD"), meteorHudEnabled)
+                .setDefaultValue(true)
+                .setSaveConsumer(val -> {
+                    meteorHudEnabled = val;
+                    BetterPrisonsClient.meteorHud.enabled = val;
+                })
+                .build());
         toggles.addEntry(entryBuilder.startBooleanToggle(Text.literal("Use Comma Formatting for Stats"), useCommaFormatting)
                 .setDefaultValue(false)
                 .setTooltip(Text.literal("When enabled, numbers show as '1,234,567'. When disabled, numbers show as '1.2M'"))
@@ -264,6 +388,20 @@ public class Config {
 
         // Cooldown HUD Category
         ConfigCategory cooldownStyling = builder.getOrCreateCategory(Text.literal("Cooldown HUD"));
+
+        // Title settings
+        cooldownStyling.addEntry(entryBuilder.startBooleanToggle(Text.literal("Show Title"), showCooldownHudTitle)
+                .setDefaultValue(true)
+                .setTooltip(Text.literal("Show 'Cooldown HUD' title above the HUD"))
+                .setSaveConsumer(val -> showCooldownHudTitle = val)
+                .build());
+        cooldownStyling.addEntry(entryBuilder.startColorField(Text.literal("Title Color"), cooldownHudTitleColor)
+                .setDefaultValue(0xFFFFFF)
+                .setTooltip(Text.literal("Color of the HUD title text"))
+                .setSaveConsumer(val -> cooldownHudTitleColor = val)
+                .build());
+        cooldownStyling.addEntry(entryBuilder.startTextDescription(Text.literal("")).build()); // Spacer
+
         cooldownStyling.addEntry(entryBuilder.startColorField(Text.literal("Background Color"), cooldownBgColor)
                 .setDefaultValue(0x000000)
                 .setSaveConsumer(val -> cooldownBgColor = val)
@@ -285,8 +423,91 @@ public class Config {
                 .setSaveConsumer(val -> cooldownBorderThickness = val)
                 .build());
 
+        // Command Settings
+        cooldownStyling.addEntry(entryBuilder.startTextDescription(Text.literal("")).build()); // Spacer
+        cooldownStyling.addEntry(entryBuilder.startTextDescription(Text.literal("Command Settings")).build());
+
+        // Home command
+        cooldownStyling.addEntry(entryBuilder.startTextDescription(Text.literal("")).build()); // Spacer
+        cooldownStyling.addEntry(entryBuilder.startBooleanToggle(Text.literal("Home Enabled"), homeEnabled)
+                .setDefaultValue(true)
+                .setTooltip(Text.literal("Enable/disable Home cooldown tracking"))
+                .setSaveConsumer(val -> homeEnabled = val)
+                .build());
+        cooldownStyling.addEntry(entryBuilder.startColorField(Text.literal("Home Color"), homeColor)
+                .setDefaultValue(0xFFFFFF)
+                .setTooltip(Text.literal("Text color for Home cooldown"))
+                .setSaveConsumer(val -> homeColor = val)
+                .build());
+
+        // Jet command
+        cooldownStyling.addEntry(entryBuilder.startTextDescription(Text.literal("")).build()); // Spacer
+        cooldownStyling.addEntry(entryBuilder.startBooleanToggle(Text.literal("Jet Enabled"), jetEnabled)
+                .setDefaultValue(true)
+                .setTooltip(Text.literal("Enable/disable Jet cooldown tracking"))
+                .setSaveConsumer(val -> jetEnabled = val)
+                .build());
+        cooldownStyling.addEntry(entryBuilder.startColorField(Text.literal("Jet Color"), jetColor)
+                .setDefaultValue(0xFFFFFF)
+                .setTooltip(Text.literal("Text color for Jet cooldown"))
+                .setSaveConsumer(val -> jetColor = val)
+                .build());
+
+        // Feed command
+        cooldownStyling.addEntry(entryBuilder.startTextDescription(Text.literal("")).build()); // Spacer
+        cooldownStyling.addEntry(entryBuilder.startBooleanToggle(Text.literal("Feed Enabled"), feedEnabled)
+                .setDefaultValue(true)
+                .setTooltip(Text.literal("Enable/disable Feed cooldown tracking"))
+                .setSaveConsumer(val -> feedEnabled = val)
+                .build());
+        cooldownStyling.addEntry(entryBuilder.startColorField(Text.literal("Feed Color"), feedColor)
+                .setDefaultValue(0xFFFFFF)
+                .setTooltip(Text.literal("Text color for Feed cooldown"))
+                .setSaveConsumer(val -> feedColor = val)
+                .build());
+
+        // Fix command
+        cooldownStyling.addEntry(entryBuilder.startTextDescription(Text.literal("")).build()); // Spacer
+        cooldownStyling.addEntry(entryBuilder.startBooleanToggle(Text.literal("Fix Enabled"), fixEnabled)
+                .setDefaultValue(true)
+                .setTooltip(Text.literal("Enable/disable Fix cooldown tracking"))
+                .setSaveConsumer(val -> fixEnabled = val)
+                .build());
+        cooldownStyling.addEntry(entryBuilder.startColorField(Text.literal("Fix Color"), fixColor)
+                .setDefaultValue(0xFFFFFF)
+                .setTooltip(Text.literal("Text color for Fix cooldown"))
+                .setSaveConsumer(val -> fixColor = val)
+                .build());
+
+        // Combat command
+        cooldownStyling.addEntry(entryBuilder.startTextDescription(Text.literal("")).build()); // Spacer
+        cooldownStyling.addEntry(entryBuilder.startBooleanToggle(Text.literal("Combat Enabled"), combatEnabled)
+                .setDefaultValue(true)
+                .setTooltip(Text.literal("Enable/disable Combat cooldown tracking"))
+                .setSaveConsumer(val -> combatEnabled = val)
+                .build());
+        cooldownStyling.addEntry(entryBuilder.startColorField(Text.literal("Combat Color"), combatColor)
+                .setDefaultValue(0xFFFFFF)
+                .setTooltip(Text.literal("Text color for Combat cooldown"))
+                .setSaveConsumer(val -> combatColor = val)
+                .build());
+
         // Satchel HUD Category
         ConfigCategory satchelStyling = builder.getOrCreateCategory(Text.literal("Satchel HUD"));
+
+        // Title settings
+        satchelStyling.addEntry(entryBuilder.startBooleanToggle(Text.literal("Show Title"), showSatchelHudTitle)
+                .setDefaultValue(true)
+                .setTooltip(Text.literal("Show 'Satchel HUD' title above the HUD"))
+                .setSaveConsumer(val -> showSatchelHudTitle = val)
+                .build());
+        satchelStyling.addEntry(entryBuilder.startColorField(Text.literal("Title Color"), satchelHudTitleColor)
+                .setDefaultValue(0xFFFFFF)
+                .setTooltip(Text.literal("Color of the HUD title text"))
+                .setSaveConsumer(val -> satchelHudTitleColor = val)
+                .build());
+        satchelStyling.addEntry(entryBuilder.startTextDescription(Text.literal("")).build()); // Spacer
+
         satchelStyling.addEntry(entryBuilder.startBooleanToggle(Text.literal("Show Percentage"), satchelShowPercentage)
                 .setDefaultValue(false)
                 .setTooltip(Text.literal("When enabled, satchel capacity is shown as percentage instead of actual values"))
@@ -319,8 +540,46 @@ public class Config {
                 .setSaveConsumer(val -> combineSimilarSatchels = val)
                 .build());
 
+        // Satchel capacity threshold colors
+        satchelStyling.addEntry(entryBuilder.startTextDescription(Text.literal("")).build()); // Spacer
+        satchelStyling.addEntry(entryBuilder.startTextDescription(Text.literal("Capacity Threshold Colors")).build());
+        satchelStyling.addEntry(entryBuilder.startColorField(Text.literal("Under 20% Color"), satchelColorUnder20)
+                .setDefaultValue(0xAA0000)
+                .setTooltip(Text.literal("Color for satchels under 20% full (dark red)"))
+                .setSaveConsumer(val -> satchelColorUnder20 = val)
+                .build());
+        satchelStyling.addEntry(entryBuilder.startColorField(Text.literal("20-60% Color"), satchelColor20to60)
+                .setDefaultValue(0xFF8800)
+                .setTooltip(Text.literal("Color for satchels 20-60% full (orange)"))
+                .setSaveConsumer(val -> satchelColor20to60 = val)
+                .build());
+        satchelStyling.addEntry(entryBuilder.startColorField(Text.literal("60-95% Color"), satchelColor60to95)
+                .setDefaultValue(0xFFFF00)
+                .setTooltip(Text.literal("Color for satchels 60-95% full (yellow)"))
+                .setSaveConsumer(val -> satchelColor60to95 = val)
+                .build());
+        satchelStyling.addEntry(entryBuilder.startColorField(Text.literal("95%+ Color"), satchelColor95Plus)
+                .setDefaultValue(0x00AA00)
+                .setTooltip(Text.literal("Color for satchels 95% or more full (green)"))
+                .setSaveConsumer(val -> satchelColor95Plus = val)
+                .build());
+
         // Stats HUD Category
         ConfigCategory statsStyling = builder.getOrCreateCategory(Text.literal("Stats HUD"));
+
+        // Title settings
+        statsStyling.addEntry(entryBuilder.startBooleanToggle(Text.literal("Show Title"), showStatsHudTitle)
+                .setDefaultValue(true)
+                .setTooltip(Text.literal("Show 'Stats HUD' title above the HUD"))
+                .setSaveConsumer(val -> showStatsHudTitle = val)
+                .build());
+        statsStyling.addEntry(entryBuilder.startColorField(Text.literal("Title Color"), statsHudTitleColor)
+                .setDefaultValue(0xFFFFFF)
+                .setTooltip(Text.literal("Color of the HUD title text"))
+                .setSaveConsumer(val -> statsHudTitleColor = val)
+                .build());
+        statsStyling.addEntry(entryBuilder.startTextDescription(Text.literal("")).build()); // Spacer
+
         statsStyling.addEntry(entryBuilder.startColorField(Text.literal("Background Color"), statsBgColor)
                 .setDefaultValue(0x000000)
                 .setSaveConsumer(val -> statsBgColor = val)
@@ -385,8 +644,62 @@ public class Config {
                 .setSaveConsumer(val -> statsShowMillisOnSessionDuration = val)
                 .build());
 
+        // Text Color Fields
+        statsStyling.addEntry(entryBuilder.startTextDescription(Text.literal("")).build()); // Spacer
+        statsStyling.addEntry(entryBuilder.startTextDescription(Text.literal("Text Colors")).build());
+        statsStyling.addEntry(entryBuilder.startColorField(Text.literal("Current XP Color"), statsCurrentXPColor)
+                .setDefaultValue(0xFFFFFF)
+                .setSaveConsumer(val -> statsCurrentXPColor = val)
+                .build());
+        statsStyling.addEntry(entryBuilder.startColorField(Text.literal("XP/hr Color"), statsXPPerHourColor)
+                .setDefaultValue(0xAAAAAA)
+                .setSaveConsumer(val -> statsXPPerHourColor = val)
+                .build());
+        statsStyling.addEntry(entryBuilder.startColorField(Text.literal("XP/min Color"), statsXPPerMinuteColor)
+                .setDefaultValue(0xAAAAAA)
+                .setSaveConsumer(val -> statsXPPerMinuteColor = val)
+                .build());
+        statsStyling.addEntry(entryBuilder.startColorField(Text.literal("Session XP Color"), statsSessionXPColor)
+                .setDefaultValue(0xAAAAAA)
+                .setSaveConsumer(val -> statsSessionXPColor = val)
+                .build());
+        statsStyling.addEntry(entryBuilder.startColorField(Text.literal("Current CE Color"), statsCurrentCEColor)
+                .setDefaultValue(0xFFFFFF)
+                .setSaveConsumer(val -> statsCurrentCEColor = val)
+                .build());
+        statsStyling.addEntry(entryBuilder.startColorField(Text.literal("CE/hr Color"), statsCEPerHourColor)
+                .setDefaultValue(0xAAAAAA)
+                .setSaveConsumer(val -> statsCEPerHourColor = val)
+                .build());
+        statsStyling.addEntry(entryBuilder.startColorField(Text.literal("CE/min Color"), statsCEPerMinuteColor)
+                .setDefaultValue(0xAAAAAA)
+                .setSaveConsumer(val -> statsCEPerMinuteColor = val)
+                .build());
+        statsStyling.addEntry(entryBuilder.startColorField(Text.literal("Session CE Color"), statsSessionCEColor)
+                .setDefaultValue(0xAAAAAA)
+                .setSaveConsumer(val -> statsSessionCEColor = val)
+                .build());
+        statsStyling.addEntry(entryBuilder.startColorField(Text.literal("Session Duration Color"), statsSessionDurationColor)
+                .setDefaultValue(0x888888)
+                .setSaveConsumer(val -> statsSessionDurationColor = val)
+                .build());
+
         // Enchant HUD Category
         ConfigCategory enchantStyling = builder.getOrCreateCategory(Text.literal("Enchant HUD"));
+
+        // Title settings
+        enchantStyling.addEntry(entryBuilder.startBooleanToggle(Text.literal("Show Title"), showEnchantHudTitle)
+                .setDefaultValue(true)
+                .setTooltip(Text.literal("Show 'Enchant HUD' title above the HUD"))
+                .setSaveConsumer(val -> showEnchantHudTitle = val)
+                .build());
+        enchantStyling.addEntry(entryBuilder.startColorField(Text.literal("Title Color"), enchantHudTitleColor)
+                .setDefaultValue(0xFFFFFF)
+                .setTooltip(Text.literal("Color of the HUD title text"))
+                .setSaveConsumer(val -> enchantHudTitleColor = val)
+                .build());
+        enchantStyling.addEntry(entryBuilder.startTextDescription(Text.literal("")).build()); // Spacer
+
         enchantStyling.addEntry(entryBuilder.startColorField(Text.literal("Background Color"), enchantBgColor)
                 .setDefaultValue(0x000000)
                 .setSaveConsumer(val -> enchantBgColor = val)
@@ -438,6 +751,58 @@ public class Config {
                 .setSaveConsumer(val -> superBreakerLightOpacity = val)
                 .build());
 
+        // Meteor HUD Category
+        ConfigCategory meteorStyling = builder.getOrCreateCategory(Text.literal("Meteor HUD"));
+
+        // Title settings
+        meteorStyling.addEntry(entryBuilder.startBooleanToggle(Text.literal("Show Title"), showMeteorHudTitle)
+                .setDefaultValue(true)
+                .setTooltip(Text.literal("Show 'Meteor HUD' title above the HUD"))
+                .setSaveConsumer(val -> showMeteorHudTitle = val)
+                .build());
+        meteorStyling.addEntry(entryBuilder.startColorField(Text.literal("Title Color"), meteorHudTitleColor)
+                .setDefaultValue(0xFFFFFF)
+                .setTooltip(Text.literal("Color of the HUD title text"))
+                .setSaveConsumer(val -> meteorHudTitleColor = val)
+                .build());
+        meteorStyling.addEntry(entryBuilder.startTextDescription(Text.literal("")).build()); // Spacer
+
+        meteorStyling.addEntry(entryBuilder.startColorField(Text.literal("Background Color"), meteorBgColor)
+                .setDefaultValue(0x000000)
+                .setSaveConsumer(val -> meteorBgColor = val)
+                .build());
+        meteorStyling.addEntry(entryBuilder.startIntSlider(Text.literal("Background Opacity"), meteorBgOpacity, 0, 255)
+                .setDefaultValue(128)
+                .setSaveConsumer(val -> meteorBgOpacity = val)
+                .build());
+        meteorStyling.addEntry(entryBuilder.startColorField(Text.literal("Border Color"), meteorBorderColor)
+                .setDefaultValue(0xFFFFFF)
+                .setSaveConsumer(val -> meteorBorderColor = val)
+                .build());
+        meteorStyling.addEntry(entryBuilder.startIntSlider(Text.literal("Border Opacity"), meteorBorderOpacity, 0, 255)
+                .setDefaultValue(128)
+                .setSaveConsumer(val -> meteorBorderOpacity = val)
+                .build());
+        meteorStyling.addEntry(entryBuilder.startIntField(Text.literal("Border Thickness"), meteorBorderThickness)
+                .setDefaultValue(2)
+                .setSaveConsumer(val -> meteorBorderThickness = val)
+                .build());
+
+        // Text color
+        meteorStyling.addEntry(entryBuilder.startTextDescription(Text.literal("")).build()); // Spacer
+        meteorStyling.addEntry(entryBuilder.startColorField(Text.literal("Text Color"), meteorTextColor)
+                .setDefaultValue(0xFFFFFF)
+                .setTooltip(Text.literal("Color of meteor coordinate text"))
+                .setSaveConsumer(val -> meteorTextColor = val)
+                .build());
+
+        // Icon settings
+        meteorStyling.addEntry(entryBuilder.startTextDescription(Text.literal("")).build()); // Spacer
+        meteorStyling.addEntry(entryBuilder.startStrField(Text.literal("Meteor Icon"), meteorIconItemId)
+                .setDefaultValue("minecraft:nether_quartz_ore")
+                .setTooltip(Text.literal("Item ID for the meteor icon (e.g., minecraft:nether_quartz_ore)"))
+                .setSaveConsumer(val -> meteorIconItemId = val)
+                .build());
 
         // HUD Scaling Category
         ConfigCategory scalingCategory = builder.getOrCreateCategory(Text.literal("HUD Scaling"));
@@ -468,6 +833,20 @@ public class Config {
                 .setMax(150)
                 .setTooltip(Text.literal("% Scale multiplier for Enchant HUD (70% to 150%)"))
                 .setSaveConsumer(val -> enchantHudScale = val)
+                .build());
+        scalingCategory.addEntry(entryBuilder.startIntSlider(Text.literal("Meteor HUD Scale"), meteorHudScale, 70, 150)
+                .setDefaultValue(100)
+                .setMin(70)
+                .setMax(150)
+                .setTooltip(Text.literal("% Scale multiplier for Meteor HUD (70% to 150%)"))
+                .setSaveConsumer(val -> meteorHudScale = val)
+                .build());
+        scalingCategory.addEntry(entryBuilder.startIntSlider(Text.literal("Super Breaker Aura Scale"), superBreakerAuraScale, 70, 150)
+                .setDefaultValue(100)
+                .setMin(70)
+                .setMax(150)
+                .setTooltip(Text.literal("% Scale multiplier for Super Breaker Aura (70% to 150%)"))
+                .setSaveConsumer(val -> superBreakerAuraScale = val)
                 .build());
 
         Screen configScreen = builder.build();
