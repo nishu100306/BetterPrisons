@@ -12,6 +12,7 @@ public class EnchantTracker {
     public EnchantTracker() {
         // Register all enchant classes
         enchants.add(new SuperBreakerEnchant());
+        enchants.add(new PowerballEnchant());
         // Add more enchants here as they're implemented
     }
 

@@ -11,6 +11,15 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class EasyView {
+    public static class TextWithColor {
+        public final String text;
+        public final int color;
+
+        public TextWithColor(String text, int color) {
+            this.text = text;
+            this.color = color;
+        }
+    }
     int count = 0;
     public boolean enabled = true;
     private Map<Integer, String> slotTexts = new HashMap<>();
@@ -33,6 +42,7 @@ public class EasyView {
 
     public boolean isEnergyItem(ItemStack stack) {
         if (stack.isEmpty()) return false;
+        if (!BetterPrisonsClient.config.easyViewEnergyEnabled) return false;
         try {
             String name = stack.getName().getString();
             return name.endsWith(" Cosmic Energy");
@@ -44,6 +54,7 @@ public class EasyView {
 
     public boolean isMoneyNote(ItemStack stack) {
         if (stack.isEmpty()) return false;
+        if (!BetterPrisonsClient.config.easyViewMoneyEnabled) return false;
         try {
             String name = stack.getName().getString();
             return name.startsWith("$");
@@ -55,6 +66,7 @@ public class EasyView {
 
     public boolean isGangPointNote(ItemStack stack) {
         if (stack.isEmpty()) return false;
+        if (!BetterPrisonsClient.config.easyViewGangPointsEnabled) return false;
         try {
             String name = stack.getName().getString();
             return name.toUpperCase().endsWith(" GANG POINTS") || name.endsWith(" Gang Points");
@@ -66,6 +78,7 @@ public class EasyView {
 
     public boolean isBlackScroll(ItemStack stack) {
         if (stack.isEmpty()) return false;
+        if (!BetterPrisonsClient.config.easyViewBlackScrollEnabled) return false;
         try {
             String name = stack.getName().getString();
             return name.startsWith("Black Scroll (");
@@ -77,9 +90,10 @@ public class EasyView {
 
     public boolean isChargeOrb(ItemStack stack) {
         if (stack.isEmpty()) return false;
+        if (!BetterPrisonsClient.config.easyViewChargeOrbEnabled) return false;
         try {
             String name = stack.getName().getString();
-            return name.startsWith("% Charge Orb");
+            return name.endsWith("% Charge Orb");
         } catch (Exception e) {
             // Ignore
         }
@@ -143,6 +157,11 @@ public class EasyView {
     }
 
     public String processStackForText(ItemStack stack) {
+        TextWithColor result = processStackForTextWithColor(stack);
+        return result != null ? result.text : null;
+    }
+
+    public TextWithColor processStackForTextWithColor(ItemStack stack) {
         if (stack.isEmpty()) return null;
 
         try {
@@ -152,28 +171,28 @@ public class EasyView {
                 String nrg = name.replace(" Cosmic Energy", "");
                 nrg = nrg.replaceAll(",", "");
                 long nrgValue = Long.parseLong(nrg);
-                return formatCompact(nrgValue);
+                return new TextWithColor(formatCompact(nrgValue), 0xFF000000 | BetterPrisonsClient.config.easyViewEnergyColor);
             }
             if (isMoneyNote(stack)) {
                 String money = name.replace("$", "");
                 money = money.replaceAll(",", "");
                 money = money.split("\\.")[0];
                 long moneyValue = Long.parseLong(money);
-                return formatCompact(moneyValue);
+                return new TextWithColor(formatCompact(moneyValue), 0xFF000000 | BetterPrisonsClient.config.easyViewMoneyColor);
             }
             if (isGangPointNote(stack)) {
                 String points = name.replace(" GANG POINTS", "").replace(" Gang Points", "");
                 points = points.replaceAll(",", "");
                 long pointsValue = Long.parseLong(points);
-                return formatCompact(pointsValue);
+                return new TextWithColor(formatCompact(pointsValue), 0xFF000000 | BetterPrisonsClient.config.easyViewGangPointsColor);
             }
             if (isBlackScroll(stack)) {
                 String percent = name.replace("Black Scroll (", "").replace("%)", "");
-                return percent + "%";
+                return new TextWithColor(percent + "%", 0xFF000000 | BetterPrisonsClient.config.easyViewBlackScrollColor);
             }
             if (isChargeOrb(stack)) {
                 String percent = name.replace("% Charge Orb", "");
-                return percent + "%";
+                return new TextWithColor(percent + "%", 0xFF000000 | BetterPrisonsClient.config.easyViewChargeOrbColor);
             }
         } catch (Exception e) {
             // Silently ignore parsing errors

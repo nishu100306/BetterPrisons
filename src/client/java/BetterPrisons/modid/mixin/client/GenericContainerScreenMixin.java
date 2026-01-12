@@ -43,9 +43,9 @@ public abstract class GenericContainerScreenMixin {
             if (stack.isEmpty()) continue;
 
             // Process all items on-the-fly
-            String text = BetterPrisonsClient.easyView.processStackForText(stack);
+            BetterPrisons.modid.misc.EasyView.TextWithColor result = BetterPrisonsClient.easyView.processStackForTextWithColor(stack);
 
-            if (text != null && !text.isEmpty()) {
+            if (result != null && result.text != null && !result.text.isEmpty()) {
                 int slotX = slot.x;
                 int slotY = slot.y;
 
@@ -53,7 +53,7 @@ public abstract class GenericContainerScreenMixin {
                 matrices.translate(xSlot + slotX + 1, ySlot + slotY + 1);
                 matrices.scale(0.5f, 0.5f);
 
-                context.drawText(client.textRenderer, text, 0, 0, 0xFFFFFFFF, true);
+                context.drawText(client.textRenderer, result.text, 0, 0, result.color, true);
 
                 matrices.popMatrix();
             }

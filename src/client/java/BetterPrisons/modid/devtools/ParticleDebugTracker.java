@@ -29,7 +29,7 @@ public class ParticleDebugTracker {
                 var superBreaker = BetterPrisonsClient.enchantTracker.getEnchant("super_breaker");
                 if (superBreaker != null) {
                     // Try to extract enchant text from held pickaxe
-                    Text enchantText = extractEnchantTextFromHeldItem();
+                    Text enchantText = extractEnchantTextFromHeldItem("Super Breaker");
 
                     if (enchantText != null) {
                         superBreaker.activate(2.5, enchantText); // Activate with formatted text
@@ -45,7 +45,7 @@ public class ParticleDebugTracker {
         closestParticle = null;
     }
 
-    private static Text extractEnchantTextFromHeldItem() {
+    public static Text extractEnchantTextFromHeldItem(String searchString) {
         MinecraftClient client = MinecraftClient.getInstance();
         if (client.player == null) return null;
 
@@ -60,7 +60,7 @@ public class ParticleDebugTracker {
         // Search for "Super Breaker" in the lore lines
         for (Text line : loreComponent.lines()) {
             String lineString = line.getString();
-            if (lineString.contains("Super Breaker")) {
+            if (lineString.contains(searchString)) {
                 return line; // Return the formatted Text with color
             }
         }

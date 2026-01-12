@@ -31,6 +31,11 @@ public class SoundDebugListener implements SoundInstanceListener {
             BetterPrisonsClient.LOGGER.info("[DRAGON SOUND DETECTED]");
         }
 
+        // Check for wither shoot sound and mark it (powerball activation)
+        if (soundKey.equals("SoundInstance[minecraft:entity.wither.shoot]")) {
+            SoundTracker.markWitherShootSoundHeard();
+        }
+
         // Only log specific sound
         if (!soundKey.equals("SoundInstance[minecraft:entity.ender_dragon.growl]")) {
             return;

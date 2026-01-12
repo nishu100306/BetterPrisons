@@ -41,7 +41,7 @@ public class EnchantHud extends BaseHud {
         if (showTitle) {
             Text titleText = Text.literal("Enchant HUD").setStyle(Style.EMPTY.withUnderline(true));
             titleWidth = (int)(client.textRenderer.getWidth(titleText) * scale);
-            titleHeight = scaled(10); // Text height + spacing
+            titleHeight = scaled(12); // Text height + spacing
         }
 
         int bgWidth;
@@ -86,10 +86,10 @@ public class EnchantHud extends BaseHud {
             int maxWidth = titleWidth;
             for (BaseEnchant enchant : activeEnchants) {
                 Text nameText = enchant.displayText != null ? enchant.displayText : Text.literal(enchant.displayName);
-                String timeText = String.format("%.1f", enchant.getRemainingSeconds()) + "s";
+                String timeString = String.format("%.1f", enchant.getRemainingSeconds()) + "s";
 
                 int nameWidth = client.textRenderer.getWidth(nameText);
-                int timeWidth = client.textRenderer.getWidth(timeText);
+                int timeWidth = client.textRenderer.getWidth(timeString);
                 int totalWidth = (int)((nameWidth + 10 + timeWidth) * scale); // 10px spacing between name and time
 
                 if (totalWidth > maxWidth) {
@@ -122,7 +122,7 @@ public class EnchantHud extends BaseHud {
 
             // Draw title if enabled
             if (showTitle) {
-                Text titleText = Text.literal("Enchant HUD");
+                Text titleText = Text.literal("Enchant HUD").setStyle(Style.EMPTY.withUnderline(true));
                 int titleColor = 0xFF000000 | BetterPrisonsClient.config.enchantHudTitleColor;
                 matrices.pushMatrix();
                 matrices.scale(scale);
@@ -146,13 +146,14 @@ public class EnchantHud extends BaseHud {
                 matrices.translate(x/scale, (y + yOffset)/scale);
                 ctx.drawTextWithShadow(client.textRenderer, nameText, 0, 0, 0xFFFFFFFF);
 
-
                 // Draw remaining time (1 decimal point) - positioned after the name
-                String timeText = String.format("%.1f", enchant.getRemainingSeconds()) + "s";
+                int timeColor = 0xFF000000 | BetterPrisonsClient.config.enchantTimeColor;
+                String timeString = String.format("%.1f", enchant.getRemainingSeconds()) + "s";
                 int nameWidth = client.textRenderer.getWidth(nameText);
-                ctx.drawTextWithShadow(client.textRenderer, Text.literal(timeText), x + nameWidth + 10, y + yOffset, 0xFFAAAAAA);
-                yOffset += 14;
+                ctx.drawTextWithShadow(client.textRenderer, Text.literal(timeString), nameWidth + 10, 0, timeColor);
+
                 matrices.popMatrix();
+                yOffset += scaled(14);
             }
         }
     }
@@ -160,7 +161,7 @@ public class EnchantHud extends BaseHud {
     @Override
     public int getHeight() {
         int titleHeight = BetterPrisonsClient.config.showEnchantHudTitle ? scaled(10) : 0;
-        int contentHeight = BetterPrisonsClient.enchantTracker.getActiveEnchants().size() * 14;
+        int contentHeight = BetterPrisonsClient.enchantTracker.getActiveEnchants().size() * scaled(14);
         return titleHeight + contentHeight;
     }
 }

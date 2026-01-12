@@ -113,6 +113,7 @@ public class BetterPrisonsClient implements ClientModInitializer {
 
         // Misc features
         easyView = new EasyView();
+        easyView.enabled = config.easyViewEnabled;
 
         // Debug listeners
         soundDebugListener = new SoundDebugListener();

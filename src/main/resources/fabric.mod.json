@@ -3,9 +3,9 @@
 	"id": "betterprisons",
 	"version": "${version}",
 	"name": "BetterPrisons",
-	"description": "This is an example description! Tell everyone what your mod is about!",
+	"description": "A QOL mod for CosmicPrisons. Special thanks to NotRtzy, viseronic, and all other pre-testers!",
 	"authors": [
-		"Me!"
+		"nishu06"
 	],
 	"contact": {
 		"homepage": "https://fabricmc.net/",

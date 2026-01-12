@@ -12,7 +12,8 @@
 		"GameRendererMixin",
 		"UseItemWhileMiningMixin",
 		"HandledScreenMixin",
-		"GenericContainerScreenMixin"
+		"GenericContainerScreenMixin",
+		"InGameHudMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

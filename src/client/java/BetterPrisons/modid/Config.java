@@ -58,6 +58,19 @@ public class Config {
     public int peacefulMiningOpacity = 77; // 0-255 (77 = ~30% opacity, matches 0.3f)
     public int peacefulMiningDistance = 8;
 
+    // EasyView settings
+    public boolean easyViewEnabled = true;
+    public boolean easyViewEnergyEnabled = true;
+    public boolean easyViewMoneyEnabled = true;
+    public boolean easyViewGangPointsEnabled = true;
+    public boolean easyViewBlackScrollEnabled = true;
+    public boolean easyViewChargeOrbEnabled = true;
+    public int easyViewEnergyColor = 0xFFFFFF;
+    public int easyViewMoneyColor = 0x00FF00;
+    public int easyViewGangPointsColor = 0xFFAA00;
+    public int easyViewBlackScrollColor = 0xFF00FF;
+    public int easyViewChargeOrbColor = 0x00FFFF;
+
     // HUD Scaling
     public int cooldownHudScale = 100;
     public int satchelHudScale = 100;
@@ -93,6 +106,7 @@ public class Config {
     public int enchantBorderColor = 0xFFFFFF;
     public int enchantBorderOpacity = 128;
     public int enchantBorderThickness = 2;
+    public int enchantTimeColor = 0xFFFFFF;
 
     // Meteor HUD styling
     public int meteorBgColor = 0x000000;
@@ -213,6 +227,7 @@ public class Config {
                 this.enchantBorderColor = loaded.enchantBorderColor;
                 this.enchantBorderOpacity = loaded.enchantBorderOpacity;
                 this.enchantBorderThickness = loaded.enchantBorderThickness;
+                this.enchantTimeColor = loaded.enchantTimeColor;
 
                 this.meteorBgColor = loaded.meteorBgColor;
                 this.meteorBgOpacity = loaded.meteorBgOpacity;
@@ -289,6 +304,19 @@ public class Config {
                 // Load peaceful mining settings
                 this.peacefulMiningOpacity = loaded.peacefulMiningOpacity;
                 this.peacefulMiningDistance = loaded.peacefulMiningDistance;
+
+                // Load EasyView settings
+                this.easyViewEnabled = loaded.easyViewEnabled;
+                this.easyViewEnergyEnabled = loaded.easyViewEnergyEnabled;
+                this.easyViewMoneyEnabled = loaded.easyViewMoneyEnabled;
+                this.easyViewGangPointsEnabled = loaded.easyViewGangPointsEnabled;
+                this.easyViewBlackScrollEnabled = loaded.easyViewBlackScrollEnabled;
+                this.easyViewChargeOrbEnabled = loaded.easyViewChargeOrbEnabled;
+                this.easyViewEnergyColor = loaded.easyViewEnergyColor;
+                this.easyViewMoneyColor = loaded.easyViewMoneyColor;
+                this.easyViewGangPointsColor = loaded.easyViewGangPointsColor;
+                this.easyViewBlackScrollColor = loaded.easyViewBlackScrollColor;
+                this.easyViewChargeOrbColor = loaded.easyViewChargeOrbColor;
 
                 // Load HUD scaling settings
                 this.cooldownHudScale = loaded.cooldownHudScale;
@@ -384,6 +412,89 @@ public class Config {
                 .setDefaultValue(8)
                 .setTooltip(Text.literal("Radius of distance that Peaceful Mining affects other players around you"))
                 .setSaveConsumer(val -> peacefulMiningDistance = val)
+                .build());
+
+        // EasyView Category
+        ConfigCategory easyViewCategory = builder.getOrCreateCategory(Text.literal("EasyView"));
+
+        // Master toggle
+        easyViewCategory.addEntry(entryBuilder.startBooleanToggle(Text.literal("Enable EasyView"), easyViewEnabled)
+                .setDefaultValue(true)
+                .setTooltip(Text.literal("Master toggle for all EasyView overlays"))
+                .setSaveConsumer(val -> {
+                    easyViewEnabled = val;
+                    BetterPrisonsClient.easyView.enabled = val;
+                })
+                .build());
+
+        easyViewCategory.addEntry(entryBuilder.startTextDescription(Text.literal("")).build()); // Spacer
+
+        // Cosmic Energy settings
+        easyViewCategory.addEntry(entryBuilder.startBooleanToggle(Text.literal("Show Cosmic Energy"), easyViewEnergyEnabled)
+                .setDefaultValue(true)
+                .setTooltip(Text.literal("Show compact text for Cosmic Energy items"))
+                .setSaveConsumer(val -> easyViewEnergyEnabled = val)
+                .build());
+        easyViewCategory.addEntry(entryBuilder.startColorField(Text.literal("Cosmic Energy Color"), easyViewEnergyColor)
+                .setDefaultValue(0xFFFFFF)
+                .setTooltip(Text.literal("Color of Cosmic Energy text overlay"))
+                .setSaveConsumer(val -> easyViewEnergyColor = val)
+                .build());
+
+        easyViewCategory.addEntry(entryBuilder.startTextDescription(Text.literal("")).build()); // Spacer
+
+        // Money Note settings
+        easyViewCategory.addEntry(entryBuilder.startBooleanToggle(Text.literal("Show Money Notes"), easyViewMoneyEnabled)
+                .setDefaultValue(true)
+                .setTooltip(Text.literal("Show compact text for Money Note items"))
+                .setSaveConsumer(val -> easyViewMoneyEnabled = val)
+                .build());
+        easyViewCategory.addEntry(entryBuilder.startColorField(Text.literal("Money Note Color"), easyViewMoneyColor)
+                .setDefaultValue(0x00FF00)
+                .setTooltip(Text.literal("Color of Money Note text overlay"))
+                .setSaveConsumer(val -> easyViewMoneyColor = val)
+                .build());
+
+        easyViewCategory.addEntry(entryBuilder.startTextDescription(Text.literal("")).build()); // Spacer
+
+        // Gang Points settings
+        easyViewCategory.addEntry(entryBuilder.startBooleanToggle(Text.literal("Show Gang Points"), easyViewGangPointsEnabled)
+                .setDefaultValue(true)
+                .setTooltip(Text.literal("Show compact text for Gang Point items"))
+                .setSaveConsumer(val -> easyViewGangPointsEnabled = val)
+                .build());
+        easyViewCategory.addEntry(entryBuilder.startColorField(Text.literal("Gang Points Color"), easyViewGangPointsColor)
+                .setDefaultValue(0xFFAA00)
+                .setTooltip(Text.literal("Color of Gang Points text overlay"))
+                .setSaveConsumer(val -> easyViewGangPointsColor = val)
+                .build());
+
+        easyViewCategory.addEntry(entryBuilder.startTextDescription(Text.literal("")).build()); // Spacer
+
+        // Black Scroll settings
+        easyViewCategory.addEntry(entryBuilder.startBooleanToggle(Text.literal("Show Black Scrolls"), easyViewBlackScrollEnabled)
+                .setDefaultValue(true)
+                .setTooltip(Text.literal("Show percentage for Black Scroll items"))
+                .setSaveConsumer(val -> easyViewBlackScrollEnabled = val)
+                .build());
+        easyViewCategory.addEntry(entryBuilder.startColorField(Text.literal("Black Scroll Color"), easyViewBlackScrollColor)
+                .setDefaultValue(0xFF00FF)
+                .setTooltip(Text.literal("Color of Black Scroll text overlay"))
+                .setSaveConsumer(val -> easyViewBlackScrollColor = val)
+                .build());
+
+        easyViewCategory.addEntry(entryBuilder.startTextDescription(Text.literal("")).build()); // Spacer
+
+        // Charge Orb settings
+        easyViewCategory.addEntry(entryBuilder.startBooleanToggle(Text.literal("Show Charge Orbs"), easyViewChargeOrbEnabled)
+                .setDefaultValue(true)
+                .setTooltip(Text.literal("Show percentage for Charge Orb items"))
+                .setSaveConsumer(val -> easyViewChargeOrbEnabled = val)
+                .build());
+        easyViewCategory.addEntry(entryBuilder.startColorField(Text.literal("Charge Orb Color"), easyViewChargeOrbColor)
+                .setDefaultValue(0x00FFFF)
+                .setTooltip(Text.literal("Color of Charge Orb text overlay"))
+                .setSaveConsumer(val -> easyViewChargeOrbColor = val)
                 .build());
 
         // Cooldown HUD Category
@@ -719,6 +830,10 @@ public class Config {
         enchantStyling.addEntry(entryBuilder.startIntField(Text.literal("Border Thickness"), enchantBorderThickness)
                 .setDefaultValue(2)
                 .setSaveConsumer(val -> enchantBorderThickness = val)
+                .build());
+        enchantStyling.addEntry(entryBuilder.startColorField(Text.literal("Timer Color"), enchantTimeColor)
+                .setDefaultValue(0xFFFFFF)
+                .setSaveConsumer(val -> enchantTimeColor = val)
                 .build());
 
         // Super Breaker Aura Section (within Enchant HUD)

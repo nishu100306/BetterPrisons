@@ -310,7 +310,7 @@ public class SatchelHud extends BaseHud {
         if (showTitle) {
             Text titleText = Text.literal("Satchel HUD").setStyle(Style.EMPTY.withUnderline(true));
             titleWidth = (int)(client.textRenderer.getWidth(titleText) * scale);
-            titleHeight = scaled(10); // Text height + spacing
+            titleHeight = scaled(12); // Text height + spacing
         }
 
         // Calculate maximum text width (considering both name and fill text)

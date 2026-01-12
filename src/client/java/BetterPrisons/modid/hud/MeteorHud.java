@@ -135,7 +135,7 @@ public class MeteorHud extends BaseHud {
         if (showTitle) {
             Text titleText = Text.literal("Meteor HUD").setStyle(Style.EMPTY.withUnderline(true));
             titleWidth = (int)(client.textRenderer.getWidth(titleText) * scale);
-            titleHeight = scaled(10); // Text height + spacing
+            titleHeight = scaled(12); // Text height + spacing
         }
 
         // Calculate maximum width needed for content (scaled)

@@ -19,7 +19,7 @@ public class ChatReceiveMixin {
         BetterPrisonsClient.cooldownHud.onChatReceived(text);
 
         // Check for meteor falling (coordinates in current message, announcement in previous)
-        if (previousMessage.contains("(!) A meteor is falling from the sky at:")) {
+        if (previousMessage.startsWith("(!) A meteor is falling from the sky at:") || (previousMessage.startsWith("(!) A meteor summoned by") && previousMessage.contains("is falling from the sky at:"))) {
             BetterPrisonsClient.meteorHud.onMeteorFalling(text);
         }
 

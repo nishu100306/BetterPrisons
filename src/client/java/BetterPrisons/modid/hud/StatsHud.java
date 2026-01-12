@@ -469,7 +469,7 @@ public class StatsHud extends BaseHud {
         if (showTitle) {
             Text titleText = Text.literal("Stats HUD");
             titleWidth = (int)(client.textRenderer.getWidth(titleText) * scale);
-            titleHeight = scaled(10); // Text height + spacing
+            titleHeight = scaled(12); // Text height + spacing
         }
 
         // Calculate maximum text width from visible elements
