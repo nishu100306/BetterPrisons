@@ -28,6 +28,7 @@ public class StatsHud extends BaseHud {
     public long sessionStartEnergy = 0;
     public long sessionStartTime = 0;
     public boolean trackingActive = false;
+    public boolean paused = false;
 
     // XP gain tracking (past minute for xp/hr calculation)
     private List<XPGain> xpGainHistory = new ArrayList<>();
@@ -71,6 +72,10 @@ public class StatsHud extends BaseHud {
         }
 
         if (trackingActive) {
+            if (paused) {
+                // If paused, skip tracking updates
+                return;
+            }
             boolean pickaxeChanged = !ItemStack.areEqual(currentPickaxe, lastPickaxe);
 
             // Track XP gains (only if pickaxe hasn't changed and XP increased)
@@ -386,6 +391,10 @@ public class StatsHud extends BaseHud {
     public String getSessionDuration() {
         if (sessionStartTime == 0) return "0:00:00";
         long elapsed = System.currentTimeMillis() - sessionStartTime;
+        if (paused) {
+            elapsed = lastStatsUpdateTime - sessionStartTime;
+        }
+
         long millis = elapsed % 1000;
         long seconds = (elapsed / 1000) % 60;
         long minutes = (elapsed / 60000) % 60;
@@ -394,6 +403,13 @@ public class StatsHud extends BaseHud {
             return String.format("%d:%02d:%02d.%03d", hours, minutes, seconds, millis);
         }
         return String.format("%d:%02d:%02d", hours, minutes, seconds);
+    }
+
+    public void togglePause() {
+        paused = !paused;
+        if (paused) {
+
+        }
     }
 
     @Override
@@ -418,11 +434,13 @@ public class StatsHud extends BaseHud {
         // Update cached stats once per second
         long now = System.currentTimeMillis();
         if (now - lastStatsUpdateTime >= 1000) {
-            cachedXPPerHour = getXPPerHour();
-            cachedEnergyPerHour = getEnergyPerHour();
-            cachedXPPerMinute = getXPPerMinute();
-            cachedEnergyPerMinute = getEnergyPerMinute();
-            lastStatsUpdateTime = now;
+            if (!paused) {
+                cachedXPPerHour = getXPPerHour();
+                cachedEnergyPerHour = getEnergyPerHour();
+                cachedXPPerMinute = getXPPerMinute();
+                cachedEnergyPerMinute = getEnergyPerMinute();
+                lastStatsUpdateTime = now;
+            }
         }
 
         boolean showTitle = BetterPrisonsClient.config.showStatsHudTitle;
@@ -467,7 +485,7 @@ public class StatsHud extends BaseHud {
         int titleHeight = 0;
         int titleWidth = 0;
         if (showTitle) {
-            Text titleText = Text.literal("Stats HUD");
+            Text titleText = Text.literal("Stats HUD").setStyle(Style.EMPTY.withUnderline(true).withBold(true));
             titleWidth = (int)(client.textRenderer.getWidth(titleText) * scale);
             titleHeight = scaled(12); // Text height + spacing
         }
@@ -508,7 +526,7 @@ public class StatsHud extends BaseHud {
 
         // Draw title if enabled
         if (showTitle) {
-            Text titleText = Text.literal("Stats HUD").setStyle(Style.EMPTY.withUnderline(true));
+            Text titleText = Text.literal("Stats HUD").setStyle(Style.EMPTY.withUnderline(true).withBold(true));
             int titleColor = 0xFF000000 | BetterPrisonsClient.config.statsHudTitleColor;
             matrices.pushMatrix();
             matrices.scale(scale);
@@ -554,6 +572,63 @@ public class StatsHud extends BaseHud {
                 yOffset += scaled(12);
             }
         }
+    }
+
+    @Override
+    public int getWidth() {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client == null || client.textRenderer == null) return scaled(150);
+
+        boolean showTitle = BetterPrisonsClient.config.showStatsHudTitle;
+
+        // Calculate title width
+        int titleWidth = 0;
+        if (showTitle) {
+            Text titleText = Text.literal("Stats HUD").setStyle(Style.EMPTY.withUnderline(true).withBold(true));
+            titleWidth = (int)(client.textRenderer.getWidth(titleText) * scale);
+        }
+
+        // Build visible elements list (same logic as render method)
+        List<String> visibleElements = new ArrayList<>();
+        if (BetterPrisonsClient.config.statsShowCurrentXP) {
+            visibleElements.add("XP: " + formatNumber(currentXP));
+        }
+        if (BetterPrisonsClient.config.statsShowXPPerHour) {
+            visibleElements.add("XP/hr: " + formatNumber(cachedXPPerHour));
+        }
+        if (BetterPrisonsClient.config.statsShowXPPerMinute) {
+            visibleElements.add("XP/min: " + formatNumber(cachedXPPerMinute));
+        }
+        if (BetterPrisonsClient.config.statsShowSessionXP) {
+            visibleElements.add("Session XP: " + formatNumber(totalSessionXPGained));
+        }
+        if (BetterPrisonsClient.config.statsShowCurrentCE) {
+            visibleElements.add("CE: " + formatNumber(currentEnergy));
+        }
+        if (BetterPrisonsClient.config.statsShowCEPerHour) {
+            visibleElements.add("CE/hr: " + formatNumber(cachedEnergyPerHour));
+        }
+        if (BetterPrisonsClient.config.statsShowCEPerMinute) {
+            visibleElements.add("CE/min: " + formatNumber(cachedEnergyPerMinute));
+        }
+        if (BetterPrisonsClient.config.statsShowSessionCE) {
+            visibleElements.add("Session CE: " + formatNumber(totalSessionEnergyGained));
+        }
+        if (BetterPrisonsClient.config.statsShowSessionDuration) {
+            visibleElements.add("Session: " + getSessionDuration());
+        }
+
+        // Calculate maximum width
+        int maxWidth = titleWidth;
+        for (String text : visibleElements) {
+            int textWidth = (int)(client.textRenderer.getWidth(Text.literal(text)) * scale);
+            maxWidth = Math.max(maxWidth, textWidth);
+        }
+
+        int bgWidth = scaled((int)(maxWidth/scale) + 4);
+
+        // Add padding (StatsHud uses fixed 2px padding)
+        return bgWidth + 4; // 2px padding on each side
     }
 
     @Override

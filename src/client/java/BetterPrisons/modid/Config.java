@@ -27,36 +27,37 @@ public class Config {
     public boolean enchantHudEnabled = true;
     public boolean meteorHudEnabled = true;
     public boolean useCommaFormatting = false;
-    public boolean peacefulMiningEnabled = false;
+    public boolean peacefulMiningEnabled = true;
     public boolean satchelShowPercentage = false;
     public boolean combineSimilarSatchels = true;
 
     // HUD positions (x, y for each element)
-    public int cooldownHudX = 10;
-    public int cooldownHudY = 10;
-    public int satchelHudX = 10;
-    public int satchelHudY = 100;
-    public int statsHudX = 10;
-    public int statsHudY = 200;
-    public int enchantHudX = 10;
-    public int enchantHudY = 300;
-    public int meteorHudX = 10;
-    public int meteorHudY = 400;
+    public int cooldownHudX = 6;
+    public int cooldownHudY = 7;
+    public int satchelHudX = 7;
+    public int satchelHudY = 127;
+    public int statsHudX = 535;
+    public int statsHudY = 212;
+    public int enchantHudX = 517;
+    public int enchantHudY = 4;
+    public int meteorHudX = 8;
+    public int meteorHudY = 74;
 
     // Colors (as integers)
     public int cooldownBarColor = 0xFF00FF;
     public int satchelBarColor = 0xFF4488;
 
     // Super Breaker Aura colors and opacity
-    public int superBreakerBaseColor = 0x0A88F0; // RGB color (dark blue)
+    public int superBreakerBaseColor = 16386570; // RGB color (yellow)
     public int superBreakerBaseOpacity = 79; // 0-255 (79 = 0x4F, ~30% opacity)
-    public int superBreakerLightColor = 0x0A88F0; // RGB color (same blue)
+    public int superBreakerLightColor = 1444602; // RGB color (blue)
     public int superBreakerLightOpacity = 191; // 0-255 (191 = 0xBF, ~75% opacity)
     public boolean superBreakerAuraEnabled = true;
 
     // Peaceful Mining opacity
-    public int peacefulMiningOpacity = 77; // 0-255 (77 = ~30% opacity, matches 0.3f)
+    public int peacefulMiningOpacity = 50; // 0-255
     public int peacefulMiningDistance = 8;
+    public boolean peacefulMiningDisableOnCombat = false;
 
     // EasyView settings
     public boolean easyViewEnabled = true;
@@ -67,9 +68,9 @@ public class Config {
     public boolean easyViewChargeOrbEnabled = true;
     public int easyViewEnergyColor = 0xFFFFFF;
     public int easyViewMoneyColor = 0x00FF00;
-    public int easyViewGangPointsColor = 0xFFAA00;
+    public int easyViewGangPointsColor = 65535; // cyan
     public int easyViewBlackScrollColor = 0xFF00FF;
-    public int easyViewChargeOrbColor = 0x00FFFF;
+    public int easyViewChargeOrbColor = 16755200; // yellow-ish
 
     // HUD Scaling
     public int cooldownHudScale = 100;
@@ -106,7 +107,7 @@ public class Config {
     public int enchantBorderColor = 0xFFFFFF;
     public int enchantBorderOpacity = 128;
     public int enchantBorderThickness = 2;
-    public int enchantTimeColor = 0xFFFFFF;
+    public int enchantTimeColor = 1045763; // green
 
     // Meteor HUD styling
     public int meteorBgColor = 0x000000;
@@ -128,48 +129,48 @@ public class Config {
     public boolean statsShowMillisOnSessionDuration = false;
 
     // Stats HUD text colors (RGB, no alpha)
-    public int statsCurrentXPColor = 0xFFFFFF;
-    public int statsXPPerHourColor = 0xAAAAAA;
-    public int statsXPPerMinuteColor = 0xAAAAAA;
-    public int statsSessionXPColor = 0xAAAAAA;
-    public int statsCurrentCEColor = 0xFFFFFF;
-    public int statsCEPerHourColor = 0xAAAAAA;
-    public int statsCEPerMinuteColor = 0xAAAAAA;
-    public int statsSessionCEColor = 0xAAAAAA;
-    public int statsSessionDurationColor = 0x888888;
+    public int statsCurrentXPColor = 1045763; // green
+    public int statsXPPerHourColor = 1045763; // green
+    public int statsXPPerMinuteColor = 1045763; // green
+    public int statsSessionXPColor = 1045763; // green
+    public int statsCurrentCEColor = 240124; // blue
+    public int statsCEPerHourColor = 240124; // blue
+    public int statsCEPerMinuteColor = 240124; // blue
+    public int statsSessionCEColor = 240124; // blue
+    public int statsSessionDurationColor = 14352636; // purple
 
     // Satchel HUD capacity threshold colors (RGB, no alpha)
-    public int satchelColorUnder20 = 0xAA0000;    // Dark red - nearly empty
-    public int satchelColor20to60 = 0xFF8800;     // Orange - low
-    public int satchelColor60to95 = 0xFFFF00;     // Yellow - medium
-    public int satchelColor95Plus = 0x00AA00;     // Green - nearly full
+    public int satchelColorUnder20 = 1045763;    // green - nearly empty
+    public int satchelColor20to60 = 16776960;     // yellow - low
+    public int satchelColor60to95 = 16746496;     // orange - medium
+    public int satchelColor95Plus = 11141120;     // dark red - nearly full
 
     // Cooldown command configs (enabled and color for each command)
     public boolean homeEnabled = true;
-    public int homeColor = 0xFFFFFF;
+    public int homeColor = 1045763; // green
     public boolean jetEnabled = true;
-    public int jetColor = 0xFFFFFF;
+    public int jetColor = 14576132; // pink
     public boolean feedEnabled = true;
-    public int feedColor = 0xFFFFFF;
+    public int feedColor = 6700312; // brown
     public boolean fixEnabled = true;
-    public int fixColor = 0xFFFFFF;
+    public int fixColor = 12632256; // gold
     public boolean combatEnabled = true;
-    public int combatColor = 0xFFFFFF;
+    public int combatColor = 9835026; // dark red
 
     // HUD titles (show/hide and color for each HUD)
     public boolean showCooldownHudTitle = true;
-    public int cooldownHudTitleColor = 0xFFFFFF;
+    public int cooldownHudTitleColor = 14550187; // yellow
     public boolean showSatchelHudTitle = true;
-    public int satchelHudTitleColor = 0xFFFFFF;
+    public int satchelHudTitleColor = 11722244; // light green
     public boolean showStatsHudTitle = true;
-    public int statsHudTitleColor = 0xFFFFFF;
+    public int statsHudTitleColor = 14352636; // purple
     public boolean showEnchantHudTitle = true;
-    public int enchantHudTitleColor = 0xFFFFFF;
+    public int enchantHudTitleColor = 300510; // cyan
     public boolean showMeteorHudTitle = true;
-    public int meteorHudTitleColor = 0xFFFFFF;
+    public int meteorHudTitleColor = 14558468; // pink
 
     // Meteor HUD text color
-    public int meteorTextColor = 0xFFFFFF;
+    public int meteorTextColor = 14558468; // pink
 
     // Meteor HUD icon
     public String meteorIconItemId = "minecraft:nether_quartz_ore";
@@ -304,6 +305,7 @@ public class Config {
                 // Load peaceful mining settings
                 this.peacefulMiningOpacity = loaded.peacefulMiningOpacity;
                 this.peacefulMiningDistance = loaded.peacefulMiningDistance;
+                this.peacefulMiningDisableOnCombat = loaded.peacefulMiningDisableOnCombat;
 
                 // Load EasyView settings
                 this.easyViewEnabled = loaded.easyViewEnabled;
@@ -390,21 +392,17 @@ public class Config {
                     BetterPrisonsClient.meteorHud.enabled = val;
                 })
                 .build());
-        toggles.addEntry(entryBuilder.startBooleanToggle(Text.literal("Use Comma Formatting for Stats"), useCommaFormatting)
-                .setDefaultValue(false)
-                .setTooltip(Text.literal("When enabled, numbers show as '1,234,567'. When disabled, numbers show as '1.2M'"))
-                .setSaveConsumer(val -> useCommaFormatting = val)
-                .build());
+
 
         // Peaceful Mining Category (moved to be first after toggles)
         ConfigCategory peacefulCategory = builder.getOrCreateCategory(Text.literal("Peaceful Mining"));
         peacefulCategory.addEntry(entryBuilder.startBooleanToggle(Text.literal("Enable Peaceful Mining"), peacefulMiningEnabled)
-                .setDefaultValue(false)
+                .setDefaultValue(true)
                 .setTooltip(Text.literal("When enabled and holding a pickaxe, other players appear translucent and non-interactable"))
                 .setSaveConsumer(val -> peacefulMiningEnabled = val)
                 .build());
         peacefulCategory.addEntry(entryBuilder.startIntSlider(Text.literal("Player Opacity"), peacefulMiningOpacity, 0, 255)
-                .setDefaultValue(77)
+                .setDefaultValue(50)
                 .setTooltip(Text.literal("Opacity of other players when peaceful mining is active (0 = invisible, 255 = fully visible)"))
                 .setSaveConsumer(val -> peacefulMiningOpacity = val)
                 .build());
@@ -412,6 +410,11 @@ public class Config {
                 .setDefaultValue(8)
                 .setTooltip(Text.literal("Radius of distance that Peaceful Mining affects other players around you"))
                 .setSaveConsumer(val -> peacefulMiningDistance = val)
+                .build());
+        peacefulCategory.addEntry(entryBuilder.startBooleanToggle(Text.literal("Auto-disable on Combat"), peacefulMiningDisableOnCombat)
+                .setDefaultValue(false)
+                .setTooltip(Text.literal("Automatically disable peaceful mining when entering combat and re-enable when combat ends"))
+                .setSaveConsumer(val -> peacefulMiningDisableOnCombat = val)
                 .build());
 
         // EasyView Category
@@ -464,7 +467,7 @@ public class Config {
                 .setSaveConsumer(val -> easyViewGangPointsEnabled = val)
                 .build());
         easyViewCategory.addEntry(entryBuilder.startColorField(Text.literal("Gang Points Color"), easyViewGangPointsColor)
-                .setDefaultValue(0xFFAA00)
+                .setDefaultValue(65535)
                 .setTooltip(Text.literal("Color of Gang Points text overlay"))
                 .setSaveConsumer(val -> easyViewGangPointsColor = val)
                 .build());
@@ -492,7 +495,7 @@ public class Config {
                 .setSaveConsumer(val -> easyViewChargeOrbEnabled = val)
                 .build());
         easyViewCategory.addEntry(entryBuilder.startColorField(Text.literal("Charge Orb Color"), easyViewChargeOrbColor)
-                .setDefaultValue(0x00FFFF)
+                .setDefaultValue(16755200)
                 .setTooltip(Text.literal("Color of Charge Orb text overlay"))
                 .setSaveConsumer(val -> easyViewChargeOrbColor = val)
                 .build());
@@ -507,7 +510,7 @@ public class Config {
                 .setSaveConsumer(val -> showCooldownHudTitle = val)
                 .build());
         cooldownStyling.addEntry(entryBuilder.startColorField(Text.literal("Title Color"), cooldownHudTitleColor)
-                .setDefaultValue(0xFFFFFF)
+                .setDefaultValue(14550187)
                 .setTooltip(Text.literal("Color of the HUD title text"))
                 .setSaveConsumer(val -> cooldownHudTitleColor = val)
                 .build());
@@ -546,7 +549,7 @@ public class Config {
                 .setSaveConsumer(val -> homeEnabled = val)
                 .build());
         cooldownStyling.addEntry(entryBuilder.startColorField(Text.literal("Home Color"), homeColor)
-                .setDefaultValue(0xFFFFFF)
+                .setDefaultValue(1045763)
                 .setTooltip(Text.literal("Text color for Home cooldown"))
                 .setSaveConsumer(val -> homeColor = val)
                 .build());
@@ -559,7 +562,7 @@ public class Config {
                 .setSaveConsumer(val -> jetEnabled = val)
                 .build());
         cooldownStyling.addEntry(entryBuilder.startColorField(Text.literal("Jet Color"), jetColor)
-                .setDefaultValue(0xFFFFFF)
+                .setDefaultValue(14576132)
                 .setTooltip(Text.literal("Text color for Jet cooldown"))
                 .setSaveConsumer(val -> jetColor = val)
                 .build());
@@ -572,7 +575,7 @@ public class Config {
                 .setSaveConsumer(val -> feedEnabled = val)
                 .build());
         cooldownStyling.addEntry(entryBuilder.startColorField(Text.literal("Feed Color"), feedColor)
-                .setDefaultValue(0xFFFFFF)
+                .setDefaultValue(6700312)
                 .setTooltip(Text.literal("Text color for Feed cooldown"))
                 .setSaveConsumer(val -> feedColor = val)
                 .build());
@@ -585,7 +588,7 @@ public class Config {
                 .setSaveConsumer(val -> fixEnabled = val)
                 .build());
         cooldownStyling.addEntry(entryBuilder.startColorField(Text.literal("Fix Color"), fixColor)
-                .setDefaultValue(0xFFFFFF)
+                .setDefaultValue(12632256)
                 .setTooltip(Text.literal("Text color for Fix cooldown"))
                 .setSaveConsumer(val -> fixColor = val)
                 .build());
@@ -598,7 +601,7 @@ public class Config {
                 .setSaveConsumer(val -> combatEnabled = val)
                 .build());
         cooldownStyling.addEntry(entryBuilder.startColorField(Text.literal("Combat Color"), combatColor)
-                .setDefaultValue(0xFFFFFF)
+                .setDefaultValue(9835026)
                 .setTooltip(Text.literal("Text color for Combat cooldown"))
                 .setSaveConsumer(val -> combatColor = val)
                 .build());
@@ -613,7 +616,7 @@ public class Config {
                 .setSaveConsumer(val -> showSatchelHudTitle = val)
                 .build());
         satchelStyling.addEntry(entryBuilder.startColorField(Text.literal("Title Color"), satchelHudTitleColor)
-                .setDefaultValue(0xFFFFFF)
+                .setDefaultValue(11722244)
                 .setTooltip(Text.literal("Color of the HUD title text"))
                 .setSaveConsumer(val -> satchelHudTitleColor = val)
                 .build());
@@ -655,23 +658,23 @@ public class Config {
         satchelStyling.addEntry(entryBuilder.startTextDescription(Text.literal("")).build()); // Spacer
         satchelStyling.addEntry(entryBuilder.startTextDescription(Text.literal("Capacity Threshold Colors")).build());
         satchelStyling.addEntry(entryBuilder.startColorField(Text.literal("Under 20% Color"), satchelColorUnder20)
-                .setDefaultValue(0xAA0000)
-                .setTooltip(Text.literal("Color for satchels under 20% full (dark red)"))
+                .setDefaultValue(1045763)
+                .setTooltip(Text.literal("Color for satchels under 20% full"))
                 .setSaveConsumer(val -> satchelColorUnder20 = val)
                 .build());
         satchelStyling.addEntry(entryBuilder.startColorField(Text.literal("20-60% Color"), satchelColor20to60)
-                .setDefaultValue(0xFF8800)
-                .setTooltip(Text.literal("Color for satchels 20-60% full (orange)"))
+                .setDefaultValue(16776960)
+                .setTooltip(Text.literal("Color for satchels 20-60% full"))
                 .setSaveConsumer(val -> satchelColor20to60 = val)
                 .build());
         satchelStyling.addEntry(entryBuilder.startColorField(Text.literal("60-95% Color"), satchelColor60to95)
-                .setDefaultValue(0xFFFF00)
-                .setTooltip(Text.literal("Color for satchels 60-95% full (yellow)"))
+                .setDefaultValue(16746496)
+                .setTooltip(Text.literal("Color for satchels 60-95% full"))
                 .setSaveConsumer(val -> satchelColor60to95 = val)
                 .build());
         satchelStyling.addEntry(entryBuilder.startColorField(Text.literal("95%+ Color"), satchelColor95Plus)
-                .setDefaultValue(0x00AA00)
-                .setTooltip(Text.literal("Color for satchels 95% or more full (green)"))
+                .setDefaultValue(11141120)
+                .setTooltip(Text.literal("Color for satchels 95% or more full"))
                 .setSaveConsumer(val -> satchelColor95Plus = val)
                 .build());
 
@@ -685,7 +688,7 @@ public class Config {
                 .setSaveConsumer(val -> showStatsHudTitle = val)
                 .build());
         statsStyling.addEntry(entryBuilder.startColorField(Text.literal("Title Color"), statsHudTitleColor)
-                .setDefaultValue(0xFFFFFF)
+                .setDefaultValue(14352636)
                 .setTooltip(Text.literal("Color of the HUD title text"))
                 .setSaveConsumer(val -> statsHudTitleColor = val)
                 .build());
@@ -710,6 +713,11 @@ public class Config {
         statsStyling.addEntry(entryBuilder.startIntField(Text.literal("Border Thickness"), statsBorderThickness)
                 .setDefaultValue(2)
                 .setSaveConsumer(val -> statsBorderThickness = val)
+                .build());
+        statsStyling.addEntry(entryBuilder.startBooleanToggle(Text.literal("Use Comma Formatting for Stats"), useCommaFormatting)
+                .setDefaultValue(false)
+                .setTooltip(Text.literal("When enabled, numbers show as '1,234,567'. When disabled, numbers show as '1.2M'"))
+                .setSaveConsumer(val -> useCommaFormatting = val)
                 .build());
 
         // Stats HUD Element Toggles
@@ -759,39 +767,39 @@ public class Config {
         statsStyling.addEntry(entryBuilder.startTextDescription(Text.literal("")).build()); // Spacer
         statsStyling.addEntry(entryBuilder.startTextDescription(Text.literal("Text Colors")).build());
         statsStyling.addEntry(entryBuilder.startColorField(Text.literal("Current XP Color"), statsCurrentXPColor)
-                .setDefaultValue(0xFFFFFF)
+                .setDefaultValue(1045763)
                 .setSaveConsumer(val -> statsCurrentXPColor = val)
                 .build());
         statsStyling.addEntry(entryBuilder.startColorField(Text.literal("XP/hr Color"), statsXPPerHourColor)
-                .setDefaultValue(0xAAAAAA)
+                .setDefaultValue(1045763)
                 .setSaveConsumer(val -> statsXPPerHourColor = val)
                 .build());
         statsStyling.addEntry(entryBuilder.startColorField(Text.literal("XP/min Color"), statsXPPerMinuteColor)
-                .setDefaultValue(0xAAAAAA)
+                .setDefaultValue(1045763)
                 .setSaveConsumer(val -> statsXPPerMinuteColor = val)
                 .build());
         statsStyling.addEntry(entryBuilder.startColorField(Text.literal("Session XP Color"), statsSessionXPColor)
-                .setDefaultValue(0xAAAAAA)
+                .setDefaultValue(1045763)
                 .setSaveConsumer(val -> statsSessionXPColor = val)
                 .build());
         statsStyling.addEntry(entryBuilder.startColorField(Text.literal("Current CE Color"), statsCurrentCEColor)
-                .setDefaultValue(0xFFFFFF)
+                .setDefaultValue(240124)
                 .setSaveConsumer(val -> statsCurrentCEColor = val)
                 .build());
         statsStyling.addEntry(entryBuilder.startColorField(Text.literal("CE/hr Color"), statsCEPerHourColor)
-                .setDefaultValue(0xAAAAAA)
+                .setDefaultValue(240124)
                 .setSaveConsumer(val -> statsCEPerHourColor = val)
                 .build());
         statsStyling.addEntry(entryBuilder.startColorField(Text.literal("CE/min Color"), statsCEPerMinuteColor)
-                .setDefaultValue(0xAAAAAA)
+                .setDefaultValue(240124)
                 .setSaveConsumer(val -> statsCEPerMinuteColor = val)
                 .build());
         statsStyling.addEntry(entryBuilder.startColorField(Text.literal("Session CE Color"), statsSessionCEColor)
-                .setDefaultValue(0xAAAAAA)
+                .setDefaultValue(240124)
                 .setSaveConsumer(val -> statsSessionCEColor = val)
                 .build());
         statsStyling.addEntry(entryBuilder.startColorField(Text.literal("Session Duration Color"), statsSessionDurationColor)
-                .setDefaultValue(0x888888)
+                .setDefaultValue(14352636)
                 .setSaveConsumer(val -> statsSessionDurationColor = val)
                 .build());
 
@@ -805,7 +813,7 @@ public class Config {
                 .setSaveConsumer(val -> showEnchantHudTitle = val)
                 .build());
         enchantStyling.addEntry(entryBuilder.startColorField(Text.literal("Title Color"), enchantHudTitleColor)
-                .setDefaultValue(0xFFFFFF)
+                .setDefaultValue(300510)
                 .setTooltip(Text.literal("Color of the HUD title text"))
                 .setSaveConsumer(val -> enchantHudTitleColor = val)
                 .build());
@@ -832,7 +840,7 @@ public class Config {
                 .setSaveConsumer(val -> enchantBorderThickness = val)
                 .build());
         enchantStyling.addEntry(entryBuilder.startColorField(Text.literal("Timer Color"), enchantTimeColor)
-                .setDefaultValue(0xFFFFFF)
+                .setDefaultValue(1045763)
                 .setSaveConsumer(val -> enchantTimeColor = val)
                 .build());
 
@@ -846,7 +854,7 @@ public class Config {
                 .setSaveConsumer(val -> superBreakerAuraEnabled = val)
                 .build());
         enchantStyling.addEntry(entryBuilder.startColorField(Text.literal("Aura Base Color"), superBreakerBaseColor)
-                .setDefaultValue(0x0A88F0)
+                .setDefaultValue(16386570)
                 .setTooltip(Text.literal("Color of the darker/base aura ring"))
                 .setSaveConsumer(val -> superBreakerBaseColor = val)
                 .build());
@@ -856,7 +864,7 @@ public class Config {
                 .setSaveConsumer(val -> superBreakerBaseOpacity = val)
                 .build());
         enchantStyling.addEntry(entryBuilder.startColorField(Text.literal("Aura Light Color"), superBreakerLightColor)
-                .setDefaultValue(0x0A88F0)
+                .setDefaultValue(1444602)
                 .setTooltip(Text.literal("Color of the brighter/progress aura ring"))
                 .setSaveConsumer(val -> superBreakerLightColor = val)
                 .build());
@@ -876,7 +884,7 @@ public class Config {
                 .setSaveConsumer(val -> showMeteorHudTitle = val)
                 .build());
         meteorStyling.addEntry(entryBuilder.startColorField(Text.literal("Title Color"), meteorHudTitleColor)
-                .setDefaultValue(0xFFFFFF)
+                .setDefaultValue(14558468)
                 .setTooltip(Text.literal("Color of the HUD title text"))
                 .setSaveConsumer(val -> meteorHudTitleColor = val)
                 .build());
@@ -906,7 +914,7 @@ public class Config {
         // Text color
         meteorStyling.addEntry(entryBuilder.startTextDescription(Text.literal("")).build()); // Spacer
         meteorStyling.addEntry(entryBuilder.startColorField(Text.literal("Text Color"), meteorTextColor)
-                .setDefaultValue(0xFFFFFF)
+                .setDefaultValue(14558468)
                 .setTooltip(Text.literal("Color of meteor coordinate text"))
                 .setSaveConsumer(val -> meteorTextColor = val)
                 .build());

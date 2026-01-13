@@ -39,7 +39,7 @@ public class EnchantHud extends BaseHud {
         int titleHeight = 0;
         int titleWidth = 0;
         if (showTitle) {
-            Text titleText = Text.literal("Enchant HUD").setStyle(Style.EMPTY.withUnderline(true));
+            Text titleText = Text.literal("Enchant HUD").setStyle(Style.EMPTY.withUnderline(true).withBold(true));
             titleWidth = (int)(client.textRenderer.getWidth(titleText) * scale);
             titleHeight = scaled(12); // Text height + spacing
         }
@@ -73,7 +73,7 @@ public class EnchantHud extends BaseHud {
 
             // Draw title if enabled
             if (showTitle) {
-                Text titleText = Text.literal("Enchant HUD").setStyle(Style.EMPTY.withUnderline(true));
+                Text titleText = Text.literal("Enchant HUD").setStyle(Style.EMPTY.withUnderline(true).withBold(true));
                 int titleColor = 0xFF000000 | BetterPrisonsClient.config.enchantHudTitleColor;
                 matrices.pushMatrix();
                 matrices.scale(scale);
@@ -122,7 +122,7 @@ public class EnchantHud extends BaseHud {
 
             // Draw title if enabled
             if (showTitle) {
-                Text titleText = Text.literal("Enchant HUD").setStyle(Style.EMPTY.withUnderline(true));
+                Text titleText = Text.literal("Enchant HUD").setStyle(Style.EMPTY.withUnderline(true).withBold(true));
                 int titleColor = 0xFF000000 | BetterPrisonsClient.config.enchantHudTitleColor;
                 matrices.pushMatrix();
                 matrices.scale(scale);
@@ -156,6 +156,43 @@ public class EnchantHud extends BaseHud {
                 yOffset += scaled(14);
             }
         }
+    }
+
+    @Override
+    public int getWidth() {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client == null || client.textRenderer == null) return scaled(120);
+
+        boolean showTitle = BetterPrisonsClient.config.showEnchantHudTitle;
+        List<BaseEnchant> activeEnchants = BetterPrisonsClient.enchantTracker.getActiveEnchants();
+        boolean hasContent = !activeEnchants.isEmpty();
+
+        // Calculate title width
+        int titleWidth = 0;
+        if (showTitle) {
+            Text titleText = Text.literal("Enchant HUD").setStyle(Style.EMPTY.withUnderline(true).withBold(true));
+            titleWidth = (int)(client.textRenderer.getWidth(titleText) * scale);
+        }
+
+        if (!hasContent) {
+            return titleWidth;
+        }
+
+        // Calculate maximum width needed
+        int maxWidth = titleWidth;
+        for (BaseEnchant enchant : activeEnchants) {
+            Text nameText = enchant.displayText != null ? enchant.displayText : Text.literal(enchant.displayName);
+            String timeText = String.format("%.1f", enchant.getRemainingSeconds()) + "s";
+            int nameWidth = client.textRenderer.getWidth(nameText);
+            int timeWidth = client.textRenderer.getWidth(timeText);
+            int totalWidth = (int)((nameWidth + 10 + timeWidth) * scale);
+            maxWidth = Math.max(maxWidth, totalWidth);
+        }
+
+        int bgWidth = scaled((int)(maxWidth/scale));
+
+        // Add padding (EnchantHud uses fixed 2px padding)
+        return bgWidth + 4; // 2px padding on each side
     }
 
     @Override

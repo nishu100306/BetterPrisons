@@ -25,7 +25,8 @@ public abstract class BaseHud {
     // Each HUD implements its own rendering
     public abstract void render(DrawContext context, MinecraftClient client);
 
-    // Optional: get height for stacking HUDs
+    // Optional: get width and height for editor
+    public int getWidth() { return 0; }
     public int getHeight() { return 0; }
 
     // Helper methods for scaling

@@ -133,7 +133,7 @@ public class MeteorHud extends BaseHud {
         int titleHeight = 0;
         int titleWidth = 0;
         if (showTitle) {
-            Text titleText = Text.literal("Meteor HUD").setStyle(Style.EMPTY.withUnderline(true));
+            Text titleText = Text.literal("Meteor HUD").setStyle(Style.EMPTY.withUnderline(true).withBold(true));
             titleWidth = (int)(client.textRenderer.getWidth(titleText) * scale);
             titleHeight = scaled(12); // Text height + spacing
         }
@@ -179,7 +179,7 @@ public class MeteorHud extends BaseHud {
 
         // Draw title if enabled
         if (showTitle) {
-            Text titleText = Text.literal("Meteor HUD").setStyle(Style.EMPTY.withUnderline(true));
+            Text titleText = Text.literal("Meteor HUD").setStyle(Style.EMPTY.withUnderline(true).withBold(true));
             int titleColor = 0xFF000000 | BetterPrisonsClient.config.meteorHudTitleColor;
             matrices.pushMatrix();
             matrices.scale(scale);
@@ -216,6 +216,40 @@ public class MeteorHud extends BaseHud {
                 yOffset += rowHeight;
             }
         }
+    }
+
+    @Override
+    public int getWidth() {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client == null || client.textRenderer == null) return scaled(130);
+
+        boolean showTitle = BetterPrisonsClient.config.showMeteorHudTitle;
+        boolean hasContent = !activeMeteors.isEmpty();
+
+        // Calculate title width
+        int titleWidth = 0;
+        if (showTitle) {
+            Text titleText = Text.literal("Meteor HUD").setStyle(Style.EMPTY.withUnderline(true).withBold(true));
+            titleWidth = (int)(client.textRenderer.getWidth(titleText) * scale);
+        }
+
+        // Calculate maximum text width
+        int maxTextWidth = titleWidth;
+        if (hasContent) {
+            for (MeteorInfo meteor : activeMeteors) {
+                String coordsText = String.format("%dx, %dy, %dz", meteor.x, meteor.y, meteor.z);
+                int textWidth = (int)(client.textRenderer.getWidth(Text.literal(coordsText)) * scale);
+                maxTextWidth = Math.max(maxTextWidth, textWidth);
+            }
+        }
+
+        int bgWidth = hasContent ? (scaled(16 + 4) + maxTextWidth) : maxTextWidth;
+
+        // Add padding (same logic as render method)
+        int padding = 4;
+        if (scale < 1) padding = scaled(padding);
+
+        return bgWidth + (padding * 2); // padding on both sides
     }
 
     @Override

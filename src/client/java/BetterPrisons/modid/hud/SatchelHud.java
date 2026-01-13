@@ -308,7 +308,7 @@ public class SatchelHud extends BaseHud {
         int titleHeight = 0;
         int titleWidth = 0;
         if (showTitle) {
-            Text titleText = Text.literal("Satchel HUD").setStyle(Style.EMPTY.withUnderline(true));
+            Text titleText = Text.literal("Satchel HUD").setStyle(Style.EMPTY.withUnderline(true).withBold(true));
             titleWidth = (int)(client.textRenderer.getWidth(titleText) * scale);
             titleHeight = scaled(12); // Text height + spacing
         }
@@ -372,7 +372,7 @@ public class SatchelHud extends BaseHud {
 
         // Draw title if enabled
         if (showTitle) {
-            Text titleText = Text.literal("Satchel HUD");
+            Text titleText = Text.literal("Satchel HUD").setStyle(Style.EMPTY.withUnderline(true).withBold(true));
             int titleColor = 0xFF000000 | BetterPrisonsClient.config.satchelHudTitleColor;
             matrices.pushMatrix();
             matrices.scale(scale);
@@ -380,9 +380,6 @@ public class SatchelHud extends BaseHud {
             ctx.drawTextWithShadow(client.textRenderer, titleText, 0, 0, titleColor);
             matrices.popMatrix();
 
-            // Draw underline below title
-            int underlineY = y + scaled(9);
-            ctx.fill(x, underlineY, x + titleWidth, underlineY + 1, titleColor);
 
             yOffset += titleHeight;
         }
@@ -447,6 +444,53 @@ public class SatchelHud extends BaseHud {
                 yOffset += rowHeight; // Space for next satchel
             }
         }
+    }
+
+    @Override
+    public int getWidth() {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client == null || client.textRenderer == null) return scaled(140);
+
+        boolean showTitle = BetterPrisonsClient.config.showSatchelHudTitle;
+        boolean hasContent = !foundSatchels.isEmpty();
+
+        // Calculate title width
+        int titleWidth = 0;
+        if (showTitle) {
+            Text titleText = Text.literal("Satchel HUD").setStyle(Style.EMPTY.withUnderline(true).withBold(true));
+            titleWidth = (int)(client.textRenderer.getWidth(titleText) * scale);
+        }
+
+        // Calculate maximum text width
+        int maxTextWidth = titleWidth;
+        if (hasContent) {
+            for (SatchelInfo satchel : foundSatchels) {
+                // Check name width
+                if (satchel.displayName != null) {
+                    int nameWidth = (int)(client.textRenderer.getWidth(satchel.displayName) * scale);
+                    maxTextWidth = Math.max(maxTextWidth, nameWidth);
+                }
+
+                // Check fill text width
+                String fillText;
+                if (BetterPrisonsClient.config.satchelShowPercentage) {
+                    double percentage = (satchel.current * 100.0) / satchel.max;
+                    fillText = String.format("%.1f%%", percentage);
+                } else {
+                    fillText = formatNumber(satchel.current) + " / " + formatNumber(satchel.max);
+                }
+                int fillTextWidth = (int)(client.textRenderer.getWidth(Text.literal(fillText)) * scale);
+                maxTextWidth = Math.max(maxTextWidth, fillTextWidth);
+            }
+        }
+
+        int bgWidth = hasContent ? (scaled(16 + 4) + maxTextWidth) : maxTextWidth;
+
+        // Add padding (same logic as render method)
+        int padding = 4;
+        if (scale < 1) padding = scaled(padding);
+
+        return bgWidth + (padding * 2); // padding on both sides
     }
 
     @Override

@@ -23,6 +23,10 @@ public class CooldownHud extends BaseHud {
     // Active cooldowns (from commands AND enchants)
     public List<ActiveCooldown> activeCooldowns = new ArrayList<>();
 
+    // Track if peaceful mining was disabled due to combat
+    private boolean peacefulMiningDisabledByCombat = false;
+    private boolean peacefulMiningStateBeforeCombat = false;
+
     public CooldownHud() {
         super("cooldown");
     }
@@ -125,6 +129,14 @@ public class CooldownHud extends BaseHud {
 
     // Called by ChatReceiveMixin when a chat message is received
     public void onChatReceived(String message) {
+        // Check for jet cancellation message
+        if (message.equals("§c§l(!) §c/jet cancelled.")) {
+            // Remove Jet cooldown if it exists
+            activeCooldowns.removeIf(cd -> cd.name.equals("Jet"));
+            BetterPrisonsClient.LOGGER.info("Jet cooldown removed due to cancellation");
+            return;
+        }
+
         for (CommandDef def : definitions) {
             // Only check if this command uses chat pattern detection
             if (def.chatPattern != null && !def.chatPattern.isEmpty()) {
@@ -162,13 +174,41 @@ public class CooldownHud extends BaseHud {
         }
         // Add the new cooldown
         activeCooldowns.add(new ActiveCooldown(name, durationSeconds, System.currentTimeMillis(), icon, color));
+
+        // If this is a combat cooldown and auto-disable on combat is enabled
+        if (name.equals("Combat") && BetterPrisonsClient.config.peacefulMiningDisableOnCombat) {
+            // Save the current state of peaceful mining
+            peacefulMiningStateBeforeCombat = BetterPrisonsClient.config.peacefulMiningEnabled;
+            // Only disable if it was enabled
+            if (peacefulMiningStateBeforeCombat) {
+                BetterPrisonsClient.config.peacefulMiningEnabled = false;
+                BetterPrisonsClient.config.save();
+                peacefulMiningDisabledByCombat = true;
+                BetterPrisonsClient.LOGGER.info("Peaceful Mining auto-disabled due to combat");
+            }
+        }
     }
 
     @Override
     public void tick() {
+        // Check if combat cooldown is still active before removing expired cooldowns
+        boolean combatWasActive = activeCooldowns.stream().anyMatch(cd -> cd.name.equals("Combat"));
+
         // Remove expired cooldowns
         long now = System.currentTimeMillis();
         activeCooldowns.removeIf(cd -> cd.isExpired(now));
+
+        // Check if combat cooldown is now gone (expired)
+        boolean combatIsActive = activeCooldowns.stream().anyMatch(cd -> cd.name.equals("Combat"));
+
+        // If combat ended and we disabled peaceful mining due to combat, re-enable it
+        if (combatWasActive && !combatIsActive && peacefulMiningDisabledByCombat) {
+            // Restore the previous state
+            BetterPrisonsClient.config.peacefulMiningEnabled = peacefulMiningStateBeforeCombat;
+            BetterPrisonsClient.config.save();
+            peacefulMiningDisabledByCombat = false;
+            BetterPrisonsClient.LOGGER.info("Peaceful Mining auto-enabled after combat ended");
+        }
     }
 
     @Override
@@ -186,7 +226,7 @@ public class CooldownHud extends BaseHud {
         int titleHeight = 0;
         int titleWidth = 0;
         if (showTitle) {
-            Text titleText = Text.literal("Cooldown HUD");
+            Text titleText = Text.literal("Cooldown HUD").setStyle(Style.EMPTY.withUnderline(true).withBold(true));
             titleWidth = (int)(client.textRenderer.getWidth(titleText) * scale);
             titleHeight = scaled(12); // Text height + spacing
         }
@@ -236,7 +276,7 @@ public class CooldownHud extends BaseHud {
 
         // Draw title if enabled
         if (showTitle) {
-            Text titleText = Text.literal("Cooldown HUD").setStyle(Style.EMPTY.withUnderline(true));
+            Text titleText = Text.literal("Cooldown HUD").setStyle(Style.EMPTY.withUnderline(true).withBold(true));
             int titleColor = 0xFF000000 | BetterPrisonsClient.config.cooldownHudTitleColor;
             matrices.pushMatrix();
             matrices.scale(scale);
@@ -296,6 +336,41 @@ public class CooldownHud extends BaseHud {
                 yOffset += rowHeight;
             }
         }
+    }
+
+    @Override
+    public int getWidth() {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client == null || client.textRenderer == null) return scaled(120);
+
+        boolean showTitle = BetterPrisonsClient.config.showCooldownHudTitle;
+        boolean hasContent = !activeCooldowns.isEmpty();
+
+        // Calculate title width
+        int titleWidth = 0;
+        if (showTitle) {
+            Text titleText = Text.literal("Cooldown HUD");
+            titleWidth = (int)(client.textRenderer.getWidth(titleText) * scale);
+        }
+
+        // Calculate maximum width needed for content
+        int iconSpace = scaled(20);
+        int maxWidth = titleWidth;
+        if (hasContent) {
+            for (ActiveCooldown cd : activeCooldowns) {
+                int nameWidth = (int)(client.textRenderer.getWidth(Text.literal(cd.name)) * scale);
+                String timeText = cd.getRemainingSeconds() + "s";
+                int timeWidth = (int)(client.textRenderer.getWidth(Text.literal(timeText)) * scale);
+                int totalWidth = iconSpace + nameWidth + scaled(10) + timeWidth;
+                maxWidth = Math.max(maxWidth, totalWidth);
+            }
+        }
+
+        // Add padding (same logic as render method)
+        int padding = 4;
+        if (scale < 1) padding = scaled(padding);
+
+        return maxWidth + (padding * 2); // padding on both sides
     }
 
     @Override

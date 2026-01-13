@@ -10,6 +10,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.text.Text;
 
 public class PowerballEnchant extends BaseEnchant {
+    private long lastRightClickTime = 0;
 
     public PowerballEnchant() {
         super("powerball", "Powerball");
@@ -20,11 +21,19 @@ public class PowerballEnchant extends BaseEnchant {
         // Call parent tick to handle expiration
         super.tick(client);
 
+        if (client.player == null) return;
+
+        // Track right-click (use key) events
+        if (client.options.useKey.isPressed()) {
+            lastRightClickTime = System.currentTimeMillis();
+        }
+
         // Check if wither shoot sound was heard this tick
-        if (SoundTracker.wasWitherShootSoundHeard() && client.player != null) {
+        if (SoundTracker.wasWitherShootSoundHeard()) {
             ItemStack heldItem = client.player.getMainHandStack();
-            // Only activate if holding a pickaxe
-            if (heldItem.getItem().getTranslationKey().contains("pickaxe")) {
+            // Only activate if holding a pickaxe AND right-click was pressed recently (within 2 seconds)
+            long timeSinceRightClick = System.currentTimeMillis() - lastRightClickTime;
+            if (heldItem.getItem().getTranslationKey().contains("pickaxe") && timeSinceRightClick <= 2000) {
                 onWitherSoundDetected(heldItem);
             }
         }

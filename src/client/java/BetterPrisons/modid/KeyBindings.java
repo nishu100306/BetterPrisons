@@ -9,6 +9,7 @@ import org.lwjgl.glfw.GLFW;
 public class KeyBindings {
     public KeyBinding resetStatsKey;
     public KeyBinding configKey;
+    public KeyBinding pauseKey;
 
     public KeyBindings() {
         resetStatsKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
@@ -24,6 +25,12 @@ public class KeyBindings {
                 GLFW.GLFW_KEY_I,
                 "category.betterprisons"
         ));
+        pauseKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+                "key.betterprisons.pause",
+                InputUtil.Type.KEYSYM,
+                GLFW.GLFW_KEY_B,
+                "category.betterprisons"
+        ));
     }
 
     public void tick(MinecraftClient client) {
@@ -32,6 +39,10 @@ public class KeyBindings {
         }
         if (configKey.wasPressed()) {
             client.setScreen(BetterPrisonsClient.config.createConfigScreen(client.currentScreen));
+        }
+        if (pauseKey.wasPressed()) {
+            BetterPrisonsClient.statsHud.togglePause();
+            BetterPrisonsClient.LOGGER.info("Toggled Stats HUD pause state to " + BetterPrisonsClient.statsHud.paused);
         }
     }
 }

@@ -53,19 +53,14 @@ public class HudEditorScreen extends Screen {
             // Render the actual HUD content
             hud.render(context, this.client);
 
-            // Draw bounding box
-            int width = 150; // Default width
+            // Get actual dimensions from HUD
+            int width = hud.getWidth() > 0 ? hud.getWidth() : 100;
             int height = hud.getHeight() > 0 ? hud.getHeight() : 50;
 
-            // Draw semi-transparent background
-            context.fill(hud.x - 2, hud.y - 2, hud.x + width + 2, hud.y + height + 2, 0x80000000);
-
-            // Draw border (yellow if dragged, green otherwise)
-            int borderColor = (hud == draggedHud) ? 0xFFFFFF00 : 0xFF00FF00;
+            // Draw border only (no background, no title)
+            // Yellow if being dragged, semi-transparent green otherwise
+            int borderColor = (hud == draggedHud) ? 0xFFFFFF00 : 0x8000FF00;
             drawBorder(context, hud.x - 2, hud.y - 2, width + 4, height + 4, borderColor);
-
-            // Draw HUD name at top
-            context.drawTextWithShadow(this.textRenderer, Text.literal(hud.id), hud.x, hud.y - 12, 0xFFFFFFFF);
         }
     }
 
@@ -76,7 +71,7 @@ public class HudEditorScreen extends Screen {
             for (BaseHud hud : huds) {
                 if (!hud.enabled) continue;
 
-                int width = 150;
+                int width = hud.getWidth() > 0 ? hud.getWidth() : 100;
                 int height = hud.getHeight() > 0 ? hud.getHeight() : 50;
 
                 // Check if click is within HUD bounds
@@ -102,9 +97,11 @@ public class HudEditorScreen extends Screen {
             draggedHud.x = (int)(mouseX - dragOffsetX);
             draggedHud.y = (int)(mouseY - dragOffsetY);
 
-            // Clamp to screen bounds
-            draggedHud.x = Math.max(0, Math.min(draggedHud.x, this.width - 150));
-            draggedHud.y = Math.max(0, Math.min(draggedHud.y, this.height - 50));
+            // Clamp to screen bounds using actual HUD dimensions
+            int hudWidth = draggedHud.getWidth() > 0 ? draggedHud.getWidth() : 100;
+            int hudHeight = draggedHud.getHeight() > 0 ? draggedHud.getHeight() : 50;
+            draggedHud.x = Math.max(0, Math.min(draggedHud.x, this.width - hudWidth));
+            draggedHud.y = Math.max(0, Math.min(draggedHud.y, this.height - hudHeight));
 
             return true;
         }
