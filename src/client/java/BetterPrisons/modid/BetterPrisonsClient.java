@@ -13,6 +13,7 @@ import BetterPrisons.modid.hud.SatchelHud;
 import BetterPrisons.modid.hud.StatsHud;
 import BetterPrisons.modid.hud.SuperBreakerAura;
 import BetterPrisons.modid.misc.EasyView;
+import BetterPrisons.modid.misc.PickaxeDropConfirmation;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -44,6 +45,7 @@ public class BetterPrisonsClient implements ClientModInitializer {
 
     // Misc features
     public static EasyView easyView;
+    public static PickaxeDropConfirmation pickaxeDropConfirmation;
 
     // Debug listeners
     public static SoundDebugListener soundDebugListener;
@@ -114,6 +116,7 @@ public class BetterPrisonsClient implements ClientModInitializer {
         // Misc features
         easyView = new EasyView();
         easyView.enabled = config.easyViewEnabled;
+        pickaxeDropConfirmation = new PickaxeDropConfirmation();
 
         // Debug listeners
         soundDebugListener = new SoundDebugListener();
@@ -139,6 +142,7 @@ public class BetterPrisonsClient implements ClientModInitializer {
             enchantHud.tick();
             meteorHud.tick();
             easyView.tick(client);
+            pickaxeDropConfirmation.tick();
 
             // Clear debug caches at end of tick
             soundDebugListener.clearTickCache();

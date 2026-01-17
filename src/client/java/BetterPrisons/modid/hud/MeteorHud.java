@@ -102,9 +102,14 @@ public class MeteorHud extends BaseHud {
                 int y = Integer.parseInt(matcher.group(2));
                 int z = Integer.parseInt(matcher.group(3));
 
-                // Remove meteor with matching coordinates
-                activeMeteors.removeIf(meteor -> meteor.x == x && meteor.y == y && meteor.z == z);
-                BetterPrisonsClient.LOGGER.info("Meteor removed at: " + x + ", " + y + ", " + z);
+                // Mark meteor as crashed instead of removing it immediately
+                for (MeteorInfo meteor : activeMeteors) {
+                    if (meteor.x == x && meteor.y == y && meteor.z == z && meteor.crashTime == null) {
+                        meteor.crashTime = System.currentTimeMillis();
+                        BetterPrisonsClient.LOGGER.info("Meteor marked as crashed at: " + x + ", " + y + ", " + z);
+                        return;
+                    }
+                }
             } catch (NumberFormatException e) {
                 BetterPrisonsClient.LOGGER.warn("Failed to parse meteor crash coordinates: " + coordsLine);
             }
@@ -113,9 +118,22 @@ public class MeteorHud extends BaseHud {
 
     @Override
     public void tick() {
-        // Remove expired meteors (older than 20 minutes)
         long now = System.currentTimeMillis();
-        activeMeteors.removeIf(meteor -> now - meteor.spawnTime > METEOR_TIMEOUT_MS);
+        long crashedDisplayDurationMs = BetterPrisonsClient.config.meteorCrashedDisplayDuration * 1000L;
+
+        activeMeteors.removeIf(meteor -> {
+            // Remove expired meteors (older than 20 minutes)
+            if (now - meteor.spawnTime > METEOR_TIMEOUT_MS) {
+                return true;
+            }
+
+            // Remove crashed meteors that have exceeded the display duration
+            if (meteor.crashTime != null && now - meteor.crashTime > crashedDisplayDurationMs) {
+                return true;
+            }
+
+            return false;
+        });
     }
 
     @Override
@@ -264,6 +282,7 @@ public class MeteorHud extends BaseHud {
         public int y;
         public int z;
         public long spawnTime;
+        public Long crashTime; // null if not crashed yet
         public ItemStack iconStack;
 
         public MeteorInfo(int x, int y, int z, long spawnTime, ItemStack iconStack) {
@@ -271,6 +290,7 @@ public class MeteorHud extends BaseHud {
             this.y = y;
             this.z = z;
             this.spawnTime = spawnTime;
+            this.crashTime = null;
             this.iconStack = iconStack;
         }
     }

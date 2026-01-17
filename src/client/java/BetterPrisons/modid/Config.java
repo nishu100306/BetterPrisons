@@ -59,6 +59,15 @@ public class Config {
     public int peacefulMiningDistance = 8;
     public boolean peacefulMiningDisableOnCombat = false;
 
+    // Pickaxe drop confirmation
+    public boolean pickaxeDropConfirmationEnabled = true;
+
+    // Held item scaling (25-150%)
+    public int heldItemPickaxeScale = 100;
+    public int heldItemSwordScale = 100;
+    public int heldItemAxeScale = 100;
+    public int heldItemOtherScale = 100;
+
     // EasyView settings
     public boolean easyViewEnabled = true;
     public boolean easyViewEnergyEnabled = true;
@@ -66,11 +75,17 @@ public class Config {
     public boolean easyViewGangPointsEnabled = true;
     public boolean easyViewBlackScrollEnabled = true;
     public boolean easyViewChargeOrbEnabled = true;
+    public boolean easyViewArmorEnabled = true;
+    public boolean easyViewWeaponsEnabled = true;
+    public boolean easyViewPickaxesEnabled = true;
     public int easyViewEnergyColor = 0xFFFFFF;
     public int easyViewMoneyColor = 0x00FF00;
     public int easyViewGangPointsColor = 65535; // cyan
     public int easyViewBlackScrollColor = 0xFF00FF;
     public int easyViewChargeOrbColor = 16755200; // yellow-ish
+    public int easyViewArmorColor = 0x00FFFF; // cyan
+    public int easyViewWeaponsColor = 0xFF0000; // red
+    public int easyViewPickaxesColor = 0xFFFF00; // yellow
 
     // HUD Scaling
     public int cooldownHudScale = 100;
@@ -174,6 +189,14 @@ public class Config {
 
     // Meteor HUD icon
     public String meteorIconItemId = "minecraft:nether_quartz_ore";
+
+    // Meteor HUD crashed display duration (in seconds)
+    public int meteorCrashedDisplayDuration = 15;
+
+    // Message Notifications
+    public boolean messageNotifsEnabled = true;
+    public String messageNotifsSound = "anvil"; // "anvil", "bell", "xp_orb", "note_pling", "enchant", "level_up", "ender_eye"
+    public int messageNotifsVolume = 100; // 0-200
 
     public void load() {
         if (!CONFIG_FILE.exists()) {
@@ -295,6 +318,9 @@ public class Config {
                 // Load Meteor HUD icon
                 this.meteorIconItemId = loaded.meteorIconItemId;
 
+                // Load Meteor HUD crashed display duration
+                this.meteorCrashedDisplayDuration = loaded.meteorCrashedDisplayDuration;
+
                 // Load super breaker aura settings
                 this.superBreakerBaseColor = loaded.superBreakerBaseColor;
                 this.superBreakerBaseOpacity = loaded.superBreakerBaseOpacity;
@@ -306,6 +332,13 @@ public class Config {
                 this.peacefulMiningOpacity = loaded.peacefulMiningOpacity;
                 this.peacefulMiningDistance = loaded.peacefulMiningDistance;
                 this.peacefulMiningDisableOnCombat = loaded.peacefulMiningDisableOnCombat;
+                this.pickaxeDropConfirmationEnabled = loaded.pickaxeDropConfirmationEnabled;
+
+                // Load held item scaling settings
+                this.heldItemPickaxeScale = loaded.heldItemPickaxeScale;
+                this.heldItemSwordScale = loaded.heldItemSwordScale;
+                this.heldItemAxeScale = loaded.heldItemAxeScale;
+                this.heldItemOtherScale = loaded.heldItemOtherScale;
 
                 // Load EasyView settings
                 this.easyViewEnabled = loaded.easyViewEnabled;
@@ -314,11 +347,17 @@ public class Config {
                 this.easyViewGangPointsEnabled = loaded.easyViewGangPointsEnabled;
                 this.easyViewBlackScrollEnabled = loaded.easyViewBlackScrollEnabled;
                 this.easyViewChargeOrbEnabled = loaded.easyViewChargeOrbEnabled;
+                this.easyViewArmorEnabled = loaded.easyViewArmorEnabled;
+                this.easyViewWeaponsEnabled = loaded.easyViewWeaponsEnabled;
+                this.easyViewPickaxesEnabled = loaded.easyViewPickaxesEnabled;
                 this.easyViewEnergyColor = loaded.easyViewEnergyColor;
                 this.easyViewMoneyColor = loaded.easyViewMoneyColor;
                 this.easyViewGangPointsColor = loaded.easyViewGangPointsColor;
                 this.easyViewBlackScrollColor = loaded.easyViewBlackScrollColor;
                 this.easyViewChargeOrbColor = loaded.easyViewChargeOrbColor;
+                this.easyViewArmorColor = loaded.easyViewArmorColor;
+                this.easyViewWeaponsColor = loaded.easyViewWeaponsColor;
+                this.easyViewPickaxesColor = loaded.easyViewPickaxesColor;
 
                 // Load HUD scaling settings
                 this.cooldownHudScale = loaded.cooldownHudScale;
@@ -332,6 +371,11 @@ public class Config {
                 this.satchelShowPercentage = loaded.satchelShowPercentage;
 
                 this.combineSimilarSatchels = loaded.combineSimilarSatchels;
+
+                // Load message notifications settings
+                this.messageNotifsEnabled = loaded.messageNotifsEnabled;
+                this.messageNotifsSound = loaded.messageNotifsSound;
+                this.messageNotifsVolume = loaded.messageNotifsVolume;
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -416,6 +460,11 @@ public class Config {
                 .setTooltip(Text.literal("Automatically disable peaceful mining when entering combat and re-enable when combat ends"))
                 .setSaveConsumer(val -> peacefulMiningDisableOnCombat = val)
                 .build());
+        peacefulCategory.addEntry(entryBuilder.startBooleanToggle(Text.literal("Pickaxe Drop Confirmation"), pickaxeDropConfirmationEnabled)
+                .setDefaultValue(true)
+                .setTooltip(Text.literal("Require confirmation before dropping pickaxe items"))
+                .setSaveConsumer(val -> pickaxeDropConfirmationEnabled = val)
+                .build());
 
         // EasyView Category
         ConfigCategory easyViewCategory = builder.getOrCreateCategory(Text.literal("EasyView"));
@@ -498,6 +547,48 @@ public class Config {
                 .setDefaultValue(16755200)
                 .setTooltip(Text.literal("Color of Charge Orb text overlay"))
                 .setSaveConsumer(val -> easyViewChargeOrbColor = val)
+                .build());
+
+        easyViewCategory.addEntry(entryBuilder.startTextDescription(Text.literal("")).build()); // Spacer
+
+        // Armor settings
+        easyViewCategory.addEntry(entryBuilder.startBooleanToggle(Text.literal("Show Armor"), easyViewArmorEnabled)
+                .setDefaultValue(true)
+                .setTooltip(Text.literal("Show number overlay for armor items"))
+                .setSaveConsumer(val -> easyViewArmorEnabled = val)
+                .build());
+        easyViewCategory.addEntry(entryBuilder.startColorField(Text.literal("Armor Color"), easyViewArmorColor)
+                .setDefaultValue(0x00FFFF)
+                .setTooltip(Text.literal("Color of armor text overlay"))
+                .setSaveConsumer(val -> easyViewArmorColor = val)
+                .build());
+
+        easyViewCategory.addEntry(entryBuilder.startTextDescription(Text.literal("")).build()); // Spacer
+
+        // Weapons settings
+        easyViewCategory.addEntry(entryBuilder.startBooleanToggle(Text.literal("Show Weapons"), easyViewWeaponsEnabled)
+                .setDefaultValue(true)
+                .setTooltip(Text.literal("Show number overlay for swords and axes"))
+                .setSaveConsumer(val -> easyViewWeaponsEnabled = val)
+                .build());
+        easyViewCategory.addEntry(entryBuilder.startColorField(Text.literal("Weapons Color"), easyViewWeaponsColor)
+                .setDefaultValue(0xFF0000)
+                .setTooltip(Text.literal("Color of weapons text overlay"))
+                .setSaveConsumer(val -> easyViewWeaponsColor = val)
+                .build());
+
+        easyViewCategory.addEntry(entryBuilder.startTextDescription(Text.literal("")).build()); // Spacer
+
+        // Pickaxes settings
+        easyViewCategory.addEntry(entryBuilder.startBooleanToggle(Text.literal("Show Pickaxes"), easyViewPickaxesEnabled)
+                .setDefaultValue(true)
+                .setTooltip(Text.literal("Show number overlay for pickaxes"))
+                .setSaveConsumer(val -> easyViewPickaxesEnabled = val)
+                .build());
+        easyViewCategory.addEntry(entryBuilder.startColorField(Text.literal("Pickaxes Color"), easyViewPickaxesColor)
+                .setDefaultValue(0xFFFF00)
+                .setTooltip(Text.literal("Color of pickaxes text overlay"))
+                .setSaveConsumer(val -> easyViewPickaxesColor = val)
                 .build());
 
         // Cooldown HUD Category
@@ -927,6 +1018,14 @@ public class Config {
                 .setSaveConsumer(val -> meteorIconItemId = val)
                 .build());
 
+        // Crashed meteor display duration
+        meteorStyling.addEntry(entryBuilder.startTextDescription(Text.literal("")).build()); // Spacer
+        meteorStyling.addEntry(entryBuilder.startIntField(Text.literal("Crashed Meteor Display Duration (seconds)"), meteorCrashedDisplayDuration)
+                .setDefaultValue(15)
+                .setTooltip(Text.literal("How long (in seconds) crashed meteors remain visible on the HUD"))
+                .setSaveConsumer(val -> meteorCrashedDisplayDuration = val)
+                .build());
+
         // HUD Scaling Category
         ConfigCategory scalingCategory = builder.getOrCreateCategory(Text.literal("HUD Scaling"));
         scalingCategory.addEntry(entryBuilder.startIntSlider(Text.literal("Cooldown HUD Scale"), cooldownHudScale, 70, 150)
@@ -970,6 +1069,59 @@ public class Config {
                 .setMax(150)
                 .setTooltip(Text.literal("% Scale multiplier for Super Breaker Aura (70% to 150%)"))
                 .setSaveConsumer(val -> superBreakerAuraScale = val)
+                .build());
+
+        // Message Notifs Category
+        ConfigCategory messageNotifsCategory = builder.getOrCreateCategory(Text.literal("Message Notifs"));
+        messageNotifsCategory.addEntry(entryBuilder.startBooleanToggle(Text.literal("Enable Message Notifications"), messageNotifsEnabled)
+                .setDefaultValue(true)
+                .setTooltip(Text.literal("Play a sound when you receive a private message"))
+                .setSaveConsumer(val -> messageNotifsEnabled = val)
+                .build());
+        messageNotifsCategory.addEntry(entryBuilder.startDropdownMenu(
+                Text.literal("Notification Sound"),
+                messageNotifsSound,
+                s -> s)
+                .setDefaultValue("anvil")
+                .setSelections(java.util.Arrays.asList("anvil", "bell", "xp_orb", "note_pling", "enchant", "level_up", "ender_eye"))
+                .setTooltip(Text.literal("Sound to play when receiving a private message"))
+                .setSaveConsumer(val -> messageNotifsSound = val)
+                .build());
+        messageNotifsCategory.addEntry(entryBuilder.startIntSlider(Text.literal("Notification Volume"), messageNotifsVolume, 0, 200)
+                .setDefaultValue(100)
+                .setTooltip(Text.literal("Volume of the notification sound (0 = muted, 100 = normal, 200 = 2x volume)"))
+                .setSaveConsumer(val -> messageNotifsVolume = val)
+                .build());
+
+        // Held Item Scaling Category
+        ConfigCategory heldItemScalingCategory = builder.getOrCreateCategory(Text.literal("Held Item Scaling"));
+        heldItemScalingCategory.addEntry(entryBuilder.startIntSlider(Text.literal("Pickaxe Scale"), heldItemPickaxeScale, 25, 150)
+                .setDefaultValue(100)
+                .setMin(25)
+                .setMax(150)
+                .setTooltip(Text.literal("Scale of pickaxes held in hand (25% to 150%)"))
+                .setSaveConsumer(val -> heldItemPickaxeScale = val)
+                .build());
+        heldItemScalingCategory.addEntry(entryBuilder.startIntSlider(Text.literal("Sword Scale"), heldItemSwordScale, 25, 150)
+                .setDefaultValue(100)
+                .setMin(25)
+                .setMax(150)
+                .setTooltip(Text.literal("Scale of swords held in hand (25% to 150%)"))
+                .setSaveConsumer(val -> heldItemSwordScale = val)
+                .build());
+        heldItemScalingCategory.addEntry(entryBuilder.startIntSlider(Text.literal("Axe Scale"), heldItemAxeScale, 25, 150)
+                .setDefaultValue(100)
+                .setMin(25)
+                .setMax(150)
+                .setTooltip(Text.literal("Scale of axes held in hand (25% to 150%)"))
+                .setSaveConsumer(val -> heldItemAxeScale = val)
+                .build());
+        heldItemScalingCategory.addEntry(entryBuilder.startIntSlider(Text.literal("Other Items Scale"), heldItemOtherScale, 25, 150)
+                .setDefaultValue(100)
+                .setMin(25)
+                .setMax(150)
+                .setTooltip(Text.literal("Scale of all other items held in hand (25% to 150%)"))
+                .setSaveConsumer(val -> heldItemOtherScale = val)
                 .build());
 
         Screen configScreen = builder.build();

@@ -100,6 +100,66 @@ public class EasyView {
         return false;
     }
 
+    public boolean isArmor(ItemStack stack) {
+        if (stack.isEmpty()) return false;
+        if (!BetterPrisonsClient.config.easyViewArmorEnabled) return false;
+        try {
+            String itemName = stack.getItem().toString().toLowerCase();
+            // Check if it's an armor piece (helmet, chestplate, leggings, boots)
+            return itemName.contains("helmet") || itemName.contains("chestplate") ||
+                   itemName.contains("leggings") || itemName.contains("boots");
+        } catch (Exception e) {
+            // Ignore
+        }
+        return false;
+    }
+
+    public boolean isWeapon(ItemStack stack) {
+        if (stack.isEmpty()) return false;
+        if (!BetterPrisonsClient.config.easyViewWeaponsEnabled) return false;
+        try {
+            String itemName = stack.getItem().toString().toLowerCase();
+            // Check if it's a sword or axe (but not pickaxe)
+            return itemName.contains("sword") || (itemName.contains("axe") && !itemName.contains("pickaxe"));
+        } catch (Exception e) {
+            // Ignore
+        }
+        return false;
+    }
+
+    public boolean isPickaxe(ItemStack stack) {
+        if (stack.isEmpty()) return false;
+        if (!BetterPrisonsClient.config.easyViewPickaxesEnabled) return false;
+        try {
+            String itemName = stack.getItem().toString().toLowerCase();
+            return itemName.contains("pickaxe");
+        } catch (Exception e) {
+            // Ignore
+        }
+        return false;
+    }
+
+    /**
+     * Extract trailing number from item display name
+     * For example: "Diamond Pickaxe 15" -> "15"
+     */
+    private String extractTrailingNumber(String name) {
+        try {
+            // Split by spaces and get the last part
+            String[] parts = name.trim().split("\\s+");
+            if (parts.length > 0) {
+                String lastPart = parts[parts.length - 1];
+                // Check if it's a number
+                if (lastPart.matches("\\d+")) {
+                    return lastPart;
+                }
+            }
+        } catch (Exception e) {
+            // Ignore
+        }
+        return null;
+    }
+
     public void drawText(int slot, String text) {
         slotTexts.put(slot, text);
     }
@@ -137,6 +197,24 @@ public class EasyView {
             if (isChargeOrb(stack)) {
                 String percent = name.replace("% Charge Orb", "");
                 drawText(slot, percent + "%");
+            }
+            if (isArmor(stack)) {
+                String number = extractTrailingNumber(name);
+                if (number != null) {
+                    drawText(slot, number);
+                }
+            }
+            if (isWeapon(stack)) {
+                String number = extractTrailingNumber(name);
+                if (number != null) {
+                    drawText(slot, number);
+                }
+            }
+            if (isPickaxe(stack)) {
+                String number = extractTrailingNumber(name);
+                if (number != null) {
+                    drawText(slot, number);
+                }
             }
         } catch (Exception e) {
             // Silently ignore parsing errors
@@ -193,6 +271,24 @@ public class EasyView {
             if (isChargeOrb(stack)) {
                 String percent = name.replace("% Charge Orb", "");
                 return new TextWithColor(percent + "%", 0xFF000000 | BetterPrisonsClient.config.easyViewChargeOrbColor);
+            }
+            if (isArmor(stack)) {
+                String number = extractTrailingNumber(name);
+                if (number != null) {
+                    return new TextWithColor(number, 0xFF000000 | BetterPrisonsClient.config.easyViewArmorColor);
+                }
+            }
+            if (isWeapon(stack)) {
+                String number = extractTrailingNumber(name);
+                if (number != null) {
+                    return new TextWithColor(number, 0xFF000000 | BetterPrisonsClient.config.easyViewWeaponsColor);
+                }
+            }
+            if (isPickaxe(stack)) {
+                String number = extractTrailingNumber(name);
+                if (number != null) {
+                    return new TextWithColor(number, 0xFF000000 | BetterPrisonsClient.config.easyViewPickaxesColor);
+                }
             }
         } catch (Exception e) {
             // Silently ignore parsing errors
