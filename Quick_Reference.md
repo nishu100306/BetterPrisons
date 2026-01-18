@@ -58,4 +58,4 @@ Enhancements that improve your gameplay experience:
 ## ⚙️ Quick Start & Support
 * **Settings:** Open your config via the config keybind or **Mod Menu**.
 * **Persistence:** All changes save automatically to your config file.
-* **Support:** Contact **nishu06** on Discord or open a ticket in the official mod server [link to be inserted here].
+* **Support:** Contact **nishu06** on Discord or open a ticket in the official mod server https://discord.gg/gW4sBdNmac.

@@ -149,4 +149,4 @@ Keyboard Shortcuts
 ---
 
 Special thanks to NotRtzy, viseronic, and other pre-testers for their feedback and suggestions during development!
-Contact nishu06 on discord for support or questions about the mod (Ideally by making a ticket in the mod discord [link to be inserted here).
+Contact nishu06 on discord for support or questions about the mod (Ideally by making a ticket in the mod discord (https://discord.gg/gW4sBdNmac).
