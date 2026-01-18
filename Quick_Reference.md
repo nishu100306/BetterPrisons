@@ -23,19 +23,35 @@ The core of BetterPrisons is **total control**. Almost every element can be twea
 ---
 
 ## 🎒 EasyView (Inventory Overlays)
-Get instant info on items without hovering. Adds compact text to items in your **hotbar and inventory** for:
-* Energy, Money Notes, and Gang Points.
-* Black Scrolls and Charge Orbs.
+Get instant info on items without hovering. Adds compact text to items in your **inventory** for:
+* **Resources:** Cosmic Energy, Money Notes, Gang Points, Black Scrolls, Charge Orbs.
+* **Equipment:** Armor, Weapons (swords/axes), and Pickaxes (displays item levels).
 * *Note: Colors and visibility are toggleable per item type.*
 
 ---
 
 ## ⛏️ Peaceful Mining
 Designed for high-traffic mines to eliminate distractions and misclicks:
-* **Ghost Players:** Nearby players become translucent when you hold a pickaxe.
+* **Ghost Players:** Nearby players become translucent when you hold a pickaxe (adjustable opacity: 0-255).
 * **Visual Clarity:** Block-breaking progress remains visible through "ghosted" players.
 * **Interaction Lock:** Disables accidental hits or right-clicks on players while mining.
-* **Custom Range:** You define the "Peaceful" radius and player opacity.
+* **Custom Range:** You define the "Peaceful" radius (default: 8 blocks).
+* **Auto-Disable on Combat:** Toggleable feature that automatically disables peaceful mining when combat starts and re-enables it when combat ends.
+
+---
+
+## 🎮 Quality-of-Life Features
+Enhancements that improve your gameplay experience:
+* **Message Notifications:** Audio alerts when you receive private messages. Choose from 7 sounds (Anvil, Bell, XP Orb, etc.) with adjustable volume (0-200%).
+* **Held Item Scaling:** Customize the visual size of items in your hand (pickaxes, swords, axes, other items). Scale from 25-150% per item type.
+* **Pickaxe Drop Confirmation:** Requires double-pressing the drop key within 3 seconds to drop a pickaxe, preventing accidental drops.
+
+---
+
+## ⌨️ Keyboard Shortcuts
+* **I** — Open configuration screen
+* **R** — Reset Stats HUD tracking (clears session totals)
+* **B** — Pause/Resume Stats HUD tracking
 
 ---
 

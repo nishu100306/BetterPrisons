@@ -3,15 +3,16 @@
 This guide explains what the BetterPrisons client mod does and how you can customize it to suit your playstyle. It's written for players and server users — no programming knowledge required.
 
 Quick overview
-- BetterPrisons is a client-side enhancement pack that adds several on-screen HUDs, helpful inventory overlays, peaceful-mining visuals and targeting, and automatic cooldown tracking for commands and abilities.
+- BetterPrisons is a client-side enhancement pack that adds several on-screen HUDs, helpful inventory overlays, peaceful-mining visuals and targeting, automatic cooldown tracking for commands and abilities, message notifications, and quality-of-life enhancements.
 - Everything visible in the HUDs is highly customizable: you can enable or disable features, change colors, adjust opacity and scale, and move elements around on the screen.
 
 How this guide is organized
 - HUDs (on-screen overlays)
 - EasyView (inventory/hotbar overlays)
 - Peaceful Mining (visual & targeting aids)
-- Cooldown tracking (commands & chat-triggered abilities)
+- Quality-of-Life Features (message notifications, held item scaling, pickaxe drop confirmation)
 - Customization & settings (what you can change and where to find them)
+- Keyboard shortcuts
 - Quick tweaks and examples
 
 ---
@@ -62,25 +63,61 @@ Common HUD features
 
 EasyView — inventory & hotbar overlays
 EasyView adds compact text overlays to items in your inventory and hotbar so you can see important values without opening tooltips.
-- Supported overlays include energy, money notes, gang points, black scrolls, and charge orbs.
+- Supported overlays include:
+  - Cosmic Energy (shows compact amounts with K/M suffixes)
+  - Money Notes (shows currency amounts)
+  - Gang Points (shows point amounts)
+  - Black Scrolls (shows percentage values)
+  - Charge Orbs (shows percentage values)
+  - Armor (shows item level from armor names)
+  - Weapons (shows item level from sword/axe names)
+  - Pickaxes (shows item level from pickaxe names)
 - Each overlay type can be toggled on or off independently.
 - Colors are configurable for each item type so you can make each overlay stand out.
-- Overlays show both on the hotbar (in-game) and inside inventory/container screens.
+- Overlays display in your inventory for quick reference without hovering over items.
 
 ---
 
 Peaceful Mining — visuals, targeting, and interactions
 This feature is aimed at players who mine in crowded areas and want to avoid accidentally targeting or hitting other players.
 - When enabled and you are holding a pickaxe, other players near you become translucent so they don't block your view.
-- An opacity slider lets you control how "ghost-like" other players appear.
-- A radius setting lets you define how close other players need to be before the effect applies.
+- An opacity slider lets you control how "ghost-like" other players appear (0-255).
+- A radius setting lets you define how close other players need to be before the effect applies (default: 8 blocks).
 - Unlike other mods, peaceful mining in this mod will render block breaking progress even when viewed through other players, so you can still see what you're mining.
-- all interaction with other players is disabled with peaceful mining active, preventing accidental right-clicks or hits on other players while you are focused on mining.
+- All interaction with other players is disabled with peaceful mining active, preventing accidental right-clicks or hits on other players while you are focused on mining.
+- Auto-disable on combat (toggleable): Automatically disables peaceful mining when you enter combat, then re-enables it when combat ends. This ensures you can defend yourself without changing settings manually.
+
+---
+
+Quality-of-Life Features
+
+Message Notifications
+- Get audio alerts when you receive private messages so you never miss important communications.
+- Choose from 7 different notification sounds: Anvil (default), Bell, XP Orb, Note Block Pling, Enchantment Table, Level Up, or Ender Eye.
+- Adjust notification volume from 0-200% (default: 100%).
+- Automatically detects private messages in chat and plays your selected sound.
+- Can be toggled on or off independently.
+
+Held Item Scaling
+- Customize the visual size of items in your hand for better visibility or a cleaner view.
+- Independent scaling for:
+  - Pickaxes (25-150%, default: 100%)
+  - Swords (25-150%, default: 100%)
+  - Axes (25-150%, default: 100%)
+  - Other items (25-150%, default: 100%)
+- Perfect for players who want larger tools for easier viewing or smaller tools for less screen clutter.
+
+Pickaxe Drop Confirmation
+- Prevents accidentally dropping your valuable pickaxe with a double-press confirmation system.
+- When enabled, you must press the drop key twice within 3 seconds to drop a pickaxe.
+- Shows a confirmation message in chat on the first press: "Press drop again to confirm dropping your pickaxe."
+- Only applies to pickaxe items, all other items drop normally.
+- Can be toggled on or off.
 
 ---
 
 Customization & settings (where to change things)
-- All user-facing settings are available in the in-game configuration screen accessible from they config keybind or Mod Menu.
+- All user-facing settings are available in the in-game configuration screen accessible from the config keybind (default: I) or Mod Menu.
 - Settings you can change include (but are not limited to):
   - Enable/disable each HUD
   - HUD positions (drag and drop editor)
@@ -90,13 +127,24 @@ Customization & settings (where to change things)
   - Whether satchels are combined into single entries
   - Whether satchel values are shown as percent or absolute numbers
   - EasyView toggles per item type and overlay colors
-  - Peaceful Mining enable/disable, opacity, and effective radius
+  - Peaceful Mining enable/disable, opacity, effective radius, and auto-disable on combat
   - Cooldown colors and which commands to track
   - Super Breaker aura colors, opacity, and scale
-  - And many, many more that I have forgotten to list here!
+  - Message notification sound selection and volume
+  - Held item scaling for pickaxes, swords, axes, and other items
+  - Pickaxe drop confirmation toggle
+  - And many more customization options!
 
 Config files
-- Settings are saved to a configuration file so your preferences persist between sessions. I do not recommend editing the config file directly. The in-game GUI is recommended for ease and safety.
+- Settings are saved to a configuration file (config/betterprisons/config.json) so your preferences persist between sessions.
+- I do not recommend editing the config file directly. The in-game GUI is recommended for ease and safety.
+
+---
+
+Keyboard Shortcuts
+- I — Open the BetterPrisons configuration screen
+- R — Reset Stats HUD tracking (clears session totals and timers)
+- B — Pause/Resume Stats HUD tracking (useful for taking breaks without resetting)
 
 ---
 
