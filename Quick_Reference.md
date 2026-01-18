@@ -1,7 +1,7 @@
 # BetterPrisons: Quick Reference Guide
 
 BetterPrisons is a highly customizable client-side enhancement mod designed to streamline your gameplay through visual overlays and quality-of-life mining features.
-### Disclaimer: This mod requires Cloth Config API as  dependency. download it here: https://modrinth.com/mod/cloth-config?version=1.21.8
+### Disclaimer: This mod requires Cloth Config API as  dependency. download it here: https://modrinth.com/mod/cloth-config?version=1.21.8 
 ---
 
 ## 🎨 Ultimate Customizability

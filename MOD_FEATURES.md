@@ -1,5 +1,6 @@
 # BetterPrisons — Features & How to Use Them
 
+### Disclaimer: This mod requires Cloth Config API as  dependency. download it here: https://modrinth.com/mod/cloth-config?version=1.21.8
 This guide explains what the BetterPrisons client mod does and how you can customize it to suit your playstyle. It's written for players and server users — no programming knowledge required.
 
 Quick overview
