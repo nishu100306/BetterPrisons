@@ -14,10 +14,18 @@ public class EasyView {
     public static class TextWithColor {
         public final String text;
         public final int color;
+        public final float scale;
+        public final boolean bold;
 
         public TextWithColor(String text, int color) {
+            this(text, color, 0.5f, true);
+        }
+
+        public TextWithColor(String text, int color, float scale, boolean bold) {
             this.text = text;
             this.color = color;
+            this.scale = scale;
+            this.bold = bold;
         }
     }
     int count = 0;
@@ -139,6 +147,30 @@ public class EasyView {
         return false;
     }
 
+    public boolean isDust(ItemStack stack) {
+        if (stack.isEmpty()) return false;
+        if (!BetterPrisonsClient.config.easyViewDustEnabled) return false;
+        try {
+            String name = stack.getName().getString();
+            return name.contains(" Dust (") && name.endsWith("%)");
+        } catch (Exception e) {
+            // Ignore
+        }
+        return false;
+    }
+
+    public boolean isPage(ItemStack stack) {
+        if (stack.isEmpty()) return false;
+        if (!BetterPrisonsClient.config.easyViewPagesEnabled) return false;
+        try {
+            String name = stack.getName().getString();
+            return name.contains(" Page (") && name.endsWith("%)");
+        } catch (Exception e) {
+            // Ignore
+        }
+        return false;
+    }
+
     /**
      * Extract trailing number from item display name
      * For example: "Diamond Pickaxe 15" -> "15"
@@ -216,6 +248,24 @@ public class EasyView {
                     drawText(slot, number);
                 }
             }
+            if (isDust(stack)) {
+                // Extract percentage from "Simple Dust (1%)"
+                int startIdx = name.indexOf(" Dust (");
+                int endIdx = name.indexOf("%)", startIdx);
+                if (startIdx != -1 && endIdx != -1) {
+                    String percent = name.substring(startIdx + 7, endIdx); // +7 to skip " Dust ("
+                    drawText(slot, percent + "%");
+                }
+            }
+            if (isPage(stack)) {
+                // Extract percentage from "Simple Page (1%)"
+                int startIdx = name.indexOf(" Page (");
+                int endIdx = name.indexOf("%)", startIdx);
+                if (startIdx != -1 && endIdx != -1) {
+                    String percent = name.substring(startIdx + 7, endIdx); // +7 to skip " Page ("
+                    drawText(slot, percent + "%");
+                }
+            }
         } catch (Exception e) {
             // Silently ignore parsing errors
         }
@@ -275,19 +325,43 @@ public class EasyView {
             if (isArmor(stack)) {
                 String number = extractTrailingNumber(name);
                 if (number != null) {
-                    return new TextWithColor(number, 0xFF000000 | BetterPrisonsClient.config.easyViewArmorColor);
+                    float scale = BetterPrisonsClient.config.easyViewArmorScale / 100.0f;
+                    boolean bold = BetterPrisonsClient.config.easyViewArmorBold;
+                    return new TextWithColor(number, 0xFF000000 | BetterPrisonsClient.config.easyViewArmorColor, scale, bold);
                 }
             }
             if (isWeapon(stack)) {
                 String number = extractTrailingNumber(name);
                 if (number != null) {
-                    return new TextWithColor(number, 0xFF000000 | BetterPrisonsClient.config.easyViewWeaponsColor);
+                    float scale = BetterPrisonsClient.config.easyViewWeaponsScale / 100.0f;
+                    boolean bold = BetterPrisonsClient.config.easyViewWeaponsBold;
+                    return new TextWithColor(number, 0xFF000000 | BetterPrisonsClient.config.easyViewWeaponsColor, scale, bold);
                 }
             }
             if (isPickaxe(stack)) {
                 String number = extractTrailingNumber(name);
                 if (number != null) {
-                    return new TextWithColor(number, 0xFF000000 | BetterPrisonsClient.config.easyViewPickaxesColor);
+                    float scale = BetterPrisonsClient.config.easyViewPickaxesScale / 100.0f;
+                    boolean bold = BetterPrisonsClient.config.easyViewPickaxesBold;
+                    return new TextWithColor(number, 0xFF000000 | BetterPrisonsClient.config.easyViewPickaxesColor, scale, bold);
+                }
+            }
+            if (isDust(stack)) {
+                // Extract percentage from "Simple Dust (1%)"
+                int startIdx = name.indexOf(" Dust (");
+                int endIdx = name.indexOf("%)", startIdx);
+                if (startIdx != -1 && endIdx != -1) {
+                    String percent = name.substring(startIdx + 7, endIdx); // +7 to skip " Dust ("
+                    return new TextWithColor(percent + "%", 0xFF000000 | BetterPrisonsClient.config.easyViewDustColor);
+                }
+            }
+            if (isPage(stack)) {
+                // Extract percentage from "Simple Page (1%)"
+                int startIdx = name.indexOf(" Page (");
+                int endIdx = name.indexOf("%)", startIdx);
+                if (startIdx != -1 && endIdx != -1) {
+                    String percent = name.substring(startIdx + 7, endIdx); // +7 to skip " Page ("
+                    return new TextWithColor(percent + "%", 0xFF000000 | BetterPrisonsClient.config.easyViewPagesColor);
                 }
             }
         } catch (Exception e) {

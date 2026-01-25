@@ -1,10 +1,7 @@
 package BetterPrisons.modid.devtools;
 
 import BetterPrisons.modid.BetterPrisonsClient;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.LoreComponent;
-import net.minecraft.item.ItemStack;
+import BetterPrisons.modid.utils.ItemUtils;
 import net.minecraft.text.Text;
 
 public class ParticleDebugTracker {
@@ -29,7 +26,7 @@ public class ParticleDebugTracker {
                 var superBreaker = BetterPrisonsClient.enchantTracker.getEnchant("super_breaker");
                 if (superBreaker != null) {
                     // Try to extract enchant text from held pickaxe
-                    Text enchantText = extractEnchantTextFromHeldItem("Super Breaker");
+                    Text enchantText = ItemUtils.extractEnchantTextFromHeldItem("Super Breaker");
 
                     if (enchantText != null) {
                         superBreaker.activate(2.5, enchantText); // Activate with formatted text
@@ -43,29 +40,6 @@ public class ParticleDebugTracker {
 
         closestDistance = Double.MAX_VALUE;
         closestParticle = null;
-    }
-
-    public static Text extractEnchantTextFromHeldItem(String searchString) {
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (client.player == null) return null;
-
-        // Get the item in the main hand
-        ItemStack heldItem = client.player.getMainHandStack();
-        if (heldItem.isEmpty()) return null;
-
-        // Get the lore component from the item
-        LoreComponent loreComponent = heldItem.get(DataComponentTypes.LORE);
-        if (loreComponent == null) return null;
-
-        // Search for "Super Breaker" in the lore lines
-        for (Text line : loreComponent.lines()) {
-            String lineString = line.getString();
-            if (lineString.contains(searchString)) {
-                return line; // Return the formatted Text with color
-            }
-        }
-
-        return null;
     }
 
     private static class ParticleData {

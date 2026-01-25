@@ -24,16 +24,21 @@ public class MeteorHud extends BaseHud {
     // Pattern to match coordinates like "-620x, 109y, 44z"
     private static final Pattern COORDS_PATTERN = Pattern.compile("(-?\\d+)x,\\s*(-?\\d+)y,\\s*(-?\\d+)z");
 
+    public enum MeteorType {
+        NATURAL,
+        SUMMONED
+    }
+
     public MeteorHud() {
         super("meteor");
     }
 
     /**
      * Called when a meteor falling message is detected
-     * Line 1: "(!) A meteor is falling from the sky at:"
+     * Line 1: "(!) A meteor is falling from the sky at:" or "(!) A meteor summoned by [player] is falling from the sky at:"
      * Line 2: "-620x, 109y, 44z"
      */
-    public void onMeteorFalling(String coordsLine) {
+    public void onMeteorFalling(String coordsLine, MeteorType type) {
         Matcher matcher = COORDS_PATTERN.matcher(coordsLine);
         if (matcher.find()) {
             try {
@@ -52,8 +57,8 @@ public class MeteorHud extends BaseHud {
                 ItemStack iconStack = createMeteorIcon();
 
                 // Add new meteor
-                activeMeteors.add(new MeteorInfo(x, y, z, System.currentTimeMillis(), iconStack));
-                BetterPrisonsClient.LOGGER.info("Meteor detected at: " + x + ", " + y + ", " + z);
+                activeMeteors.add(new MeteorInfo(x, y, z, System.currentTimeMillis(), iconStack, type));
+                BetterPrisonsClient.LOGGER.info("Meteor detected at: " + x + ", " + y + ", " + z + " (type: " + type + ")");
             } catch (NumberFormatException e) {
                 BetterPrisonsClient.LOGGER.warn("Failed to parse meteor coordinates: " + coordsLine);
             }
@@ -161,15 +166,22 @@ public class MeteorHud extends BaseHud {
         int maxTextWidth = titleWidth;
         if (hasContent) {
             for (MeteorInfo meteor : activeMeteors) {
+                // Check heading width
+                String headingText = meteor.type == MeteorType.NATURAL ? "Natural Meteor" : "Summoned Meteor";
+                int headingWidth = (int)(client.textRenderer.getWidth(Text.literal(headingText)) * scale);
+                maxTextWidth = Math.max(maxTextWidth, headingWidth);
+
+                // Check coordinates width
                 String coordsText = String.format("%dx, %dy, %dz", meteor.x, meteor.y, meteor.z);
-                int textWidth = (int)(client.textRenderer.getWidth(Text.literal(coordsText)) * scale);
-                maxTextWidth = Math.max(maxTextWidth, textWidth);
+                int coordsWidth = (int)(client.textRenderer.getWidth(Text.literal(coordsText)) * scale);
+                maxTextWidth = Math.max(maxTextWidth, scaled(16 + 4) + coordsWidth); // icon + spacing + text
             }
         }
 
         // Draw background with custom styling (with scaling applied)
-        int bgWidth = hasContent ? (scaled(16 + 4) + maxTextWidth) : maxTextWidth; // icon + spacing + text
-        int contentHeight = hasContent ? activeMeteors.size() * scaled(20) : 0;
+        int bgWidth = maxTextWidth;
+        // Each meteor takes: heading (12px) + icon+coords (20px) = 32px per meteor
+        int contentHeight = hasContent ? activeMeteors.size() * scaled(32) : 0;
         int bgHeight = titleHeight + contentHeight;
 
         // Combine RGB color with opacity to create ARGB
@@ -207,13 +219,28 @@ public class MeteorHud extends BaseHud {
             yOffset += titleHeight;
         }
 
-        // Draw meteor coordinates with icons
+        // Draw meteor coordinates with icons and headings
         if (hasContent) {
             int textColor = 0xFF000000 | BetterPrisonsClient.config.meteorTextColor;
             int iconSpacing = scaled(20); // 16px icon + 4px gap
-            int rowHeight = scaled(20); // Space for icon + padding
+            int meteorBlockHeight = scaled(32); // 12px heading + 20px icon/coords row
 
             for (MeteorInfo meteor : activeMeteors) {
+                // Draw heading text (underlined)
+                String headingText = meteor.type == MeteorType.NATURAL ? "Natural Meteor" : "Summoned Meteor";
+                int headingColor = meteor.type == MeteorType.NATURAL
+                    ? (0xFF000000 | BetterPrisonsClient.config.meteorNaturalHeadingColor)
+                    : (0xFF000000 | BetterPrisonsClient.config.meteorSummonedHeadingColor);
+
+                Text heading = Text.literal(headingText).setStyle(Style.EMPTY.withItalic(true));
+                matrices.pushMatrix();
+                matrices.scale(scale);
+                matrices.translate(x/scale, (y + yOffset)/scale);
+                ctx.drawTextWithShadow(client.textRenderer, heading, 0, 0, headingColor);
+                matrices.popMatrix();
+
+                yOffset += scaled(12); // Move down after heading
+
                 // Draw meteor icon on the left
                 if (meteor.iconStack != null) {
                     matrices.pushMatrix();
@@ -231,7 +258,7 @@ public class MeteorHud extends BaseHud {
                 ctx.drawTextWithShadow(client.textRenderer, Text.literal(coordsText), 0, 0, textColor);
                 matrices.popMatrix();
 
-                yOffset += rowHeight;
+                yOffset += scaled(20); // Move down after icon/coords row
             }
         }
     }
@@ -255,13 +282,19 @@ public class MeteorHud extends BaseHud {
         int maxTextWidth = titleWidth;
         if (hasContent) {
             for (MeteorInfo meteor : activeMeteors) {
+                // Check heading width
+                String headingText = meteor.type == MeteorType.NATURAL ? "Natural Meteor" : "Summoned Meteor";
+                int headingWidth = (int)(client.textRenderer.getWidth(Text.literal(headingText)) * scale);
+                maxTextWidth = Math.max(maxTextWidth, headingWidth);
+
+                // Check coordinates width
                 String coordsText = String.format("%dx, %dy, %dz", meteor.x, meteor.y, meteor.z);
-                int textWidth = (int)(client.textRenderer.getWidth(Text.literal(coordsText)) * scale);
-                maxTextWidth = Math.max(maxTextWidth, textWidth);
+                int coordsWidth = (int)(client.textRenderer.getWidth(Text.literal(coordsText)) * scale);
+                maxTextWidth = Math.max(maxTextWidth, scaled(16 + 4) + coordsWidth);
             }
         }
 
-        int bgWidth = hasContent ? (scaled(16 + 4) + maxTextWidth) : maxTextWidth;
+        int bgWidth = maxTextWidth;
 
         // Add padding (same logic as render method)
         int padding = 4;
@@ -273,7 +306,8 @@ public class MeteorHud extends BaseHud {
     @Override
     public int getHeight() {
         int titleHeight = BetterPrisonsClient.config.showMeteorHudTitle ? scaled(10) : 0;
-        int contentHeight = activeMeteors.size() * scaled(20);
+        // Each meteor takes: heading (12px) + icon+coords (20px) = 32px per meteor
+        int contentHeight = activeMeteors.size() * scaled(32);
         return titleHeight + contentHeight;
     }
 
@@ -284,14 +318,16 @@ public class MeteorHud extends BaseHud {
         public long spawnTime;
         public Long crashTime; // null if not crashed yet
         public ItemStack iconStack;
+        public MeteorType type;
 
-        public MeteorInfo(int x, int y, int z, long spawnTime, ItemStack iconStack) {
+        public MeteorInfo(int x, int y, int z, long spawnTime, ItemStack iconStack, MeteorType type) {
             this.x = x;
             this.y = y;
             this.z = z;
             this.spawnTime = spawnTime;
             this.crashTime = null;
             this.iconStack = iconStack;
+            this.type = type;
         }
     }
 }

@@ -78,14 +78,28 @@ public class Config {
     public boolean easyViewArmorEnabled = true;
     public boolean easyViewWeaponsEnabled = true;
     public boolean easyViewPickaxesEnabled = true;
+    public boolean easyViewDustEnabled = true;
+    public boolean easyViewPagesEnabled = true;
     public int easyViewEnergyColor = 0xFFFFFF;
     public int easyViewMoneyColor = 0x00FF00;
     public int easyViewGangPointsColor = 65535; // cyan
     public int easyViewBlackScrollColor = 0xFF00FF;
     public int easyViewChargeOrbColor = 16755200; // yellow-ish
-    public int easyViewArmorColor = 0x00FFFF; // cyan
-    public int easyViewWeaponsColor = 0xFF0000; // red
-    public int easyViewPickaxesColor = 0xFFFF00; // yellow
+    public int easyViewArmorColor = 0x00FF00; // light green
+    public int easyViewWeaponsColor = 0x00FF00; // light green
+    public int easyViewPickaxesColor = 0x00FF00; // light green
+    public int easyViewDustColor = 0xD2691E; // chocolate brown
+    public int easyViewPagesColor = 0xF5DEB3; // wheat/parchment
+
+    // EasyView scale settings (70 = 0.7 scale)
+    public int easyViewPickaxesScale = 70;
+    public int easyViewWeaponsScale = 70;
+    public int easyViewArmorScale = 70;
+
+    // EasyView bold settings
+    public boolean easyViewPickaxesBold = true;
+    public boolean easyViewWeaponsBold = true;
+    public boolean easyViewArmorBold = true;
 
     // HUD Scaling
     public int cooldownHudScale = 100;
@@ -142,6 +156,7 @@ public class Config {
     public boolean statsShowSessionCE = true;
     public boolean statsShowSessionDuration = true;
     public boolean statsShowMillisOnSessionDuration = false;
+    public boolean statsShowTimeTillLevelUp = true;
 
     // Stats HUD text colors (RGB, no alpha)
     public int statsCurrentXPColor = 1045763; // green
@@ -153,6 +168,7 @@ public class Config {
     public int statsCEPerMinuteColor = 240124; // blue
     public int statsSessionCEColor = 240124; // blue
     public int statsSessionDurationColor = 14352636; // purple
+    public int statsTimeTillLevelUpColor = 0xFFD700; // gold
 
     // Satchel HUD capacity threshold colors (RGB, no alpha)
     public int satchelColorUnder20 = 1045763;    // green - nearly empty
@@ -171,6 +187,10 @@ public class Config {
     public int fixColor = 12632256; // gold
     public boolean combatEnabled = true;
     public int combatColor = 9835026; // dark red
+    public boolean tpaEnabled = true;
+    public int tpaColor = 5636095; // light green
+    public boolean tpahereEnabled = true;
+    public int tpahereColor = 5636095; // light green
 
     // HUD titles (show/hide and color for each HUD)
     public boolean showCooldownHudTitle = true;
@@ -186,6 +206,10 @@ public class Config {
 
     // Meteor HUD text color
     public int meteorTextColor = 14558468; // pink
+
+    // Meteor HUD heading colors
+    public int meteorNaturalHeadingColor = 0x00FF00; // green
+    public int meteorSummonedHeadingColor = 0xFF4500; // orange-red
 
     // Meteor HUD icon
     public String meteorIconItemId = "minecraft:nether_quartz_ore";
@@ -270,6 +294,7 @@ public class Config {
                 this.statsShowSessionCE = loaded.statsShowSessionCE;
                 this.statsShowSessionDuration = loaded.statsShowSessionDuration;
                 this.statsShowMillisOnSessionDuration = loaded.statsShowMillisOnSessionDuration;
+                this.statsShowTimeTillLevelUp = loaded.statsShowTimeTillLevelUp;
 
                 // Load Stats HUD text colors
                 this.statsCurrentXPColor = loaded.statsCurrentXPColor;
@@ -281,6 +306,7 @@ public class Config {
                 this.statsCEPerMinuteColor = loaded.statsCEPerMinuteColor;
                 this.statsSessionCEColor = loaded.statsSessionCEColor;
                 this.statsSessionDurationColor = loaded.statsSessionDurationColor;
+                this.statsTimeTillLevelUpColor = loaded.statsTimeTillLevelUpColor;
 
                 // Load Satchel HUD threshold colors
                 this.satchelColorUnder20 = loaded.satchelColorUnder20;
@@ -299,6 +325,10 @@ public class Config {
                 this.fixColor = loaded.fixColor;
                 this.combatEnabled = loaded.combatEnabled;
                 this.combatColor = loaded.combatColor;
+                this.tpaEnabled = loaded.tpaEnabled;
+                this.tpaColor = loaded.tpaColor;
+                this.tpahereEnabled = loaded.tpahereEnabled;
+                this.tpahereColor = loaded.tpahereColor;
 
                 // Load HUD title settings
                 this.showCooldownHudTitle = loaded.showCooldownHudTitle;
@@ -314,6 +344,10 @@ public class Config {
 
                 // Load Meteor HUD text color
                 this.meteorTextColor = loaded.meteorTextColor;
+
+                // Load Meteor HUD heading colors
+                this.meteorNaturalHeadingColor = loaded.meteorNaturalHeadingColor;
+                this.meteorSummonedHeadingColor = loaded.meteorSummonedHeadingColor;
 
                 // Load Meteor HUD icon
                 this.meteorIconItemId = loaded.meteorIconItemId;
@@ -350,6 +384,8 @@ public class Config {
                 this.easyViewArmorEnabled = loaded.easyViewArmorEnabled;
                 this.easyViewWeaponsEnabled = loaded.easyViewWeaponsEnabled;
                 this.easyViewPickaxesEnabled = loaded.easyViewPickaxesEnabled;
+                this.easyViewDustEnabled = loaded.easyViewDustEnabled;
+                this.easyViewPagesEnabled = loaded.easyViewPagesEnabled;
                 this.easyViewEnergyColor = loaded.easyViewEnergyColor;
                 this.easyViewMoneyColor = loaded.easyViewMoneyColor;
                 this.easyViewGangPointsColor = loaded.easyViewGangPointsColor;
@@ -358,6 +394,18 @@ public class Config {
                 this.easyViewArmorColor = loaded.easyViewArmorColor;
                 this.easyViewWeaponsColor = loaded.easyViewWeaponsColor;
                 this.easyViewPickaxesColor = loaded.easyViewPickaxesColor;
+                this.easyViewDustColor = loaded.easyViewDustColor;
+                this.easyViewPagesColor = loaded.easyViewPagesColor;
+
+                // Load EasyView scale settings
+                this.easyViewPickaxesScale = loaded.easyViewPickaxesScale;
+                this.easyViewWeaponsScale = loaded.easyViewWeaponsScale;
+                this.easyViewArmorScale = loaded.easyViewArmorScale;
+
+                // Load EasyView bold settings
+                this.easyViewPickaxesBold = loaded.easyViewPickaxesBold;
+                this.easyViewWeaponsBold = loaded.easyViewWeaponsBold;
+                this.easyViewArmorBold = loaded.easyViewArmorBold;
 
                 // Load HUD scaling settings
                 this.cooldownHudScale = loaded.cooldownHudScale;
@@ -558,9 +606,19 @@ public class Config {
                 .setSaveConsumer(val -> easyViewArmorEnabled = val)
                 .build());
         easyViewCategory.addEntry(entryBuilder.startColorField(Text.literal("Armor Color"), easyViewArmorColor)
-                .setDefaultValue(0x00FFFF)
+                .setDefaultValue(0x00FF00)
                 .setTooltip(Text.literal("Color of armor text overlay"))
                 .setSaveConsumer(val -> easyViewArmorColor = val)
+                .build());
+        easyViewCategory.addEntry(entryBuilder.startIntSlider(Text.literal("Armor Scale"), easyViewArmorScale, 25, 150)
+                .setDefaultValue(70)
+                .setTooltip(Text.literal("Scale of armor text overlay (25% to 150%)"))
+                .setSaveConsumer(val -> easyViewArmorScale = val)
+                .build());
+        easyViewCategory.addEntry(entryBuilder.startBooleanToggle(Text.literal("Armor Bold"), easyViewArmorBold)
+                .setDefaultValue(true)
+                .setTooltip(Text.literal("Use bold text for armor overlay"))
+                .setSaveConsumer(val -> easyViewArmorBold = val)
                 .build());
 
         easyViewCategory.addEntry(entryBuilder.startTextDescription(Text.literal("")).build()); // Spacer
@@ -572,9 +630,19 @@ public class Config {
                 .setSaveConsumer(val -> easyViewWeaponsEnabled = val)
                 .build());
         easyViewCategory.addEntry(entryBuilder.startColorField(Text.literal("Weapons Color"), easyViewWeaponsColor)
-                .setDefaultValue(0xFF0000)
+                .setDefaultValue(0x00FF00)
                 .setTooltip(Text.literal("Color of weapons text overlay"))
                 .setSaveConsumer(val -> easyViewWeaponsColor = val)
+                .build());
+        easyViewCategory.addEntry(entryBuilder.startIntSlider(Text.literal("Weapons Scale"), easyViewWeaponsScale, 25, 150)
+                .setDefaultValue(70)
+                .setTooltip(Text.literal("Scale of weapons text overlay (25% to 150%)"))
+                .setSaveConsumer(val -> easyViewWeaponsScale = val)
+                .build());
+        easyViewCategory.addEntry(entryBuilder.startBooleanToggle(Text.literal("Weapons Bold"), easyViewWeaponsBold)
+                .setDefaultValue(true)
+                .setTooltip(Text.literal("Use bold text for weapons overlay"))
+                .setSaveConsumer(val -> easyViewWeaponsBold = val)
                 .build());
 
         easyViewCategory.addEntry(entryBuilder.startTextDescription(Text.literal("")).build()); // Spacer
@@ -586,9 +654,47 @@ public class Config {
                 .setSaveConsumer(val -> easyViewPickaxesEnabled = val)
                 .build());
         easyViewCategory.addEntry(entryBuilder.startColorField(Text.literal("Pickaxes Color"), easyViewPickaxesColor)
-                .setDefaultValue(0xFFFF00)
+                .setDefaultValue(0x00FF00)
                 .setTooltip(Text.literal("Color of pickaxes text overlay"))
                 .setSaveConsumer(val -> easyViewPickaxesColor = val)
+                .build());
+        easyViewCategory.addEntry(entryBuilder.startIntSlider(Text.literal("Pickaxes Scale"), easyViewPickaxesScale, 25, 150)
+                .setDefaultValue(70)
+                .setTooltip(Text.literal("Scale of pickaxes text overlay (25% to 150%)"))
+                .setSaveConsumer(val -> easyViewPickaxesScale = val)
+                .build());
+        easyViewCategory.addEntry(entryBuilder.startBooleanToggle(Text.literal("Pickaxes Bold"), easyViewPickaxesBold)
+                .setDefaultValue(true)
+                .setTooltip(Text.literal("Use bold text for pickaxes overlay"))
+                .setSaveConsumer(val -> easyViewPickaxesBold = val)
+                .build());
+
+        easyViewCategory.addEntry(entryBuilder.startTextDescription(Text.literal("")).build()); // Spacer
+
+        // Dust settings
+        easyViewCategory.addEntry(entryBuilder.startBooleanToggle(Text.literal("Show Dust"), easyViewDustEnabled)
+                .setDefaultValue(true)
+                .setTooltip(Text.literal("Show percentage overlay for dust items"))
+                .setSaveConsumer(val -> easyViewDustEnabled = val)
+                .build());
+        easyViewCategory.addEntry(entryBuilder.startColorField(Text.literal("Dust Color"), easyViewDustColor)
+                .setDefaultValue(0xD2691E)
+                .setTooltip(Text.literal("Color of dust text overlay"))
+                .setSaveConsumer(val -> easyViewDustColor = val)
+                .build());
+
+        easyViewCategory.addEntry(entryBuilder.startTextDescription(Text.literal("")).build()); // Spacer
+
+        // Pages settings
+        easyViewCategory.addEntry(entryBuilder.startBooleanToggle(Text.literal("Show Pages"), easyViewPagesEnabled)
+                .setDefaultValue(true)
+                .setTooltip(Text.literal("Show percentage overlay for page items"))
+                .setSaveConsumer(val -> easyViewPagesEnabled = val)
+                .build());
+        easyViewCategory.addEntry(entryBuilder.startColorField(Text.literal("Pages Color"), easyViewPagesColor)
+                .setDefaultValue(0xF5DEB3)
+                .setTooltip(Text.literal("Color of pages text overlay"))
+                .setSaveConsumer(val -> easyViewPagesColor = val)
                 .build());
 
         // Cooldown HUD Category
@@ -695,6 +801,32 @@ public class Config {
                 .setDefaultValue(9835026)
                 .setTooltip(Text.literal("Text color for Combat cooldown"))
                 .setSaveConsumer(val -> combatColor = val)
+                .build());
+
+        // TPA command
+        cooldownStyling.addEntry(entryBuilder.startTextDescription(Text.literal("")).build()); // Spacer
+        cooldownStyling.addEntry(entryBuilder.startBooleanToggle(Text.literal("TPA Enabled"), tpaEnabled)
+                .setDefaultValue(true)
+                .setTooltip(Text.literal("Enable/disable TPA cooldown tracking"))
+                .setSaveConsumer(val -> tpaEnabled = val)
+                .build());
+        cooldownStyling.addEntry(entryBuilder.startColorField(Text.literal("TPA Color"), tpaColor)
+                .setDefaultValue(1045763)
+                .setTooltip(Text.literal("Text color for TPA cooldown"))
+                .setSaveConsumer(val -> tpaColor = val)
+                .build());
+
+        // TPAHere command
+        cooldownStyling.addEntry(entryBuilder.startTextDescription(Text.literal("")).build()); // Spacer
+        cooldownStyling.addEntry(entryBuilder.startBooleanToggle(Text.literal("TPAHere Enabled"), tpahereEnabled)
+                .setDefaultValue(true)
+                .setTooltip(Text.literal("Enable/disable TPAHere cooldown tracking"))
+                .setSaveConsumer(val -> tpahereEnabled = val)
+                .build());
+        cooldownStyling.addEntry(entryBuilder.startColorField(Text.literal("TPAHere Color"), tpahereColor)
+                .setDefaultValue(1045763)
+                .setTooltip(Text.literal("Text color for TPAHere cooldown"))
+                .setSaveConsumer(val -> tpahereColor = val)
                 .build());
 
         // Satchel HUD Category
@@ -853,6 +985,11 @@ public class Config {
                 .setDefaultValue(false)
                 .setSaveConsumer(val -> statsShowMillisOnSessionDuration = val)
                 .build());
+        statsStyling.addEntry(entryBuilder.startBooleanToggle(Text.literal("Show Time Till Level Up"), statsShowTimeTillLevelUp)
+                .setDefaultValue(true)
+                .setTooltip(Text.literal("Show estimated time until next level"))
+                .setSaveConsumer(val -> statsShowTimeTillLevelUp = val)
+                .build());
 
         // Text Color Fields
         statsStyling.addEntry(entryBuilder.startTextDescription(Text.literal("")).build()); // Spacer
@@ -892,6 +1029,11 @@ public class Config {
         statsStyling.addEntry(entryBuilder.startColorField(Text.literal("Session Duration Color"), statsSessionDurationColor)
                 .setDefaultValue(14352636)
                 .setSaveConsumer(val -> statsSessionDurationColor = val)
+                .build());
+        statsStyling.addEntry(entryBuilder.startColorField(Text.literal("Time Till Level Up Color"), statsTimeTillLevelUpColor)
+                .setDefaultValue(0xFFD700)
+                .setTooltip(Text.literal("Color of time till level up text"))
+                .setSaveConsumer(val -> statsTimeTillLevelUpColor = val)
                 .build());
 
         // Enchant HUD Category
@@ -1008,6 +1150,19 @@ public class Config {
                 .setDefaultValue(14558468)
                 .setTooltip(Text.literal("Color of meteor coordinate text"))
                 .setSaveConsumer(val -> meteorTextColor = val)
+                .build());
+
+        // Heading colors
+        meteorStyling.addEntry(entryBuilder.startTextDescription(Text.literal("")).build()); // Spacer
+        meteorStyling.addEntry(entryBuilder.startColorField(Text.literal("Natural Meteor Heading"), meteorNaturalHeadingColor)
+                .setDefaultValue(0x00FF00)
+                .setTooltip(Text.literal("Color of 'Natural Meteor' heading text"))
+                .setSaveConsumer(val -> meteorNaturalHeadingColor = val)
+                .build());
+        meteorStyling.addEntry(entryBuilder.startColorField(Text.literal("Summoned Meteor Heading"), meteorSummonedHeadingColor)
+                .setDefaultValue(0xFF4500)
+                .setTooltip(Text.literal("Color of 'Summoned Meteor' heading text"))
+                .setSaveConsumer(val -> meteorSummonedHeadingColor = val)
                 .build());
 
         // Icon settings

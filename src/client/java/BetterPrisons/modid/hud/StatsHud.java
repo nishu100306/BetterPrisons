@@ -15,6 +15,7 @@ import net.minecraft.text.Text;
 import org.joml.Matrix3x2fStack;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
@@ -22,6 +23,8 @@ public class StatsHud extends BaseHud {
     // Current values (parsed from scoreboard)
     public long currentXP = 0;
     public long currentEnergy = 0;
+    public long xpNeededForNextLevel = 0;
+    public int targetLevel = 0;
 
     // Session tracking
     public long sessionStartXP = 0;
@@ -29,6 +32,8 @@ public class StatsHud extends BaseHud {
     public long sessionStartTime = 0;
     public boolean trackingActive = false;
     public boolean paused = false;
+    public long totalPauseDuration = 0; // Total time spent paused (in milliseconds)
+    public long pauseStartTime = 0; // When the current pause started
 
     // XP gain tracking (past minute for xp/hr calculation)
     private List<XPGain> xpGainHistory = new ArrayList<>();
@@ -249,6 +254,59 @@ public class StatsHud extends BaseHud {
                 // Ignore errors for this entry and continue with the next one
             }
         }
+
+        // Find "Progress" line
+        Integer progressValue = null;
+        for (ScoreboardEntry entry : entries) {
+            try {
+                Text displayText = getDisplayText(scoreboard, entry);
+                String stripped = displayText.getString().replaceAll("§.", "");
+
+                if (stripped.trim().equals("Progress")) {
+                    progressValue = entry.value();
+                    break;
+                }
+            } catch (Exception e) {
+                // Ignore errors
+            }
+        }
+
+        // Parse XP needed and target level (line with value = progressValue + 1)
+        if (progressValue != null) {
+
+            for (ScoreboardEntry entry : entries) {
+                try {
+                    if (entry.value() == progressValue - 1) {
+                        Text displayText = getDisplayText(scoreboard, entry);
+                        String stripped = displayText.getString().replaceAll("§.", "").strip();
+                        //BetterPrisonsClient.LOGGER.info(stripped);
+
+                        // Format: "71,110,189 (§a0%§7) to §f81§"
+                        // Extract first number (XP needed)
+                        String[] parts = stripped.split(" ");
+                        BetterPrisonsClient.LOGGER.info(Arrays.deepToString(parts));
+                        if (parts.length > 0) {
+                            long xpNeeded = BetterPrisonsClient.enchantParsing.parseFormattedNumber(parts[0]);
+                            if (xpNeeded > 0) {
+                                xpNeededForNextLevel = xpNeeded;
+                            }
+                        }
+
+                        // Extract target level (last number after "to")
+                        if (stripped.contains("to")) {
+                            String afterTo = stripped.substring(stripped.indexOf("to") + 2).trim();
+                            String levelStr = afterTo.replaceAll("[^0-9]", "");
+                            if (!levelStr.isEmpty()) {
+                                targetLevel = Integer.parseInt(levelStr);
+                            }
+                        }
+                        break;
+                    }
+                } catch (Exception e) {
+                    // Ignore parse errors
+                }
+            }
+        }
     }
 
     private Text getDisplayText(Scoreboard scoreboard, ScoreboardEntry entry) {
@@ -312,6 +370,8 @@ public class StatsHud extends BaseHud {
         cachedEnergyPerHour = 0;
         cachedXPPerMinute = 0;
         cachedEnergyPerMinute = 0;
+        totalPauseDuration = 0;
+        pauseStartTime = 0;
         trackingActive = true;
     }
 
@@ -324,11 +384,13 @@ public class StatsHud extends BaseHud {
         lastTickXP = currentXP;
         totalSessionXPGained = 0;
         totalSessionEnergyGained = 0;
-        lastStatsUpdateTime = 0;
+        lastStatsUpdateTime = sessionStartTime; // Set to sessionStartTime instead of 0 to avoid negative elapsed time when paused
         cachedXPPerHour = 0;
         cachedEnergyPerHour = 0;
         cachedXPPerMinute = 0;
         cachedEnergyPerMinute = 0;
+        totalPauseDuration = 0;
+        pauseStartTime = 0;
         // Keep trackingActive = true so it continues from new baseline
     }
 
@@ -390,9 +452,15 @@ public class StatsHud extends BaseHud {
 
     public String getSessionDuration() {
         if (sessionStartTime == 0) return "0:00:00";
-        long elapsed = System.currentTimeMillis() - sessionStartTime;
-        if (paused) {
-            elapsed = lastStatsUpdateTime - sessionStartTime;
+
+        // Calculate total elapsed time minus pause duration
+        long totalElapsed = System.currentTimeMillis() - sessionStartTime;
+        long elapsed = totalElapsed - totalPauseDuration;
+
+        // If currently paused, don't include the current pause duration yet
+        if (paused && pauseStartTime > 0) {
+            long currentPauseDuration = System.currentTimeMillis() - pauseStartTime;
+            elapsed -= currentPauseDuration;
         }
 
         long millis = elapsed % 1000;
@@ -406,9 +474,40 @@ public class StatsHud extends BaseHud {
     }
 
     public void togglePause() {
-        paused = !paused;
         if (paused) {
+            // Unpausing: calculate how long we were paused and add to total
+            if (pauseStartTime > 0) {
+                long pauseDuration = System.currentTimeMillis() - pauseStartTime;
+                totalPauseDuration += pauseDuration;
+                pauseStartTime = 0;
+            }
+            paused = false;
+        } else {
+            // Pausing: record when pause started
+            pauseStartTime = System.currentTimeMillis();
+            paused = true;
+        }
+    }
 
+    public String getTimeTillLevelUp() {
+        if (!trackingActive || cachedXPPerMinute == 0 || xpNeededForNextLevel == 0) {
+            return "Time until lvl " + targetLevel + ": --:--";
+        }
+
+        // Calculate minutes needed
+        double minutesNeeded = (double) xpNeededForNextLevel / cachedXPPerMinute;
+
+        // Convert to hours:minutes:seconds
+        long totalSeconds = (long) (minutesNeeded * 60);
+        long hours = totalSeconds / 3600;
+        long minutes = (totalSeconds % 3600) / 60;
+        long seconds = totalSeconds % 60;
+
+        // Only show hours if >= 1 hour
+        if (hours >= 1) {
+            return String.format("Time until lvl %d: %d:%02d:%02d", targetLevel, hours, minutes, seconds);
+        } else {
+            return String.format("Time until lvl %d: %02d:%02d", targetLevel, minutes, seconds);
         }
     }
 
@@ -451,6 +550,9 @@ public class StatsHud extends BaseHud {
         if (BetterPrisonsClient.config.statsShowCurrentXP) {
             visibleElements.add("XP: " + formatNumber(currentXP));
         }
+        if (BetterPrisonsClient.config.statsShowTimeTillLevelUp) {
+            visibleElements.add(getTimeTillLevelUp());
+        }
         if (BetterPrisonsClient.config.statsShowXPPerHour) {
             visibleElements.add("XP/hr: " + formatNumber(cachedXPPerHour));
         }
@@ -473,7 +575,12 @@ public class StatsHud extends BaseHud {
             visibleElements.add("Session CE: " + formatNumber(totalSessionEnergyGained));
         }
         if (BetterPrisonsClient.config.statsShowSessionDuration) {
-            visibleElements.add("Session: " + getSessionDuration());
+            String sessionText = "Session: ";
+            if (paused) {
+                sessionText += "(P) ";
+            }
+            sessionText += getSessionDuration();
+            visibleElements.add(sessionText);
         }
 
         boolean hasContent = !visibleElements.isEmpty();
@@ -561,6 +668,8 @@ public class StatsHud extends BaseHud {
                     color = 0xFF000000 | BetterPrisonsClient.config.statsSessionCEColor;
                 } else if (text.startsWith("Session:")) {
                     color = 0xFF000000 | BetterPrisonsClient.config.statsSessionDurationColor;
+                } else if (text.startsWith("Time until lvl")) {
+                    color = 0xFF000000 | BetterPrisonsClient.config.statsTimeTillLevelUpColor;
                 } else {
                     color = 0xFFFFFFFF; // Default to white
                 }
@@ -593,6 +702,9 @@ public class StatsHud extends BaseHud {
         if (BetterPrisonsClient.config.statsShowCurrentXP) {
             visibleElements.add("XP: " + formatNumber(currentXP));
         }
+        if (BetterPrisonsClient.config.statsShowTimeTillLevelUp) {
+            visibleElements.add(getTimeTillLevelUp());
+        }
         if (BetterPrisonsClient.config.statsShowXPPerHour) {
             visibleElements.add("XP/hr: " + formatNumber(cachedXPPerHour));
         }
@@ -615,7 +727,12 @@ public class StatsHud extends BaseHud {
             visibleElements.add("Session CE: " + formatNumber(totalSessionEnergyGained));
         }
         if (BetterPrisonsClient.config.statsShowSessionDuration) {
-            visibleElements.add("Session: " + getSessionDuration());
+            String sessionText = "Session: ";
+            if (paused) {
+                sessionText += "(P) ";
+            }
+            sessionText += getSessionDuration();
+            visibleElements.add(sessionText);
         }
 
         // Calculate maximum width
@@ -646,6 +763,7 @@ public class StatsHud extends BaseHud {
         if (BetterPrisonsClient.config.statsShowCEPerMinute) visibleCount++;
         if (BetterPrisonsClient.config.statsShowSessionCE) visibleCount++;
         if (BetterPrisonsClient.config.statsShowSessionDuration) visibleCount++;
+        if (BetterPrisonsClient.config.statsShowTimeTillLevelUp) visibleCount++;
 
         return titleHeight + (visibleCount * 12);
     }

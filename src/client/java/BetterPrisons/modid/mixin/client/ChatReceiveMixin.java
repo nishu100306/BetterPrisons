@@ -1,6 +1,7 @@
 package BetterPrisons.modid.mixin.client;
 
 import BetterPrisons.modid.BetterPrisonsClient;
+import BetterPrisons.modid.hud.MeteorHud;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.hud.ChatHud;
 import net.minecraft.sound.SoundEvents;
@@ -32,8 +33,10 @@ public class ChatReceiveMixin {
         checkPrivateMessage(text);
 
         // Check for meteor falling (coordinates in current message, announcement in previous)
-        if (previousMessage.startsWith("(!) A meteor is falling from the sky at:") || (previousMessage.startsWith("(!) A meteor summoned by") && previousMessage.contains("is falling from the sky at:"))) {
-            BetterPrisonsClient.meteorHud.onMeteorFalling(text);
+        if (previousMessage.startsWith("(!) A meteor is falling from the sky at:")) {
+            BetterPrisonsClient.meteorHud.onMeteorFalling(text, MeteorHud.MeteorType.NATURAL);
+        } else if (previousMessage.startsWith("(!) A meteor summoned by") && previousMessage.contains("is falling from the sky at:")) {
+            BetterPrisonsClient.meteorHud.onMeteorFalling(text, MeteorHud.MeteorType.SUMMONED);
         }
 
         // Check for meteor crashed (coordinates in current message, announcement in previous)

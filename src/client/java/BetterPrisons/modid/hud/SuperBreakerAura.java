@@ -2,6 +2,7 @@ package BetterPrisons.modid.hud;
 
 import BetterPrisons.modid.BetterPrisonsClient;
 import BetterPrisons.modid.enchants.BaseEnchant;
+import BetterPrisons.modid.utils.ItemUtils;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.text.Text;
@@ -18,6 +19,9 @@ public class SuperBreakerAura {
             return;
         }
         if (!superBreaker.isActive) return;
+
+        // Verify player is holding a pickaxe with super breaker enchantment
+        if (!ItemUtils.isHoldingPickaxe() || ItemUtils.extractEnchantTextFromHeldItem("Super Breaker") == null) return;
 
         // Get scale from config
         float scale = BetterPrisonsClient.config.superBreakerAuraScale / 100.0f;

@@ -63,9 +63,9 @@ public class InGameHudMixin {
 
                 matrices.pushMatrix();
                 matrices.translate(slotX + 1, slotY + 1);
-                matrices.scale(0.5f, 0.5f);
+                matrices.scale(result.scale, result.scale);
 
-                context.drawText(this.client.textRenderer, result.text, 0, 0, result.color, true);
+                context.drawText(this.client.textRenderer, result.text, 0, 0, result.color, result.bold);
 
                 matrices.popMatrix();
             }

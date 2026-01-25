@@ -43,6 +43,8 @@ public class CooldownHud extends BaseHud {
             case "Feed": return BetterPrisonsClient.config.feedEnabled;
             case "Fix": return BetterPrisonsClient.config.fixEnabled;
             case "Combat": return BetterPrisonsClient.config.combatEnabled;
+            case "tpa": return BetterPrisonsClient.config.tpaEnabled;
+            case "tpahere": return BetterPrisonsClient.config.tpahereEnabled;
             default: return true; // Default to enabled for unknown commands
         }
     }
@@ -55,6 +57,8 @@ public class CooldownHud extends BaseHud {
             case "Feed": return BetterPrisonsClient.config.feedColor;
             case "Fix": return BetterPrisonsClient.config.fixColor;
             case "Combat": return BetterPrisonsClient.config.combatColor;
+            case "tpa": return BetterPrisonsClient.config.tpaColor;
+            case "tpahere": return BetterPrisonsClient.config.tpahereColor;
             default: return 0xFFFFFF; // Default to white for unknown commands
         }
     }
@@ -117,6 +121,36 @@ public class CooldownHud extends BaseHud {
                     }
                     def.chatPattern = "§a§l(!) §aYou have been satiated.";
                 }
+                if (command.startsWith("/tpa ")) {
+                    // Check if cooldown already active, dont set chatPattern if alr active
+                    for (ActiveCooldown cd : activeCooldowns) {
+                        if (cd.name.equals(def.displayName)) {
+                            return; // Cooldown already active, don't set a new one
+                        }
+                    }
+                    // Extract username from command (e.g., "/tpa NotRtzy")
+                    String[] parts = command.split(" ");
+                    if (parts.length >= 2) {
+                        String username = parts[1];
+                        def.chatPattern = String.format("§a§l(!) §aSent a teleport request to §a§n%s§a!", username);
+                        BetterPrisonsClient.LOGGER.info("Set tpa pattern: " + def.chatPattern);
+                    }
+                }
+                if (command.startsWith("/tpahere ")) {
+                    // Check if cooldown already active, dont set chatPattern if alr active
+                    for (ActiveCooldown cd : activeCooldowns) {
+                        if (cd.name.equals(def.displayName)) {
+                            return; // Cooldown already active, don't set a new one
+                        }
+                    }
+                    // Extract username from command (e.g., "/tpahere NotRtzy")
+                    String[] parts = command.split(" ");
+                    if (parts.length >= 2) {
+                        String username = parts[1];
+                        def.chatPattern = String.format("§a§l(!) §aAsked §a§n%s§a to teleport to you!", username);
+                        BetterPrisonsClient.LOGGER.info("Set tpahere pattern: " + def.chatPattern);
+                    }
+                }
 
                 // Only add cooldown if no chat pattern is defined (command-triggered)
                 if (def.chatPattern == null || def.chatPattern.isEmpty()) {
@@ -137,18 +171,48 @@ public class CooldownHud extends BaseHud {
             return;
         }
 
+        // Check for /tpa "Updated" message: "§a§l(!) §aUpdated your teleport request to §a§n<username>§a."
+        if (message.contains("§a§l(!) §aUpdated your teleport request to §a§n") && message.endsWith("§a.")) {
+            // Trigger cooldown for /tpa
+            for (CommandDef def : definitions) {
+                if (def.command.equals("/tpa ")) {
+                    if (isCommandEnabled(def.displayName)) {
+                        addCooldown(def.displayName, def.cooldown, def.icon, getCommandColor(def.displayName));
+                    }
+                    break;
+                }
+            }
+            return;
+        }
+
+        // Check for /tpahere "Updated" message: "§a§l(!) §aUpdated your teleport request for §a§n<username>§a to come to you."
+        if (message.contains("§a§l(!) §aUpdated your teleport request for §a§n") && message.endsWith("§a to come to you.")) {
+            // Trigger cooldown for /tpahere
+            for (CommandDef def : definitions) {
+                if (def.command.equals("/tpahere ")) {
+                    if (isCommandEnabled(def.displayName)) {
+                        addCooldown(def.displayName, def.cooldown, def.icon, getCommandColor(def.displayName));
+                    }
+                    break;
+                }
+            }
+            return;
+        }
+
         for (CommandDef def : definitions) {
             // Only check if this command uses chat pattern detection
             if (def.chatPattern != null && !def.chatPattern.isEmpty()) {
                 if (message.equals(def.chatPattern)) {
-                    //BetterPrisonsClient.LOGGER.info("Cooldown triggered by chat pattern: " + def.displayName);
+                    BetterPrisonsClient.LOGGER.info("Cooldown triggered by chat pattern: " + def.displayName);
                     if (isCommandEnabled(def.displayName)) {
                         addCooldown(def.displayName, def.cooldown, def.icon, getCommandColor(def.displayName));
                     }
-                    if (def.command.equals("/fix") || def.command.equals("/home") || def.command.equals("/jet") || def.command.equals("/feed")) {
+                    if (def.command.equals("/fix") || def.command.equals("/home") || def.command.equals("/jet") || def.command.equals("/feed") || def.command.equals("/tpa ") || def.command.equals("/tpahere ")) {
                         def.chatPattern = null; // Reset after use
                     }
                     break;
+                } else if (def.command.equals("/tpahere ") && def.chatPattern.contains("Asked")) {
+                    BetterPrisonsClient.LOGGER.info("tpahere pattern mismatch. Expected: " + def.chatPattern + " Got: " + message);
                 }
             }
         }

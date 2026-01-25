@@ -1,8 +1,8 @@
 package BetterPrisons.modid.enchants;
 
 import BetterPrisons.modid.BetterPrisonsClient;
-import BetterPrisons.modid.devtools.ParticleDebugTracker;
 import BetterPrisons.modid.devtools.SoundTracker;
+import BetterPrisons.modid.utils.ItemUtils;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.LoreComponent;
@@ -61,7 +61,7 @@ public class PowerballEnchant extends BaseEnchant {
         }
 
         // Extract formatted text from pickaxe lore
-        Text enchantText = ParticleDebugTracker.extractEnchantTextFromHeldItem("Powerball");
+        Text enchantText = ItemUtils.extractEnchantTextFromHeldItem("Powerball");
 
         // Activate the enchant with formatted text if found, otherwise use default
         if (enchantText != null) {

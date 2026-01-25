@@ -51,9 +51,9 @@ public abstract class GenericContainerScreenMixin {
 
                 matrices.pushMatrix();
                 matrices.translate(xSlot + slotX + 1, ySlot + slotY + 1);
-                matrices.scale(0.5f, 0.5f);
+                matrices.scale(result.scale, result.scale);
 
-                context.drawText(client.textRenderer, result.text, 0, 0, result.color, true);
+                context.drawText(client.textRenderer, result.text, 0, 0, result.color, result.bold);
 
                 matrices.popMatrix();
             }

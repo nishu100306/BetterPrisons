@@ -103,6 +103,26 @@ public class JsonLoader {
         combat.icon = "minecraft:diamond_sword";
         defaults.add(combat);
 
+        CooldownHud.CommandDef tpa = new CooldownHud.CommandDef();
+        tpa.command = "/tpa ";
+        tpa.matchType = "startsWith";
+        tpa.cooldown = 180;
+        tpa.displayName = "tpa";
+        tpa.chatPattern = null; // Set dynamically
+        tpa.aliases = null;
+        tpa.icon = "minecraft:experience_bottle";
+        defaults.add(tpa);
+
+        CooldownHud.CommandDef tpahere = new CooldownHud.CommandDef();
+        tpahere.command = "/tpahere ";
+        tpahere.matchType = "startsWith";
+        tpahere.cooldown = 240;
+        tpahere.displayName = "tpahere";
+        tpahere.chatPattern = null; // Set dynamically
+        tpahere.aliases = null;
+        tpahere.icon = "minecraft:experience_bottle";
+        defaults.add(tpahere);
+
         CommandsWrapper wrapper = new CommandsWrapper();
         wrapper.commands = defaults;
 
