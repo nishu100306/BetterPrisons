@@ -1,5 +1,6 @@
 package BetterPrisons.modid;
 
+import BetterPrisons.modid.ui.custom.screens.CustomConfigScreen;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
@@ -38,7 +39,7 @@ public class KeyBindings {
             BetterPrisonsClient.statsHud.resetTracking();
         }
         if (configKey.wasPressed()) {
-            client.setScreen(BetterPrisonsClient.config.createConfigScreen(client.currentScreen));
+            client.setScreen(new CustomConfigScreen(client.currentScreen));
         }
         if (pauseKey.wasPressed()) {
             BetterPrisonsClient.statsHud.togglePause();
