@@ -6,6 +6,7 @@ import BetterPrisons.modid.ui.custom.core.TooltipProvider;
 import BetterPrisons.modid.ui.custom.rendering.RenderUtils;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.input.KeyInput;
 import net.minecraft.client.util.InputUtil;
 import org.lwjgl.glfw.GLFW;
 
@@ -48,7 +49,7 @@ public class KeybindWidget extends Component implements TooltipProvider {
         if (keyCode == GLFW.GLFW_KEY_UNKNOWN) {
             return "None";
         }
-        return InputUtil.fromKeyCode(keyCode, 0).getLocalizedText().getString();
+        return InputUtil.fromKeyCode(new KeyInput(keyCode, 0, 0)).getLocalizedText().getString();
     }
 
     @Override

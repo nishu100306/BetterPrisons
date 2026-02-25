@@ -5,6 +5,7 @@ import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
+import net.minecraft.util.Identifier;
 import org.lwjgl.glfw.GLFW;
 
 public class KeyBindings {
@@ -13,24 +14,26 @@ public class KeyBindings {
     public KeyBinding pauseKey;
 
     public KeyBindings() {
+        KeyBinding.Category bpCategory = KeyBinding.Category.create(Identifier.of("betterprisons", "betterprisons"));
+
         resetStatsKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
                 "key.betterprisons.reset_stats",
                 InputUtil.Type.KEYSYM,
                 GLFW.GLFW_KEY_R,
-                "category.betterprisons"
+                bpCategory
         ));
 
         configKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
                 "key.betterprisons.config",
                 InputUtil.Type.KEYSYM,
                 GLFW.GLFW_KEY_I,
-                "category.betterprisons"
+                bpCategory
         ));
         pauseKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
                 "key.betterprisons.pause",
                 InputUtil.Type.KEYSYM,
                 GLFW.GLFW_KEY_B,
-                "category.betterprisons"
+                bpCategory
         ));
     }
 

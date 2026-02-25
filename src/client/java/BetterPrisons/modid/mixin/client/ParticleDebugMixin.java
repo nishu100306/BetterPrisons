@@ -60,7 +60,7 @@ public class ParticleDebugMixin {
 
             // Store this particle if it's the closest so far this tick
             ParticleDebugTracker.considerParticle(
-                particle.getType().toString(),
+                particle.getClass().getSimpleName(),
                 particleString,
                 x, y, z,
                 playerX, playerY, playerZ,

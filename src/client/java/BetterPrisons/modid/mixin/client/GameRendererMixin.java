@@ -3,17 +3,15 @@ package BetterPrisons.modid.mixin.client;
 import BetterPrisons.modid.BetterPrisonsClient;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.GameRenderer;
-import net.minecraft.entity.Entity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.RaycastContext;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(GameRenderer.class)
 public class GameRendererMixin {
@@ -21,15 +19,21 @@ public class GameRendererMixin {
     /**
      * Intercept crosshair targeting to ignore entity hits and force block raycasts
      * when peaceful mining is active. This allows mining through translucent players.
+     * Injects at the tail of updateCrosshairTarget and modifies MinecraftClient.crosshairTarget.
      */
-    @Inject(method = "findCrosshairTarget", at = @At("RETURN"), cancellable = true)
-    private void onFindCrosshairTarget(Entity camera, double blockInteractionRange, double entityInteractionRange, float tickDelta, CallbackInfoReturnable<HitResult> cir) {
+    @Inject(method = "updateCrosshairTarget", at = @At("TAIL"))
+    private void onUpdateCrosshairTarget(float tickProgress, CallbackInfo ci) {
         // Check if peaceful mining is active
         if (!isPeacefulMiningActive()) {
             return;
         }
 
-        HitResult result = cir.getReturnValue();
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client.player == null || client.world == null) {
+            return;
+        }
+
+        HitResult result = client.crosshairTarget;
 
         // If it's already a block hit, don't interfere
         if (result instanceof BlockHitResult) {
@@ -37,14 +41,9 @@ public class GameRendererMixin {
         }
 
         // If it's an entity hit (or miss), perform our own block-only raycast
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (client.player == null || client.world == null) {
-            return;
-        }
-
-        // Get player's eye position and look direction
         Vec3d eyePos = client.player.getEyePos();
         Vec3d lookVec = client.player.getRotationVec(1.0f);
+        double blockInteractionRange = client.player.getBlockInteractionRange();
         Vec3d endPos = eyePos.add(lookVec.multiply(blockInteractionRange));
 
         // Create raycast context for block-only raycasting
@@ -56,9 +55,9 @@ public class GameRendererMixin {
             client.player
         );
 
-        // Perform block raycast and replace the return value
+        // Perform block raycast and replace the crosshair target
         HitResult blockHit = client.world.raycast(context);
-        cir.setReturnValue(blockHit);
+        client.crosshairTarget = blockHit;
     }
 
     /**

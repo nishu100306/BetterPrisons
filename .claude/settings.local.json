@@ -26,7 +26,16 @@
       "WebFetch(domain:meta.fabricmc.net)",
       "WebFetch(domain:fabricmc.net)",
       "WebFetch(domain:modrinth.com)",
-      "WebFetch(domain:api.modrinth.com)"
+      "WebFetch(domain:api.modrinth.com)",
+      "WebFetch(domain:docs.fabricmc.net)",
+      "Bash(\"C:\\\\Program Files\\\\Java\\\\jdk-21\\\\bin\\\\javap.exe\")",
+      "Bash(\"C:\\\\Program Files\\\\Java\\\\jdk-21\\\\bin\\\\javap.exe\":*)",
+      "WebFetch(domain:minecraft.wiki)",
+      "WebFetch(domain:neoforged.net)",
+      "WebFetch(domain:gist.github.com)",
+      "WebFetch(domain:linkie.shedaniel.dev)",
+      "WebFetch(domain:docs.neoforged.net)",
+      "WebFetch(domain:misode.github.io)"
     ]
   }
 }

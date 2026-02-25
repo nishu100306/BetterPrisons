@@ -26,6 +26,13 @@ public class TranslucentVertexConsumer implements VertexConsumer {
     }
 
     @Override
+    public VertexConsumer color(int argb) {
+        // Replace alpha channel with our translucent alpha value
+        int transparentArgb = (argb & 0x00FFFFFF) | ((int)(this.alpha * 255) << 24);
+        return delegate.color(transparentArgb);
+    }
+
+    @Override
     public VertexConsumer texture(float u, float v) {
         return delegate.texture(u, v);
     }
@@ -43,5 +50,10 @@ public class TranslucentVertexConsumer implements VertexConsumer {
     @Override
     public VertexConsumer normal(float x, float y, float z) {
         return delegate.normal(x, y, z);
+    }
+
+    @Override
+    public VertexConsumer lineWidth(float width) {
+        return delegate.lineWidth(width);
     }
 }

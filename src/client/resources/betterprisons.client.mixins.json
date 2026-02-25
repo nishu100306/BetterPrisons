@@ -8,6 +8,7 @@
 		"ChatReceiveMixin",
 		"ParticleDebugMixin",
 		"PeacefulMiningMixin",
+		"PeacefulMiningRendererMixin",
 		"ClientPlayerInteractionMixin",
 		"GameRendererMixin",
 		"UseItemWhileMiningMixin",

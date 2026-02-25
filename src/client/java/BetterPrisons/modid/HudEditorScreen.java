@@ -1,6 +1,7 @@
 package BetterPrisons.modid;
 
 import BetterPrisons.modid.hud.BaseHud;
+import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
@@ -65,7 +66,10 @@ public class HudEditorScreen extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    public boolean mouseClicked(Click click, boolean bl) {
+        double mouseX = click.x();
+        double mouseY = click.y();
+        int button = click.button();
         if (button == 0) { // Left click
             List<BaseHud> huds = BetterPrisonsClient.hudRenderer.getHuds();
             for (BaseHud hud : huds) {
@@ -87,11 +91,13 @@ public class HudEditorScreen extends Screen {
             }
         }
 
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClicked(click, bl);
     }
 
     @Override
-    public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
+    public boolean mouseDragged(Click click, double deltaX, double deltaY) {
+        double mouseX = click.x();
+        double mouseY = click.y();
         if (isDragging && draggedHud != null) {
             // Update HUD position
             draggedHud.x = (int)(mouseX - dragOffsetX);
@@ -106,18 +112,18 @@ public class HudEditorScreen extends Screen {
             return true;
         }
 
-        return super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
+        return super.mouseDragged(click, deltaX, deltaY);
     }
 
     @Override
-    public boolean mouseReleased(double mouseX, double mouseY, int button) {
-        if (button == 0 && isDragging) {
+    public boolean mouseReleased(Click click) {
+        if (click.button() == 0 && isDragging) {
             isDragging = false;
             draggedHud = null;
             return true;
         }
 
-        return super.mouseReleased(mouseX, mouseY, button);
+        return super.mouseReleased(click);
     }
 
     private void saveAndClose() {

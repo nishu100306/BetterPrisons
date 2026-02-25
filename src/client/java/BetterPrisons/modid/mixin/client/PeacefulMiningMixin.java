@@ -1,143 +1,83 @@
 package BetterPrisons.modid.mixin.client;
 
 import BetterPrisons.modid.BetterPrisonsClient;
-import BetterPrisons.modid.render.TranslucentVertexConsumerProvider;
+import BetterPrisons.modid.render.PeacefulMiningState;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.render.VertexConsumerProvider;
-import net.minecraft.client.render.WorldRenderer;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.entity.Entity;
+import net.minecraft.client.render.entity.PlayerEntityRenderer;
+import net.minecraft.client.render.entity.state.PlayerEntityRenderState;
+import net.minecraft.entity.PlayerLikeEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
-import org.lwjgl.opengl.GL11;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-@Mixin(WorldRenderer.class)
+/**
+ * Handles the state-extraction phase of peaceful mining ghost rendering.
+ * Targets PlayerEntityRenderer because updateRenderState and shouldRenderFeatures
+ * are overridden there with PlayerEntityRenderState — clean remap targets.
+ *
+ * getMixColor and getRenderLayer live in LivingEntityRenderer and are handled by
+ * PeacefulMiningRendererMixin to avoid "Cannot remap" issues.
+ */
+@Mixin(PlayerEntityRenderer.class)
 public class PeacefulMiningMixin {
 
-    /**
-     * Modify the VertexConsumerProvider to wrap it for rendering other players
-     */
-    @ModifyVariable(
-        method = "renderEntity",
-        at = @At("HEAD"),
-        argsOnly = true,
-        ordinal = 0
-    )
-    private VertexConsumerProvider wrapVertexConsumerProvider(VertexConsumerProvider original, Entity entity) {
-        if (!isPeacefulMiningActive()) {
-            return original;
-        }
+    // ── Phase 1: mark targets and strip cosmetics ──────────────────────────
 
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (client.player == null) {
-            return original;
-        }
-
-        // Check if the entity is a player (but not ourselves)
-        if (entity instanceof PlayerEntity player && !player.getUuid().equals(client.player.getUuid())) {
-            // Wrap with translucent vertex consumer provider
-            if (!inPeacefulMiningDistance(entity)) {
-                return original;
-            }
-            return new TranslucentVertexConsumerProvider(original);
-        }
-
-        return original;
-    }
-
-    /**
-     * Disable depth writing before rendering translucent players
-     * This makes them truly ghost-like - other entities and effects render over them
-     */
-    @Inject(method = "renderEntity", at = @At("HEAD"))
-    private void beforeRenderEntity(Entity entity, double cameraX, double cameraY, double cameraZ, float tickDelta, MatrixStack matrices, VertexConsumerProvider vertexConsumers, CallbackInfo ci) {
-        if (!isPeacefulMiningActive()) {
-            return;
-        }
-
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (client.player == null) {
-            return;
-        }
-
-        // Check if the entity is a player (but not ourselves)
-        if (entity instanceof PlayerEntity player && !player.getUuid().equals(client.player.getUuid())) {
-            // Disable depth writing so other things render over this translucent player
-            if (!inPeacefulMiningDistance(entity)) {
-                return;
-            }
-            GL11.glDepthMask(false);
+    @Inject(method = "updateRenderState", at = @At("RETURN"))
+    private void onUpdateRenderState(PlayerLikeEntity entity, PlayerEntityRenderState state,
+                                     float tickDelta, CallbackInfo ci) {
+        if (isPeacefulMiningTarget(entity)) {
+            PeacefulMiningState.TARGETS.add(state.id);
+            // Remove all outer skin layers so the ghost silhouette is just the body shape
+            state.hatVisible = false;
+            state.jacketVisible = false;
+            state.leftSleeveVisible = false;
+            state.rightSleeveVisible = false;
+            state.leftPantsLegVisible = false;
+            state.rightPantsLegVisible = false;
+            state.capeVisible = false;
+        } else {
+            PeacefulMiningState.TARGETS.remove(state.id);
         }
     }
 
-    /**
-     * Restore depth writing after rendering translucent players
-     */
-    @Inject(method = "renderEntity", at = @At("RETURN"))
-    private void afterRenderEntity(Entity entity, double cameraX, double cameraY, double cameraZ, float tickDelta, MatrixStack matrices, VertexConsumerProvider vertexConsumers, CallbackInfo ci) {
-        if (!isPeacefulMiningActive()) {
-            return;
-        }
-        if (!inPeacefulMiningDistance(entity)) {
-            return;
-        }
+    // ── Phase 2: suppress armor and all feature renderers ─────────────────
 
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (client.player == null) {
-            return;
-        }
-
-        // Check if the entity is a player (but not ourselves)
-        if (entity instanceof PlayerEntity player && !player.getUuid().equals(client.player.getUuid())) {
-            // Restore depth writing for normal rendering
-            GL11.glDepthMask(true);
+    @Inject(method = "shouldRenderFeatures", at = @At("HEAD"), cancellable = true)
+    private void onShouldRenderFeatures(PlayerEntityRenderState state,
+                                        CallbackInfoReturnable<Boolean> cir) {
+        if (PeacefulMiningState.TARGETS.contains(state.id)) {
+            cir.setReturnValue(false);
         }
     }
 
-    /**
-     * Checks if peaceful mining is currently active
-     */
-    private boolean isPeacefulMiningActive() {
-        // Check if peaceful mining is enabled in config
+    // ── Helpers ────────────────────────────────────────────────────────────
+
+    private boolean isPeacefulMiningTarget(PlayerLikeEntity entity) {
         if (!BetterPrisonsClient.config.peacefulMiningEnabled) {
             return false;
         }
-
         MinecraftClient client = MinecraftClient.getInstance();
         if (client.player == null) {
             return false;
         }
-
-        // Check if the player is holding a pickaxe by checking the item name
-        ItemStack mainHand = client.player.getMainHandStack();
-        ItemStack offHand = client.player.getOffHandStack();
-
-        return isPickaxe(mainHand) || isPickaxe(offHand);
+        // Only ghost other PlayerEntity instances — not ourselves, not mannequins
+        if (!(entity instanceof PlayerEntity) || entity.getUuid().equals(client.player.getUuid())) {
+            return false;
+        }
+        // Must be holding a pickaxe
+        if (!isPickaxe(client.player.getMainHandStack()) && !isPickaxe(client.player.getOffHandStack())) {
+            return false;
+        }
+        return Math.sqrt(client.player.squaredDistanceTo(entity)) <= BetterPrisonsClient.config.peacefulMiningDistance;
     }
 
-    /**
-     * Checks if an ItemStack is a pickaxe
-     */
     private boolean isPickaxe(ItemStack stack) {
-        if (stack.isEmpty()) {
-            return false;
-        }
-        String itemName = stack.getItem().toString().toLowerCase();
-        return itemName.contains("pickaxe");
-    }
-
-    private boolean inPeacefulMiningDistance(Entity entity) {
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (client.player == null) {
-            return false;
-        }
-        double distanceSq = client.player.squaredDistanceTo(entity);
-        double dist = Math.sqrt(distanceSq);
-        return dist <= BetterPrisonsClient.config.peacefulMiningDistance;
+        if (stack.isEmpty()) return false;
+        return stack.getItem().toString().toLowerCase().contains("pickaxe");
     }
 }
