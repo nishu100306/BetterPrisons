@@ -69,6 +69,10 @@ public class MeteorHud extends BaseHud {
         ItemStack stack;
         try {
             String itemId = BetterPrisonsClient.config.meteorIconItemId;
+            // Automatically prepend "minecraft:" if no namespace is specified
+            if (!itemId.contains(":")) {
+                itemId = "minecraft:" + itemId;
+            }
             Identifier identifier = Identifier.tryParse(itemId);
             if (identifier != null) {
                 Item item = Registries.ITEM.get(identifier);

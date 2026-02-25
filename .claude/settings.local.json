@@ -22,7 +22,11 @@
       "Bash(\"/c/Program Files/Java/jdk-21/bin/javap.exe\" -v mike/prisonsutil/mixin/GameRendererMixin.class)",
       "Bash(\"/c/Program Files/Java/jdk-21/bin/javap.exe\" -cp \"build/loom-cache/remapped_mods/net.fabricmc.fabric-api/fabric-api/0.114.0+1.21.8/1/fabric-api-0.114.0+1.21.8.jar:C:/Users/Nishu/.gradle/caches/fabric-loom/1.21.8/net.minecraft.client-1.21.8-mergedv2.jar\" -c net.minecraft.client.render.GameRenderer)",
       "Bash(tree:*)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "WebFetch(domain:meta.fabricmc.net)",
+      "WebFetch(domain:fabricmc.net)",
+      "WebFetch(domain:modrinth.com)",
+      "WebFetch(domain:api.modrinth.com)"
     ]
   }
 }

@@ -2,6 +2,7 @@ package BetterPrisons.modid.ui.custom.widgets;
 
 import BetterPrisons.modid.ui.custom.core.Component;
 import BetterPrisons.modid.ui.custom.core.Theme;
+import BetterPrisons.modid.ui.custom.core.TooltipProvider;
 import BetterPrisons.modid.ui.custom.rendering.RenderUtils;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
@@ -12,10 +13,11 @@ import java.util.List;
 /**
  * Dropdown menu widget for selecting from a list of options.
  */
-public class DropdownWidget extends Component {
+public class DropdownWidget extends Component implements TooltipProvider {
     private String label;
     private List<String> options;
     private int selectedIndex;
+    private int defaultIndex;
     private String tooltip;
     private boolean expanded = false;
 
@@ -24,6 +26,8 @@ public class DropdownWidget extends Component {
     private static final int ARROW_SIZE = 6;
     private static final int LABEL_SPACING = 8;
     private static final int MAX_VISIBLE_OPTIONS = 8;
+    private static final int RESET_BUTTON_SIZE = 14;
+    private static final int RESET_BUTTON_SPACING = 6;
 
     private int scrollOffset = 0;
 
@@ -31,6 +35,7 @@ public class DropdownWidget extends Component {
         this.label = label;
         this.options = new ArrayList<>(options);
         this.selectedIndex = Math.max(0, Math.min(options.size() - 1, initialIndex));
+        this.defaultIndex = this.selectedIndex;
         this.height = DROPDOWN_HEIGHT;
     }
 
@@ -68,6 +73,9 @@ public class DropdownWidget extends Component {
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         if (!visible) return;
+
+        // Update hover state
+        updateHoverState(mouseX, mouseY);
 
         MinecraftClient client = MinecraftClient.getInstance();
 
@@ -108,38 +116,72 @@ public class DropdownWidget extends Component {
         int arrowY = dropdownY + (DROPDOWN_HEIGHT - ARROW_SIZE) / 2;
         drawArrow(context, arrowX, arrowY, expanded);
 
-        // Draw expanded list if open
-        if (expanded) {
-            int listY = dropdownY + DROPDOWN_HEIGHT;
-            int visibleOptions = Math.min(MAX_VISIBLE_OPTIONS, options.size());
-            int listHeight = visibleOptions * OPTION_HEIGHT;
+        // Draw reset button
+        int resetX = dropdownX + dropdownWidth + RESET_BUTTON_SPACING;
+        int resetY = dropdownY + (DROPDOWN_HEIGHT - RESET_BUTTON_SIZE) / 2;
+        boolean resetHovered = mouseX >= resetX && mouseX < resetX + RESET_BUTTON_SIZE &&
+                              mouseY >= resetY && mouseY < resetY + RESET_BUTTON_SIZE;
 
-            // Draw list background
-            RenderUtils.drawRect(context, dropdownX, listY, dropdownWidth, listHeight, Theme.widgetBackground);
-            RenderUtils.drawRectOutline(context, dropdownX, listY, dropdownWidth, listHeight, Theme.borderPrimary, 1);
+        int resetBgColor = resetHovered ? Theme.widgetBackgroundHover : Theme.widgetBackground;
+        RenderUtils.drawRect(context, resetX, resetY, RESET_BUTTON_SIZE, RESET_BUTTON_SIZE, resetBgColor);
+        RenderUtils.drawRectOutline(context, resetX, resetY, RESET_BUTTON_SIZE, RESET_BUTTON_SIZE,
+            resetHovered ? Theme.borderHover : Theme.borderPrimary, 1);
 
-            // Draw options
-            int endIndex = Math.min(scrollOffset + visibleOptions, options.size());
-            for (int i = scrollOffset; i < endIndex; i++) {
-                int optionY = listY + (i - scrollOffset) * OPTION_HEIGHT;
-                boolean optionHovered = mouseX >= dropdownX && mouseX < dropdownX + dropdownWidth &&
-                                       mouseY >= optionY && mouseY < optionY + OPTION_HEIGHT;
-
-                // Highlight selected or hovered
-                if (i == selectedIndex) {
-                    RenderUtils.drawRect(context, dropdownX, optionY, dropdownWidth, OPTION_HEIGHT, Theme.accentPrimary);
-                } else if (optionHovered) {
-                    RenderUtils.drawRect(context, dropdownX, optionY, dropdownWidth, OPTION_HEIGHT, Theme.widgetBackgroundHover);
-                }
-
-                // Draw option text
-                String optionText = options.get(i);
-                context.drawText(client.textRenderer, optionText, dropdownX + 4, optionY + 5, Theme.textPrimary, false);
-            }
-        }
+        // Draw reset icon (circular arrow)
+        String resetIcon = "↻";
+        int iconWidth = client.textRenderer.getWidth(resetIcon);
+        context.drawText(client.textRenderer, resetIcon,
+            resetX + (RESET_BUTTON_SIZE - iconWidth) / 2,
+            resetY + (RESET_BUTTON_SIZE - 8) / 2,
+            Theme.textSecondary, false);
 
         // Update total width for layout
-        this.width = labelWidth + LABEL_SPACING + dropdownWidth;
+        this.width = labelWidth + LABEL_SPACING + dropdownWidth + RESET_BUTTON_SPACING + RESET_BUTTON_SIZE;
+    }
+
+    /**
+     * Renders the expanded dropdown list. Should be called after all other widgets
+     * to ensure it appears on top.
+     */
+    public void renderExpandedList(DrawContext context, int mouseX, int mouseY, float delta) {
+        if (!visible || !expanded) return;
+
+        MinecraftClient client = MinecraftClient.getInstance();
+        int labelWidth = client.textRenderer.getWidth(label);
+        int dropdownX = x + labelWidth + LABEL_SPACING;
+        int dropdownY = y;
+        int dropdownWidth = 120;
+
+        int listY = dropdownY + DROPDOWN_HEIGHT;
+        int visibleOptions = Math.min(MAX_VISIBLE_OPTIONS, options.size());
+        int listHeight = visibleOptions * OPTION_HEIGHT;
+
+        // Draw list background
+        RenderUtils.drawRect(context, dropdownX, listY, dropdownWidth, listHeight, Theme.widgetBackground);
+        RenderUtils.drawRectOutline(context, dropdownX, listY, dropdownWidth, listHeight, Theme.borderPrimary, 1);
+
+        // Draw options
+        int endIndex = Math.min(scrollOffset + visibleOptions, options.size());
+        for (int i = scrollOffset; i < endIndex; i++) {
+            int optionY = listY + (i - scrollOffset) * OPTION_HEIGHT;
+            boolean optionHovered = mouseX >= dropdownX && mouseX < dropdownX + dropdownWidth &&
+                                   mouseY >= optionY && mouseY < optionY + OPTION_HEIGHT;
+
+            // Highlight selected or hovered
+            if (i == selectedIndex) {
+                RenderUtils.drawRect(context, dropdownX, optionY, dropdownWidth, OPTION_HEIGHT, Theme.accentPrimary);
+            } else if (optionHovered) {
+                RenderUtils.drawRect(context, dropdownX, optionY, dropdownWidth, OPTION_HEIGHT, Theme.widgetBackgroundHover);
+            }
+
+            // Draw option text
+            String optionText = options.get(i);
+            context.drawText(client.textRenderer, optionText, dropdownX + 4, optionY + 5, Theme.textPrimary, false);
+        }
+    }
+
+    public boolean isExpanded() {
+        return expanded;
     }
 
     private void drawArrow(DrawContext context, int x, int y, boolean down) {
@@ -171,6 +213,15 @@ public class DropdownWidget extends Component {
         int dropdownY = y;
         int dropdownWidth = 120;
 
+        // Check if clicking reset button
+        int resetX = dropdownX + dropdownWidth + RESET_BUTTON_SPACING;
+        int resetY = dropdownY + (DROPDOWN_HEIGHT - RESET_BUTTON_SIZE) / 2;
+        if (mouseX >= resetX && mouseX < resetX + RESET_BUTTON_SIZE &&
+            mouseY >= resetY && mouseY < resetY + RESET_BUTTON_SIZE) {
+            resetToDefault();
+            return true;
+        }
+
         // Check if clicking dropdown header
         if (mouseX >= dropdownX && mouseX < dropdownX + dropdownWidth &&
             mouseY >= dropdownY && mouseY < dropdownY + DROPDOWN_HEIGHT) {
@@ -199,6 +250,10 @@ public class DropdownWidget extends Component {
         }
 
         return false;
+    }
+
+    public void resetToDefault() {
+        setSelectedIndex(defaultIndex);
     }
 
     @Override

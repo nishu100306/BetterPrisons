@@ -89,9 +89,16 @@ public class Config {
     public int easyViewArmorScale = 70;
 
     // EasyView bold settings
-    public boolean easyViewPickaxesBold = true;
-    public boolean easyViewWeaponsBold = true;
+    public boolean easyViewEnergyBold = true;
+    public boolean easyViewMoneyBold = true;
+    public boolean easyViewGangPointsBold = true;
+    public boolean easyViewBlackScrollBold = true;
+    public boolean easyViewChargeOrbBold = true;
     public boolean easyViewArmorBold = true;
+    public boolean easyViewWeaponsBold = true;
+    public boolean easyViewPickaxesBold = true;
+    public boolean easyViewDustBold = true;
+    public boolean easyViewPagesBold = true;
 
     // HUD Scaling
     public int cooldownHudScale = 100;
@@ -203,8 +210,8 @@ public class Config {
     public int meteorNaturalHeadingColor = 0x00FF00; // green
     public int meteorSummonedHeadingColor = 0xFF4500; // orange-red
 
-    // Meteor HUD icon
-    public String meteorIconItemId = "minecraft:nether_quartz_ore";
+    // Meteor HUD icon (minecraft: prefix is added automatically)
+    public String meteorIconItemId = "nether_quartz_ore";
 
     // Meteor HUD crashed display duration (in seconds)
     public int meteorCrashedDisplayDuration = 15;
@@ -425,9 +432,16 @@ public class Config {
                 this.easyViewArmorScale = loaded.easyViewArmorScale;
 
                 // Load EasyView bold settings
-                this.easyViewPickaxesBold = loaded.easyViewPickaxesBold;
-                this.easyViewWeaponsBold = loaded.easyViewWeaponsBold;
+                this.easyViewEnergyBold = loaded.easyViewEnergyBold;
+                this.easyViewMoneyBold = loaded.easyViewMoneyBold;
+                this.easyViewGangPointsBold = loaded.easyViewGangPointsBold;
+                this.easyViewBlackScrollBold = loaded.easyViewBlackScrollBold;
+                this.easyViewChargeOrbBold = loaded.easyViewChargeOrbBold;
                 this.easyViewArmorBold = loaded.easyViewArmorBold;
+                this.easyViewWeaponsBold = loaded.easyViewWeaponsBold;
+                this.easyViewPickaxesBold = loaded.easyViewPickaxesBold;
+                this.easyViewDustBold = loaded.easyViewDustBold;
+                this.easyViewPagesBold = loaded.easyViewPagesBold;
 
                 // Load HUD scaling settings
                 this.cooldownHudScale = loaded.cooldownHudScale;

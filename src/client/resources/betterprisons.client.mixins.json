@@ -15,7 +15,8 @@
 		"GenericContainerScreenMixin",
 		"InGameHudMixin",
 		"ItemDropMixin",
-		"HeldItemScaleMixin"
+		"HeldItemScaleMixin",
+		"LocalPlayerHurtMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

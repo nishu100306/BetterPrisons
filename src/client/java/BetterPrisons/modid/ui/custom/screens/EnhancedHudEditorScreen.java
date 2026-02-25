@@ -72,6 +72,16 @@ public class EnhancedHudEditorScreen extends Screen {
             int hudWidth = hud.getWidth() > 0 ? hud.getWidth() : 100;
             int hudHeight = hud.getHeight() > 0 ? hud.getHeight() : 50;
 
+            // Get padding for this HUD type
+            // Note: getWidth() includes horizontal padding, but getHeight() doesn't include vertical padding
+            int padding = getHudPadding(hud);
+
+            // Get the configured border thickness for this HUD to align properly
+            // to align our 1px edit border with the outer edge of normal borders
+            int normalBorderThickness = getHudBorderThickness(hud);
+            int editBorderThickness = 1;
+            int thicknessOffset = normalBorderThickness - editBorderThickness;
+
             // Determine border color
             int borderColor;
             if (hud == draggedHud) {
@@ -84,8 +94,15 @@ public class EnhancedHudEditorScreen extends Screen {
                 borderColor = 0x40FFFFFF; // Gray (normal)
             }
 
-            // Draw border
-            drawBorder(context, hud.x - 2, hud.y - 2, hudWidth + 4, hudHeight + 4, borderColor);
+            // Draw border to align with outer edge of normal HUD borders
+            // Normal borders extend (padding + thickness) from content edge
+            // Our 1px border needs to be positioned further out to match the 2px normal border's outer edge
+            drawBorder(context,
+                hud.x - padding - thicknessOffset,
+                hud.y - padding - thicknessOffset,
+                hudWidth + 2 * thicknessOffset,
+                hudHeight + 2 * padding + 2 * thicknessOffset,
+                borderColor);
 
             // Draw scale percentage if selected
             if (hud == selectedHud) {
@@ -162,11 +179,17 @@ public class EnhancedHudEditorScreen extends Screen {
             draggedHud.x = (int) (mouseX - dragOffsetX);
             draggedHud.y = (int) (mouseY - dragOffsetY);
 
-            // Clamp to screen bounds
+            // Clamp to screen bounds (accounting for padding and border around visual area)
             int hudWidth = draggedHud.getWidth() > 0 ? draggedHud.getWidth() : 100;
             int hudHeight = draggedHud.getHeight() > 0 ? draggedHud.getHeight() : 50;
-            draggedHud.x = Math.max(0, Math.min(draggedHud.x, this.width - hudWidth));
-            draggedHud.y = Math.max(0, Math.min(draggedHud.y, this.height - hudHeight));
+            int padding = getHudPadding(draggedHud);
+            int normalBorderThickness = getHudBorderThickness(draggedHud);
+            int thicknessOffset = normalBorderThickness - 1;
+
+            // Clamp so the visual area (content + padding + border) stays on screen
+            int totalOffset = padding + thicknessOffset;
+            draggedHud.x = Math.max(totalOffset, Math.min(draggedHud.x, this.width - hudWidth - thicknessOffset + padding));
+            draggedHud.y = Math.max(totalOffset, Math.min(draggedHud.y, this.height - hudHeight - 2*padding - 2*thicknessOffset + totalOffset));
 
             return true;
         }
@@ -193,8 +216,20 @@ public class EnhancedHudEditorScreen extends Screen {
     private boolean isMouseOverHud(double mouseX, double mouseY, BaseHud hud) {
         int width = hud.getWidth() > 0 ? hud.getWidth() : 100;
         int height = hud.getHeight() > 0 ? hud.getHeight() : 50;
-        return mouseX >= hud.x && mouseX <= hud.x + width &&
-               mouseY >= hud.y && mouseY <= hud.y + height;
+        int padding = getHudPadding(hud);
+
+        // Account for configured border thickness to match the clickable area with visual area
+        int normalBorderThickness = getHudBorderThickness(hud);
+        int thicknessOffset = normalBorderThickness - 1;
+
+        // Check if mouse is over the visual area (including padding and border)
+        int visualX = hud.x - padding - thicknessOffset;
+        int visualY = hud.y - padding - thicknessOffset;
+        int visualWidth = width + 2 * thicknessOffset;
+        int visualHeight = height + 2 * padding + 2 * thicknessOffset;
+
+        return mouseX >= visualX && mouseX <= visualX + visualWidth &&
+               mouseY >= visualY && mouseY <= visualY + visualHeight;
     }
 
     private void createScaleSlider(BaseHud hud) {
@@ -285,14 +320,77 @@ public class EnhancedHudEditorScreen extends Screen {
         return false;
     }
 
+    /**
+     * Get the padding used by a specific HUD type.
+     * Different HUDs use different padding amounts around their content.
+     */
+    private int getHudPadding(BaseHud hud) {
+        // Determine padding based on HUD type
+        int basePadding;
+        switch (hud.id) {
+            case "cooldown":
+            case "enchant":
+            case "meteor":
+                basePadding = 4;
+                break;
+            case "satchel":
+            case "stats":
+                basePadding = 2;
+                break;
+            default:
+                basePadding = 4; // Default to 4px
+                break;
+        }
+
+        // Scale padding if HUD is scaled below 100%
+        if (hud.scale < 1) {
+            return (int)(basePadding * hud.scale);
+        }
+        return basePadding;
+    }
+
+    /**
+     * Get the configured border thickness for a specific HUD type.
+     * Reads from the user's config to match the actual border thickness used in normal mode.
+     */
+    private int getHudBorderThickness(BaseHud hud) {
+        Config config = BetterPrisonsClient.config;
+        int thickness;
+
+        switch (hud.id) {
+            case "cooldown":
+                thickness = config.cooldownBorderThickness;
+                break;
+            case "satchel":
+                thickness = config.satchelBorderThickness;
+                break;
+            case "stats":
+                thickness = config.statsBorderThickness;
+                break;
+            case "enchant":
+                thickness = config.enchantBorderThickness;
+                break;
+            case "meteor":
+                thickness = config.meteorBorderThickness;
+                break;
+            default:
+                thickness = 2; // Default to 2px
+                break;
+        }
+
+        // Scale thickness with HUD scale
+        return (int)(thickness * hud.scale);
+    }
+
     private void drawBorder(DrawContext ctx, int x, int y, int width, int height, int color) {
-        // Top
-        ctx.fill(x, y, x + width, y + 2, color);
-        // Bottom
-        ctx.fill(x, y + height - 2, x + width, y + height, color);
-        // Left
-        ctx.fill(x, y, x + 2, y + height, color);
-        // Right
-        ctx.fill(x + width - 2, y, x + width, y + height, color);
+        int thickness = 1; // Thinner border
+        // Top border (OUTSIDE, above the rectangle)
+        ctx.fill(x, y - thickness, x + width, y, color);
+        // Bottom border (OUTSIDE, below the rectangle)
+        ctx.fill(x, y + height, x + width, y + height + thickness, color);
+        // Left border (OUTSIDE, left of the rectangle)
+        ctx.fill(x - thickness, y - thickness, x, y + height + thickness, color);
+        // Right border (OUTSIDE, right of the rectangle)
+        ctx.fill(x + width, y - thickness, x + width + thickness, y + height + thickness, color);
     }
 }

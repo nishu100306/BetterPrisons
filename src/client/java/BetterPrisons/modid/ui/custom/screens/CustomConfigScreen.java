@@ -11,6 +11,7 @@ import BetterPrisons.modid.ui.custom.containers.SidebarContainer;
 import BetterPrisons.modid.ui.custom.core.Component;
 import BetterPrisons.modid.ui.custom.core.Container;
 import BetterPrisons.modid.ui.custom.core.Theme;
+import BetterPrisons.modid.ui.custom.core.TooltipProvider;
 import BetterPrisons.modid.ui.custom.rendering.RenderUtils;
 import BetterPrisons.modid.ui.custom.widgets.*;
 import net.minecraft.client.MinecraftClient;
@@ -21,6 +22,7 @@ import net.minecraft.text.Text;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * Custom configuration screen for BetterPrisons.
@@ -74,8 +76,8 @@ public class CustomConfigScreen extends Screen {
 
     private void createSidebar() {
         sidebar = new SidebarContainer();
-        sidebar.setPosition(0, TOP_BAR_HEIGHT);
-        sidebar.setSize(SIDEBAR_WIDTH, height - TOP_BAR_HEIGHT - BOTTOM_BAR_HEIGHT);
+        sidebar.setPosition(0, 0);
+        sidebar.setSize(SIDEBAR_WIDTH, height);
 
         // Add category tabs
         sidebar.addTab("Cooldown HUD");
@@ -195,26 +197,138 @@ public class CustomConfigScreen extends Screen {
             activePopup.render(context, mouseX, mouseY, delta);
         }
 
+        // Render expanded dropdown lists (on top of everything except popups)
+        if (currentCategoryIndex >= 0 && currentCategoryIndex < categories.size()) {
+            renderExpandedDropdowns(context, categories.get(currentCategoryIndex).getChildren(), mouseX, mouseY, delta);
+        }
+
         // Render tooltips (always on top)
-        renderTooltips(mouseX, mouseY);
+        renderTooltips(context, mouseX, mouseY);
     }
 
-    private void renderTooltips(int mouseX, int mouseY) {
-        // Check current category for hovered widgets with tooltips
-        if (currentCategoryIndex >= 0 && currentCategoryIndex < categories.size()) {
-            CategoryContainer category = categories.get(currentCategoryIndex);
-            for (Component child : category.getChildren()) {
-                if (child.isHovered() && child instanceof TooltipProvider) {
-                    String tooltip = ((TooltipProvider) child).getTooltip();
-                    if (tooltip != null && !tooltip.isEmpty()) {
-                        TooltipWidget.setTooltip(tooltip, mouseX, mouseY);
-                        TooltipWidget.render(null, mouseX, mouseY);
-                        return;
+    private void renderExpandedDropdowns(DrawContext context, List<Component> components, int mouseX, int mouseY, float delta) {
+        for (Component child : components) {
+            // Render expanded dropdown list if this is a dropdown
+            if (child instanceof DropdownWidget) {
+                DropdownWidget dropdown = (DropdownWidget) child;
+                if (dropdown.isExpanded()) {
+                    dropdown.renderExpandedList(context, mouseX, mouseY, delta);
+                }
+            }
+
+            // Check children of CollapsibleWidget
+            if (child instanceof CollapsibleWidget) {
+                CollapsibleWidget collapsible = (CollapsibleWidget) child;
+                if (collapsible.isExpanded()) {
+                    renderExpandedDropdowns(context, collapsible.getChildWidgets(), mouseX, mouseY, delta);
+                }
+            }
+        }
+    }
+
+    private boolean handleExpandedDropdownClick(List<Component> components, double mouseX, double mouseY, int button) {
+        for (Component child : components) {
+            // Check if this is an expanded dropdown
+            if (child instanceof DropdownWidget) {
+                DropdownWidget dropdown = (DropdownWidget) child;
+                if (dropdown.isExpanded()) {
+                    // Let the dropdown handle the click, and consume the event
+                    dropdown.mouseClicked(mouseX, mouseY, button);
+                    return true;
+                }
+            }
+
+            // Check children of CollapsibleWidget
+            if (child instanceof CollapsibleWidget) {
+                CollapsibleWidget collapsible = (CollapsibleWidget) child;
+                if (collapsible.isExpanded()) {
+                    if (handleExpandedDropdownClick(collapsible.getChildWidgets(), mouseX, mouseY, button)) {
+                        return true;
                     }
                 }
             }
         }
+        return false;
+    }
+
+    private boolean hasExpandedDropdown(List<Component> components) {
+        for (Component child : components) {
+            if (child instanceof DropdownWidget) {
+                DropdownWidget dropdown = (DropdownWidget) child;
+                if (dropdown.isExpanded()) {
+                    return true;
+                }
+            }
+
+            // Check children of CollapsibleWidget
+            if (child instanceof CollapsibleWidget) {
+                CollapsibleWidget collapsible = (CollapsibleWidget) child;
+                if (collapsible.isExpanded() && hasExpandedDropdown(collapsible.getChildWidgets())) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean handleExpandedDropdownScroll(List<Component> components, double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+        for (Component child : components) {
+            // Check if this is an expanded dropdown
+            if (child instanceof DropdownWidget) {
+                DropdownWidget dropdown = (DropdownWidget) child;
+                if (dropdown.isExpanded()) {
+                    // Let the dropdown handle the scroll
+                    if (dropdown.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount)) {
+                        return true;
+                    }
+                }
+            }
+
+            // Check children of CollapsibleWidget
+            if (child instanceof CollapsibleWidget) {
+                CollapsibleWidget collapsible = (CollapsibleWidget) child;
+                if (collapsible.isExpanded()) {
+                    if (handleExpandedDropdownScroll(collapsible.getChildWidgets(), mouseX, mouseY, horizontalAmount, verticalAmount)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    private void renderTooltips(DrawContext context, int mouseX, int mouseY) {
+        // Check current category for hovered widgets with tooltips
+        if (currentCategoryIndex >= 0 && currentCategoryIndex < categories.size()) {
+            CategoryContainer category = categories.get(currentCategoryIndex);
+            if (checkTooltipsRecursive(context, category.getChildren(), mouseX, mouseY)) {
+                return;
+            }
+        }
         TooltipWidget.clear();
+    }
+
+    private boolean checkTooltipsRecursive(DrawContext context, List<Component> components, int mouseX, int mouseY) {
+        for (Component child : components) {
+            // Check if this component has a tooltip
+            if (child.isHovered() && child instanceof TooltipProvider) {
+                String tooltip = ((TooltipProvider) child).getTooltip();
+                if (tooltip != null && !tooltip.isEmpty()) {
+                    TooltipWidget.setTooltip(tooltip, mouseX, mouseY);
+                    TooltipWidget.render(context, mouseX, mouseY);
+                    return true;
+                }
+            }
+
+            // Check children of CollapsibleWidget
+            if (child instanceof CollapsibleWidget) {
+                CollapsibleWidget collapsible = (CollapsibleWidget) child;
+                if (collapsible.isExpanded() && checkTooltipsRecursive(context, collapsible.getChildWidgets(), mouseX, mouseY)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     @Override
@@ -223,6 +337,13 @@ public class CustomConfigScreen extends Screen {
         if (activePopup != null) {
             activePopup.mouseClicked(mouseX, mouseY, button);
             return true; // Always consume when popup is open
+        }
+
+        // Check if clicking on an expanded dropdown - handle it and block events to widgets below
+        if (currentCategoryIndex >= 0 && currentCategoryIndex < categories.size()) {
+            if (handleExpandedDropdownClick(categories.get(currentCategoryIndex).getChildren(), mouseX, mouseY, button)) {
+                return true;
+            }
         }
 
         // Buttons
@@ -250,6 +371,13 @@ public class CustomConfigScreen extends Screen {
             return true; // Always consume when popup is open
         }
 
+        // Check if any dropdown is expanded - consume event to prevent clicking through
+        if (currentCategoryIndex >= 0 && currentCategoryIndex < categories.size()) {
+            if (hasExpandedDropdown(categories.get(currentCategoryIndex).getChildren())) {
+                return true; // Consume event when dropdown is open
+            }
+        }
+
         if (doneButton.mouseReleased(mouseX, mouseY, button)) return true;
         if (editHudButton.mouseReleased(mouseX, mouseY, button)) return true;
         if (sidebar.mouseReleased(mouseX, mouseY, button)) return true;
@@ -269,6 +397,13 @@ public class CustomConfigScreen extends Screen {
         if (activePopup != null) {
             activePopup.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
             return true; // Always consume when popup is open
+        }
+
+        // Check if any dropdown is expanded - consume event to prevent clicking through
+        if (currentCategoryIndex >= 0 && currentCategoryIndex < categories.size()) {
+            if (hasExpandedDropdown(categories.get(currentCategoryIndex).getChildren())) {
+                return true; // Consume event when dropdown is open
+            }
         }
 
         // Sidebar (for scrollbar dragging)
@@ -291,6 +426,13 @@ public class CustomConfigScreen extends Screen {
         if (activePopup != null) {
             activePopup.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
             return true; // Always consume when popup is open
+        }
+
+        // Allow scrolling expanded dropdowns
+        if (currentCategoryIndex >= 0 && currentCategoryIndex < categories.size()) {
+            if (handleExpandedDropdownScroll(categories.get(currentCategoryIndex).getChildren(), mouseX, mouseY, horizontalAmount, verticalAmount)) {
+                return true;
+            }
         }
 
         // Sidebar (for mouse wheel scrolling)
@@ -352,33 +494,66 @@ public class CustomConfigScreen extends Screen {
         CategoryContainer category = new CategoryContainer("Cooldown HUD");
 
         category.addWidget(createToggle("Enabled", "cooldownHudEnabled", true, "Enable/disable the Cooldown HUD"));
-        category.addWidget(createToggle("Show Title", "showCooldownHudTitle", true, "Show the HUD title"));
         category.addWidget(createIntSlider("Scale", "cooldownHudScale", 100, 70, 150, "%", "HUD scale percentage"));
-        category.addWidget(createColorPicker("Title Color", "cooldownHudTitleColor", 14550187));
-        category.addWidget(createColorPicker("Bar Color", "cooldownBarColor", 0xFF00FF));
+
+        // Title settings
+        CollapsibleWidget titleGroup = createCollapsible("Title", "Configure HUD title display");
+        titleGroup.addWidget(createToggle("Show Title", "showCooldownHudTitle", true, "Show the HUD title"));
+        titleGroup.addWidget(createColorPicker("Title Color", "cooldownHudTitleColor", 14550187));
+        category.addWidget(titleGroup);
 
         // Background styling
-        category.addWidget(createColorPicker("Background Color", "cooldownBgColor", 0x000000));
-        category.addWidget(createIntSlider("Background Opacity", "cooldownBgOpacity", 128, 0, 255, "", "0 = transparent, 255 = opaque"));
-        category.addWidget(createColorPicker("Border Color", "cooldownBorderColor", 0xFFFFFF));
-        category.addWidget(createIntSlider("Border Opacity", "cooldownBorderOpacity", 128, 0, 255, "", "0 = transparent, 255 = opaque"));
-        category.addWidget(createIntSlider("Border Thickness", "cooldownBorderThickness", 2, 0, 5, "px", "Border thickness in pixels"));
+        CollapsibleWidget bgGroup = createCollapsible("Background", "Configure background styling");
+        bgGroup.addWidget(createColorPicker("Color", "cooldownBgColor", 0x000000));
+        bgGroup.addWidget(createIntSlider("Opacity", "cooldownBgOpacity", 128, 0, 255, "", "0 = transparent, 255 = opaque"));
+        category.addWidget(bgGroup);
 
-        // Individual command toggles and colors
-        category.addWidget(createToggle("/home Enabled", "homeEnabled", true, "Show /home cooldown"));
-        category.addWidget(createColorPicker("/home Color", "homeColor", 1045763));
-        category.addWidget(createToggle("/jet Enabled", "jetEnabled", true, "Show /jet cooldown"));
-        category.addWidget(createColorPicker("/jet Color", "jetColor", 14576132));
-        category.addWidget(createToggle("/feed Enabled", "feedEnabled", true, "Show /feed cooldown"));
-        category.addWidget(createColorPicker("/feed Color", "feedColor", 6700312));
-        category.addWidget(createToggle("/fix Enabled", "fixEnabled", true, "Show /fix cooldown"));
-        category.addWidget(createColorPicker("/fix Color", "fixColor", 12632256));
-        category.addWidget(createToggle("Combat Enabled", "combatEnabled", true, "Show combat tag"));
-        category.addWidget(createColorPicker("Combat Color", "combatColor", 9835026));
-        category.addWidget(createToggle("/tpa Enabled", "tpaEnabled", true, "Show /tpa cooldown"));
-        category.addWidget(createColorPicker("/tpa Color", "tpaColor", 5636095));
-        category.addWidget(createToggle("/tpahere Enabled", "tpahereEnabled", true, "Show /tpahere cooldown"));
-        category.addWidget(createColorPicker("/tpahere Color", "tpahereColor", 5636095));
+        // Border styling
+        CollapsibleWidget borderGroup = createCollapsible("Border", "Configure border styling");
+        borderGroup.addWidget(createColorPicker("Color", "cooldownBorderColor", 0xFFFFFF));
+        borderGroup.addWidget(createIntSlider("Opacity", "cooldownBorderOpacity", 128, 0, 255, "", "0 = transparent, 255 = opaque"));
+        borderGroup.addWidget(createIntSlider("Thickness", "cooldownBorderThickness", 2, 0, 5, "px", "Border thickness in pixels"));
+        category.addWidget(borderGroup);
+
+        // Individual command settings (grouped in a main collapsible)
+        CollapsibleWidget cooldownsGroup = createCollapsible("Cooldowns", "Configure individual cooldown displays");
+
+        CollapsibleWidget homeGroup = createCollapsible("/home", "Configure /home cooldown display");
+        homeGroup.addWidget(createToggle("Enabled", "homeEnabled", true, "Show /home cooldown"));
+        homeGroup.addWidget(createColorPicker("Color", "homeColor", 1045763));
+        cooldownsGroup.addWidget(homeGroup);
+
+        CollapsibleWidget jetGroup = createCollapsible("/jet", "Configure /jet cooldown display");
+        jetGroup.addWidget(createToggle("Enabled", "jetEnabled", true, "Show /jet cooldown"));
+        jetGroup.addWidget(createColorPicker("Color", "jetColor", 14576132));
+        cooldownsGroup.addWidget(jetGroup);
+
+        CollapsibleWidget feedGroup = createCollapsible("/feed", "Configure /feed cooldown display");
+        feedGroup.addWidget(createToggle("Enabled", "feedEnabled", true, "Show /feed cooldown"));
+        feedGroup.addWidget(createColorPicker("Color", "feedColor", 6700312));
+        cooldownsGroup.addWidget(feedGroup);
+
+        CollapsibleWidget fixGroup = createCollapsible("/fix", "Configure /fix cooldown display");
+        fixGroup.addWidget(createToggle("Enabled", "fixEnabled", true, "Show /fix cooldown"));
+        fixGroup.addWidget(createColorPicker("Color", "fixColor", 12632256));
+        cooldownsGroup.addWidget(fixGroup);
+
+        CollapsibleWidget combatGroup = createCollapsible("Combat Tag", "Configure combat tag display");
+        combatGroup.addWidget(createToggle("Enabled", "combatEnabled", true, "Show combat tag"));
+        combatGroup.addWidget(createColorPicker("Color", "combatColor", 9835026));
+        cooldownsGroup.addWidget(combatGroup);
+
+        CollapsibleWidget tpaGroup = createCollapsible("/tpa", "Configure /tpa cooldown display");
+        tpaGroup.addWidget(createToggle("Enabled", "tpaEnabled", true, "Show /tpa cooldown"));
+        tpaGroup.addWidget(createColorPicker("Color", "tpaColor", 5636095));
+        cooldownsGroup.addWidget(tpaGroup);
+
+        CollapsibleWidget tpahereGroup = createCollapsible("/tpahere", "Configure /tpahere cooldown display");
+        tpahereGroup.addWidget(createToggle("Enabled", "tpahereEnabled", true, "Show /tpahere cooldown"));
+        tpahereGroup.addWidget(createColorPicker("Color", "tpahereColor", 5636095));
+        cooldownsGroup.addWidget(tpahereGroup);
+
+        category.addWidget(cooldownsGroup);
 
         return category;
     }
@@ -387,25 +562,41 @@ public class CustomConfigScreen extends Screen {
         CategoryContainer category = new CategoryContainer("Satchel HUD");
 
         category.addWidget(createToggle("Enabled", "satchelHudEnabled", true, "Enable/disable the Satchel HUD"));
-        category.addWidget(createToggle("Show Title", "showSatchelHudTitle", true, "Show the HUD title"));
         category.addWidget(createIntSlider("Scale", "satchelHudScale", 100, 70, 150, "%", "HUD scale percentage"));
-        category.addWidget(createColorPicker("Title Color", "satchelHudTitleColor", 11722244));
-        category.addWidget(createColorPicker("Bar Color", "satchelBarColor", 0xFF4488));
         category.addWidget(createToggle("Show Percentage", "satchelShowPercentage", false, "Show percentage instead of count"));
         category.addWidget(createToggle("Combine Similar Satchels", "combineSimilarSatchels", true, "Group satchels of same type"));
 
+        // Title settings
+        CollapsibleWidget titleGroup = createCollapsible("Title", "Configure HUD title display");
+        titleGroup.addWidget(createToggle("Show Title", "showSatchelHudTitle", true, "Show the HUD title"));
+        titleGroup.addWidget(createColorPicker("Title Color", "satchelHudTitleColor", 11722244));
+        category.addWidget(titleGroup);
+
+        // Bar styling
+        CollapsibleWidget barGroup = createCollapsible("Bar", "Configure bar styling");
+        barGroup.addWidget(createColorPicker("Bar Color", "satchelBarColor", 0xFF4488));
+        category.addWidget(barGroup);
+
         // Background styling
-        category.addWidget(createColorPicker("Background Color", "satchelBgColor", 0x000000));
-        category.addWidget(createIntSlider("Background Opacity", "satchelBgOpacity", 128, 0, 255, "", "0 = transparent, 255 = opaque"));
-        category.addWidget(createColorPicker("Border Color", "satchelBorderColor", 0xFFFFFF));
-        category.addWidget(createIntSlider("Border Opacity", "satchelBorderOpacity", 128, 0, 255, "", "0 = transparent, 255 = opaque"));
-        category.addWidget(createIntSlider("Border Thickness", "satchelBorderThickness", 2, 0, 5, "px", "Border thickness in pixels"));
+        CollapsibleWidget bgGroup = createCollapsible("Background", "Configure background styling");
+        bgGroup.addWidget(createColorPicker("Color", "satchelBgColor", 0x000000));
+        bgGroup.addWidget(createIntSlider("Opacity", "satchelBgOpacity", 128, 0, 255, "", "0 = transparent, 255 = opaque"));
+        category.addWidget(bgGroup);
+
+        // Border styling
+        CollapsibleWidget borderGroup = createCollapsible("Border", "Configure border styling");
+        borderGroup.addWidget(createColorPicker("Color", "satchelBorderColor", 0xFFFFFF));
+        borderGroup.addWidget(createIntSlider("Opacity", "satchelBorderOpacity", 128, 0, 255, "", "0 = transparent, 255 = opaque"));
+        borderGroup.addWidget(createIntSlider("Thickness", "satchelBorderThickness", 2, 0, 5, "px", "Border thickness in pixels"));
+        category.addWidget(borderGroup);
 
         // Capacity threshold colors
-        category.addWidget(createColorPicker("Color (<20%)", "satchelColorUnder20", 1045763));
-        category.addWidget(createColorPicker("Color (20-60%)", "satchelColor20to60", 16776960));
-        category.addWidget(createColorPicker("Color (60-95%)", "satchelColor60to95", 16746496));
-        category.addWidget(createColorPicker("Color (95%+)", "satchelColor95Plus", 11141120));
+        CollapsibleWidget thresholdColors = createCollapsible("Capacity Threshold Colors", "Configure colors based on satchel fullness");
+        thresholdColors.addWidget(createColorPicker("Color (<20%)", "satchelColorUnder20", 1045763));
+        thresholdColors.addWidget(createColorPicker("Color (20-60%)", "satchelColor20to60", 16776960));
+        thresholdColors.addWidget(createColorPicker("Color (60-95%)", "satchelColor60to95", 16746496));
+        thresholdColors.addWidget(createColorPicker("Color (95%+)", "satchelColor95Plus", 11141120));
+        category.addWidget(thresholdColors);
 
         return category;
     }
@@ -414,41 +605,86 @@ public class CustomConfigScreen extends Screen {
         CategoryContainer category = new CategoryContainer("Stats HUD");
 
         category.addWidget(createToggle("Enabled", "statsHudEnabled", true, "Enable/disable the Stats HUD"));
-        category.addWidget(createToggle("Show Title", "showStatsHudTitle", true, "Show the HUD title"));
         category.addWidget(createIntSlider("Scale", "statsHudScale", 100, 70, 150, "%", "HUD scale percentage"));
-        category.addWidget(createColorPicker("Title Color", "statsHudTitleColor", 14352636));
+        category.addWidget(createToggle("Use Comma Formatting", "useCommaFormatting", false, "Format numbers with commas"));
+
+        // Title settings
+        CollapsibleWidget titleGroup = createCollapsible("Title", "Configure HUD title display");
+        titleGroup.addWidget(createToggle("Show Title", "showStatsHudTitle", true, "Show the HUD title"));
+        titleGroup.addWidget(createColorPicker("Title Color", "statsHudTitleColor", 14352636));
+        category.addWidget(titleGroup);
 
         // Background styling
-        category.addWidget(createColorPicker("Background Color", "statsBgColor", 0x000000));
-        category.addWidget(createIntSlider("Background Opacity", "statsBgOpacity", 128, 0, 255, "", "0 = transparent, 255 = opaque"));
-        category.addWidget(createColorPicker("Border Color", "statsBorderColor", 0xFFFFFF));
-        category.addWidget(createIntSlider("Border Opacity", "statsBorderOpacity", 128, 0, 255, "", "0 = transparent, 255 = opaque"));
-        category.addWidget(createIntSlider("Border Thickness", "statsBorderThickness", 2, 0, 5, "px", "Border thickness in pixels"));
+        CollapsibleWidget bgGroup = createCollapsible("Background", "Configure background styling");
+        bgGroup.addWidget(createColorPicker("Color", "statsBgColor", 0x000000));
+        bgGroup.addWidget(createIntSlider("Opacity", "statsBgOpacity", 128, 0, 255, "", "0 = transparent, 255 = opaque"));
+        category.addWidget(bgGroup);
 
-        // Element toggles
-        category.addWidget(createToggle("Show Current XP", "statsShowCurrentXP", true, "Display current XP"));
-        category.addWidget(createToggle("Show XP/Hour", "statsShowXPPerHour", true, "Display XP per hour"));
-        category.addWidget(createToggle("Show XP/Min", "statsShowXPPerMinute", true, "Display XP per minute"));
-        category.addWidget(createToggle("Show Session XP", "statsShowSessionXP", true, "Display session XP gain"));
-        category.addWidget(createToggle("Show Current CE", "statsShowCurrentCE", true, "Display current CE"));
-        category.addWidget(createToggle("Show CE/Hour", "statsShowCEPerHour", true, "Display CE per hour"));
-        category.addWidget(createToggle("Show CE/Min", "statsShowCEPerMinute", true, "Display CE per minute"));
-        category.addWidget(createToggle("Show Session CE", "statsShowSessionCE", true, "Display session CE gain"));
-        category.addWidget(createToggle("Show Session Duration", "statsShowSessionDuration", true, "Display session duration"));
-        category.addWidget(createToggle("Show Millis on Duration", "statsShowMillisOnSessionDuration", false, "Show milliseconds"));
-        category.addWidget(createToggle("Show Time Till Level Up", "statsShowTimeTillLevelUp", true, "Show time until next level"));
+        // Border styling
+        CollapsibleWidget borderGroup = createCollapsible("Border", "Configure border styling");
+        borderGroup.addWidget(createColorPicker("Color", "statsBorderColor", 0xFFFFFF));
+        borderGroup.addWidget(createIntSlider("Opacity", "statsBorderOpacity", 128, 0, 255, "", "0 = transparent, 255 = opaque"));
+        borderGroup.addWidget(createIntSlider("Thickness", "statsBorderThickness", 2, 0, 5, "px", "Border thickness in pixels"));
+        category.addWidget(borderGroup);
 
-        // Element colors
-        category.addWidget(createColorPicker("Current XP Color", "statsCurrentXPColor", 1045763));
-        category.addWidget(createColorPicker("XP/Hour Color", "statsXPPerHourColor", 1045763));
-        category.addWidget(createColorPicker("XP/Min Color", "statsXPPerMinuteColor", 1045763));
-        category.addWidget(createColorPicker("Session XP Color", "statsSessionXPColor", 1045763));
-        category.addWidget(createColorPicker("Current CE Color", "statsCurrentCEColor", 240124));
-        category.addWidget(createColorPicker("CE/Hour Color", "statsCEPerHourColor", 240124));
-        category.addWidget(createColorPicker("CE/Min Color", "statsCEPerMinuteColor", 240124));
-        category.addWidget(createColorPicker("Session CE Color", "statsSessionCEColor", 240124));
-        category.addWidget(createColorPicker("Session Duration Color", "statsSessionDurationColor", 14352636));
-        category.addWidget(createColorPicker("Time Till Level Up Color", "statsTimeTillLevelUpColor", 0xFFD700));
+        // XP Display settings
+        CollapsibleWidget xpGroup = createCollapsible("XP Display", "Configure XP-related display options");
+
+        CollapsibleWidget currentXpGroup = createCollapsible("Current XP", "Configure current XP display");
+        currentXpGroup.addWidget(createToggle("Enabled", "statsShowCurrentXP", true, "Display current XP"));
+        currentXpGroup.addWidget(createColorPicker("Color", "statsCurrentXPColor", 1045763));
+        xpGroup.addWidget(currentXpGroup);
+
+        CollapsibleWidget xpHourGroup = createCollapsible("XP/Hour", "Configure XP per hour display");
+        xpHourGroup.addWidget(createToggle("Enabled", "statsShowXPPerHour", true, "Display XP per hour"));
+        xpHourGroup.addWidget(createColorPicker("Color", "statsXPPerHourColor", 1045763));
+        xpGroup.addWidget(xpHourGroup);
+
+        CollapsibleWidget xpMinGroup = createCollapsible("XP/Min", "Configure XP per minute display");
+        xpMinGroup.addWidget(createToggle("Enabled", "statsShowXPPerMinute", true, "Display XP per minute"));
+        xpMinGroup.addWidget(createColorPicker("Color", "statsXPPerMinuteColor", 1045763));
+        xpGroup.addWidget(xpMinGroup);
+
+        CollapsibleWidget sessionXpGroup = createCollapsible("Session XP", "Configure session XP display");
+        sessionXpGroup.addWidget(createToggle("Enabled", "statsShowSessionXP", true, "Display session XP gain"));
+        sessionXpGroup.addWidget(createColorPicker("Color", "statsSessionXPColor", 1045763));
+        xpGroup.addWidget(sessionXpGroup);
+
+        category.addWidget(xpGroup);
+
+        // CE Display settings
+        CollapsibleWidget ceGroup = createCollapsible("CE Display", "Configure CE-related display options");
+
+        CollapsibleWidget currentCeGroup = createCollapsible("Current CE", "Configure current CE display");
+        currentCeGroup.addWidget(createToggle("Enabled", "statsShowCurrentCE", true, "Display current CE"));
+        currentCeGroup.addWidget(createColorPicker("Color", "statsCurrentCEColor", 240124));
+        ceGroup.addWidget(currentCeGroup);
+
+        CollapsibleWidget ceHourGroup = createCollapsible("CE/Hour", "Configure CE per hour display");
+        ceHourGroup.addWidget(createToggle("Enabled", "statsShowCEPerHour", true, "Display CE per hour"));
+        ceHourGroup.addWidget(createColorPicker("Color", "statsCEPerHourColor", 240124));
+        ceGroup.addWidget(ceHourGroup);
+
+        CollapsibleWidget ceMinGroup = createCollapsible("CE/Min", "Configure CE per minute display");
+        ceMinGroup.addWidget(createToggle("Enabled", "statsShowCEPerMinute", true, "Display CE per minute"));
+        ceMinGroup.addWidget(createColorPicker("Color", "statsCEPerMinuteColor", 240124));
+        ceGroup.addWidget(ceMinGroup);
+
+        CollapsibleWidget sessionCeGroup = createCollapsible("Session CE", "Configure session CE display");
+        sessionCeGroup.addWidget(createToggle("Enabled", "statsShowSessionCE", true, "Display session CE gain"));
+        sessionCeGroup.addWidget(createColorPicker("Color", "statsSessionCEColor", 240124));
+        ceGroup.addWidget(sessionCeGroup);
+
+        category.addWidget(ceGroup);
+
+        // Session Info settings
+        CollapsibleWidget sessionGroup = createCollapsible("Session Info", "Configure session information display");
+        sessionGroup.addWidget(createToggle("Show Session Duration", "statsShowSessionDuration", true, "Display session duration"));
+        sessionGroup.addWidget(createToggle("Show Millis on Duration", "statsShowMillisOnSessionDuration", false, "Show milliseconds"));
+        sessionGroup.addWidget(createColorPicker("Session Duration Color", "statsSessionDurationColor", 14352636));
+        sessionGroup.addWidget(createToggle("Show Time Till Level Up", "statsShowTimeTillLevelUp", true, "Show time until next level"));
+        sessionGroup.addWidget(createColorPicker("Time Till Level Up Color", "statsTimeTillLevelUpColor", 0xFFD700));
+        category.addWidget(sessionGroup);
 
         return category;
     }
@@ -457,17 +693,27 @@ public class CustomConfigScreen extends Screen {
         CategoryContainer category = new CategoryContainer("Enchant HUD");
 
         category.addWidget(createToggle("Enabled", "enchantHudEnabled", true, "Enable/disable the Enchant HUD"));
-        category.addWidget(createToggle("Show Title", "showEnchantHudTitle", true, "Show the HUD title"));
         category.addWidget(createIntSlider("Scale", "enchantHudScale", 100, 70, 150, "%", "HUD scale percentage"));
-        category.addWidget(createColorPicker("Title Color", "enchantHudTitleColor", 300510));
         category.addWidget(createColorPicker("Time Color", "enchantTimeColor", 1045763));
 
+        // Title settings
+        CollapsibleWidget titleGroup = createCollapsible("Title", "Configure HUD title display");
+        titleGroup.addWidget(createToggle("Show Title", "showEnchantHudTitle", true, "Show the HUD title"));
+        titleGroup.addWidget(createColorPicker("Title Color", "enchantHudTitleColor", 300510));
+        category.addWidget(titleGroup);
+
         // Background styling
-        category.addWidget(createColorPicker("Background Color", "enchantBgColor", 0x000000));
-        category.addWidget(createIntSlider("Background Opacity", "enchantBgOpacity", 128, 0, 255, "", "0 = transparent, 255 = opaque"));
-        category.addWidget(createColorPicker("Border Color", "enchantBorderColor", 0xFFFFFF));
-        category.addWidget(createIntSlider("Border Opacity", "enchantBorderOpacity", 128, 0, 255, "", "0 = transparent, 255 = opaque"));
-        category.addWidget(createIntSlider("Border Thickness", "enchantBorderThickness", 2, 0, 5, "px", "Border thickness in pixels"));
+        CollapsibleWidget bgGroup = createCollapsible("Background", "Configure background styling");
+        bgGroup.addWidget(createColorPicker("Color", "enchantBgColor", 0x000000));
+        bgGroup.addWidget(createIntSlider("Opacity", "enchantBgOpacity", 128, 0, 255, "", "0 = transparent, 255 = opaque"));
+        category.addWidget(bgGroup);
+
+        // Border styling
+        CollapsibleWidget borderGroup = createCollapsible("Border", "Configure border styling");
+        borderGroup.addWidget(createColorPicker("Color", "enchantBorderColor", 0xFFFFFF));
+        borderGroup.addWidget(createIntSlider("Opacity", "enchantBorderOpacity", 128, 0, 255, "", "0 = transparent, 255 = opaque"));
+        borderGroup.addWidget(createIntSlider("Thickness", "enchantBorderThickness", 2, 0, 5, "px", "Border thickness in pixels"));
+        category.addWidget(borderGroup);
 
         return category;
     }
@@ -476,21 +722,31 @@ public class CustomConfigScreen extends Screen {
         CategoryContainer category = new CategoryContainer("Meteor HUD");
 
         category.addWidget(createToggle("Enabled", "meteorHudEnabled", true, "Enable/disable the Meteor HUD"));
-        category.addWidget(createToggle("Show Title", "showMeteorHudTitle", true, "Show the HUD title"));
         category.addWidget(createIntSlider("Scale", "meteorHudScale", 100, 70, 150, "%", "HUD scale percentage"));
-        category.addWidget(createColorPicker("Title Color", "meteorHudTitleColor", 14558468));
         category.addWidget(createColorPicker("Text Color", "meteorTextColor", 14558468));
         category.addWidget(createColorPicker("Natural Heading Color", "meteorNaturalHeadingColor", 0x00FF00));
         category.addWidget(createColorPicker("Summoned Heading Color", "meteorSummonedHeadingColor", 0xFF4500));
-        category.addWidget(createTextInput("Icon Item ID", "meteorIconItemId", "minecraft:nether_quartz_ore", "Item ID for meteor icon"));
+        category.addWidget(createTextInput("Icon Item ID", "meteorIconItemId", "nether_quartz_ore", "Item ID for meteor icon (minecraft: prefix added automatically)"));
         category.addWidget(createIntSlider("Crashed Display Duration", "meteorCrashedDisplayDuration", 15, 5, 60, "s", "Seconds to show crashed meteor"));
 
+        // Title settings
+        CollapsibleWidget titleGroup = createCollapsible("Title", "Configure HUD title display");
+        titleGroup.addWidget(createToggle("Show Title", "showMeteorHudTitle", true, "Show the HUD title"));
+        titleGroup.addWidget(createColorPicker("Title Color", "meteorHudTitleColor", 14558468));
+        category.addWidget(titleGroup);
+
         // Background styling
-        category.addWidget(createColorPicker("Background Color", "meteorBgColor", 0x000000));
-        category.addWidget(createIntSlider("Background Opacity", "meteorBgOpacity", 128, 0, 255, "", "0 = transparent, 255 = opaque"));
-        category.addWidget(createColorPicker("Border Color", "meteorBorderColor", 0xFFFFFF));
-        category.addWidget(createIntSlider("Border Opacity", "meteorBorderOpacity", 128, 0, 255, "", "0 = transparent, 255 = opaque"));
-        category.addWidget(createIntSlider("Border Thickness", "meteorBorderThickness", 2, 0, 5, "px", "Border thickness in pixels"));
+        CollapsibleWidget bgGroup = createCollapsible("Background", "Configure background styling");
+        bgGroup.addWidget(createColorPicker("Color", "meteorBgColor", 0x000000));
+        bgGroup.addWidget(createIntSlider("Opacity", "meteorBgOpacity", 128, 0, 255, "", "0 = transparent, 255 = opaque"));
+        category.addWidget(bgGroup);
+
+        // Border styling
+        CollapsibleWidget borderGroup = createCollapsible("Border", "Configure border styling");
+        borderGroup.addWidget(createColorPicker("Color", "meteorBorderColor", 0xFFFFFF));
+        borderGroup.addWidget(createIntSlider("Opacity", "meteorBorderOpacity", 128, 0, 255, "", "0 = transparent, 255 = opaque"));
+        borderGroup.addWidget(createIntSlider("Thickness", "meteorBorderThickness", 2, 0, 5, "px", "Border thickness in pixels"));
+        category.addWidget(borderGroup);
 
         return category;
     }
@@ -535,39 +791,70 @@ public class CustomConfigScreen extends Screen {
 
         category.addWidget(createToggle("Enabled", "easyViewEnabled", true, "Enable/disable EasyView feature"));
 
-        // Individual element toggles and colors
-        category.addWidget(createToggle("Energy Enabled", "easyViewEnergyEnabled", true, "Show energy info"));
-        category.addWidget(createColorPicker("Energy Color", "easyViewEnergyColor", 0xFFFFFF));
-        category.addWidget(createToggle("Money Enabled", "easyViewMoneyEnabled", true, "Show money info"));
-        category.addWidget(createColorPicker("Money Color", "easyViewMoneyColor", 0x00FF00));
-        category.addWidget(createToggle("Gang Points Enabled", "easyViewGangPointsEnabled", true, "Show gang points"));
-        category.addWidget(createColorPicker("Gang Points Color", "easyViewGangPointsColor", 65535));
-        category.addWidget(createToggle("Black Scroll Enabled", "easyViewBlackScrollEnabled", true, "Show black scroll info"));
-        category.addWidget(createColorPicker("Black Scroll Color", "easyViewBlackScrollColor", 0xFF00FF));
-        category.addWidget(createToggle("Charge Orb Enabled", "easyViewChargeOrbEnabled", true, "Show charge orb info"));
-        category.addWidget(createColorPicker("Charge Orb Color", "easyViewChargeOrbColor", 16755200));
+        // Individual element settings (grouped in collapsibles)
+        CollapsibleWidget energyGroup = createCollapsible("Energy", "Configure energy display");
+        energyGroup.addWidget(createToggle("Enabled", "easyViewEnergyEnabled", true, "Show energy info"));
+        energyGroup.addWidget(createColorPicker("Color", "easyViewEnergyColor", 0xFFFFFF));
+        energyGroup.addWidget(createToggle("Bold", "easyViewEnergyBold", true, "Bold energy text"));
+        category.addWidget(energyGroup);
+
+        CollapsibleWidget moneyGroup = createCollapsible("Money", "Configure money display");
+        moneyGroup.addWidget(createToggle("Enabled", "easyViewMoneyEnabled", true, "Show money info"));
+        moneyGroup.addWidget(createColorPicker("Color", "easyViewMoneyColor", 0x00FF00));
+        moneyGroup.addWidget(createToggle("Bold", "easyViewMoneyBold", true, "Bold money text"));
+        category.addWidget(moneyGroup);
+
+        CollapsibleWidget gangPointsGroup = createCollapsible("Gang Points", "Configure gang points display");
+        gangPointsGroup.addWidget(createToggle("Enabled", "easyViewGangPointsEnabled", true, "Show gang points"));
+        gangPointsGroup.addWidget(createColorPicker("Color", "easyViewGangPointsColor", 65535));
+        gangPointsGroup.addWidget(createToggle("Bold", "easyViewGangPointsBold", true, "Bold gang points text"));
+        category.addWidget(gangPointsGroup);
+
+        CollapsibleWidget blackScrollGroup = createCollapsible("Black Scroll", "Configure black scroll display");
+        blackScrollGroup.addWidget(createToggle("Enabled", "easyViewBlackScrollEnabled", true, "Show black scroll info"));
+        blackScrollGroup.addWidget(createColorPicker("Color", "easyViewBlackScrollColor", 0xFF00FF));
+        blackScrollGroup.addWidget(createToggle("Bold", "easyViewBlackScrollBold", true, "Bold black scroll text"));
+        category.addWidget(blackScrollGroup);
+
+        CollapsibleWidget chargeOrbGroup = createCollapsible("Charge Orb", "Configure charge orb display");
+        chargeOrbGroup.addWidget(createToggle("Enabled", "easyViewChargeOrbEnabled", true, "Show charge orb info"));
+        chargeOrbGroup.addWidget(createColorPicker("Color", "easyViewChargeOrbColor", 16755200));
+        chargeOrbGroup.addWidget(createToggle("Bold", "easyViewChargeOrbBold", true, "Bold charge orb text"));
+        category.addWidget(chargeOrbGroup);
 
         // Item display settings
-        category.addWidget(createToggle("Armor Enabled", "easyViewArmorEnabled", true, "Show armor stats"));
-        category.addWidget(createColorPicker("Armor Color", "easyViewArmorColor", 0x00FF00));
-        category.addWidget(createIntSlider("Armor Scale", "easyViewArmorScale", 70, 50, 100, "%", "Armor text scale"));
-        category.addWidget(createToggle("Armor Bold", "easyViewArmorBold", true, "Bold armor text"));
+        CollapsibleWidget armorGroup = createCollapsible("Armor", "Configure armor display");
+        armorGroup.addWidget(createToggle("Enabled", "easyViewArmorEnabled", true, "Show armor stats"));
+        armorGroup.addWidget(createColorPicker("Color", "easyViewArmorColor", 0x00FF00));
+        armorGroup.addWidget(createIntSlider("Scale", "easyViewArmorScale", 70, 50, 100, "%", "Armor text scale"));
+        armorGroup.addWidget(createToggle("Bold", "easyViewArmorBold", true, "Bold armor text"));
+        category.addWidget(armorGroup);
 
-        category.addWidget(createToggle("Weapons Enabled", "easyViewWeaponsEnabled", true, "Show weapon stats"));
-        category.addWidget(createColorPicker("Weapons Color", "easyViewWeaponsColor", 0x00FF00));
-        category.addWidget(createIntSlider("Weapons Scale", "easyViewWeaponsScale", 70, 50, 100, "%", "Weapons text scale"));
-        category.addWidget(createToggle("Weapons Bold", "easyViewWeaponsBold", true, "Bold weapons text"));
+        CollapsibleWidget weaponsGroup = createCollapsible("Weapons", "Configure weapons display");
+        weaponsGroup.addWidget(createToggle("Enabled", "easyViewWeaponsEnabled", true, "Show weapon stats"));
+        weaponsGroup.addWidget(createColorPicker("Color", "easyViewWeaponsColor", 0x00FF00));
+        weaponsGroup.addWidget(createIntSlider("Scale", "easyViewWeaponsScale", 70, 50, 100, "%", "Weapons text scale"));
+        weaponsGroup.addWidget(createToggle("Bold", "easyViewWeaponsBold", true, "Bold weapons text"));
+        category.addWidget(weaponsGroup);
 
-        category.addWidget(createToggle("Pickaxes Enabled", "easyViewPickaxesEnabled", true, "Show pickaxe stats"));
-        category.addWidget(createColorPicker("Pickaxes Color", "easyViewPickaxesColor", 0x00FF00));
-        category.addWidget(createIntSlider("Pickaxes Scale", "easyViewPickaxesScale", 70, 50, 100, "%", "Pickaxes text scale"));
-        category.addWidget(createToggle("Pickaxes Bold", "easyViewPickaxesBold", true, "Bold pickaxes text"));
+        CollapsibleWidget pickaxesGroup = createCollapsible("Pickaxes", "Configure pickaxes display");
+        pickaxesGroup.addWidget(createToggle("Enabled", "easyViewPickaxesEnabled", true, "Show pickaxe stats"));
+        pickaxesGroup.addWidget(createColorPicker("Color", "easyViewPickaxesColor", 0x00FF00));
+        pickaxesGroup.addWidget(createIntSlider("Scale", "easyViewPickaxesScale", 70, 50, 100, "%", "Pickaxes text scale"));
+        pickaxesGroup.addWidget(createToggle("Bold", "easyViewPickaxesBold", true, "Bold pickaxes text"));
+        category.addWidget(pickaxesGroup);
 
-        category.addWidget(createToggle("Dust Enabled", "easyViewDustEnabled", true, "Show dust info"));
-        category.addWidget(createColorPicker("Dust Color", "easyViewDustColor", 0xD2691E));
+        CollapsibleWidget dustGroup = createCollapsible("Dust", "Configure dust display");
+        dustGroup.addWidget(createToggle("Enabled", "easyViewDustEnabled", true, "Show dust info"));
+        dustGroup.addWidget(createColorPicker("Color", "easyViewDustColor", 0xD2691E));
+        dustGroup.addWidget(createToggle("Bold", "easyViewDustBold", true, "Bold dust text"));
+        category.addWidget(dustGroup);
 
-        category.addWidget(createToggle("Pages Enabled", "easyViewPagesEnabled", true, "Show pages info"));
-        category.addWidget(createColorPicker("Pages Color", "easyViewPagesColor", 0xF5DEB3));
+        CollapsibleWidget pagesGroup = createCollapsible("Pages", "Configure pages display");
+        pagesGroup.addWidget(createToggle("Enabled", "easyViewPagesEnabled", true, "Show pages info"));
+        pagesGroup.addWidget(createColorPicker("Color", "easyViewPagesColor", 0xF5DEB3));
+        pagesGroup.addWidget(createToggle("Bold", "easyViewPagesBold", true, "Bold pages text"));
+        category.addWidget(pagesGroup);
 
         return category;
     }
@@ -593,9 +880,6 @@ public class CustomConfigScreen extends Screen {
 
     private CategoryContainer createConfigSettingsCategory() {
         CategoryContainer category = new CategoryContainer("Config Settings");
-
-        category.addWidget(createToggle("Use Comma Formatting", "useCommaFormatting", false, "Format numbers with commas"));
-        category.addWidget(createToggle("Theme Animations", "themeAnimationsEnabled", true, "Enable smooth animations in UI"));
 
         // Theme color customization
         category.addWidget(createColorPicker("Screen Background", "themeScreenBackground", 0xFF1E1E1E));
@@ -649,8 +933,34 @@ public class CustomConfigScreen extends Screen {
         widget.setColor(binding.getValue());
         BindingRegistry.register(widget, binding);
 
-        // Set popup callback to display popup
+        // Add real-time update for theme colors
+        if (fieldName.startsWith("theme")) {
+            widget.setOnChange(newColor -> {
+                binding.setValue(newColor);
+                updateThemeField(fieldName, newColor);
+            });
+        }
+
+        // Set popup callback to display popup with wrapped callbacks
         widget.setOnPopupOpen(popup -> {
+            // Wrap the popup's callbacks to clear activePopup when closed
+            Consumer<Integer> originalOnConfirm = popup.getOnConfirm();
+            Runnable originalOnCancel = popup.getOnCancel();
+
+            popup.setOnConfirm(color -> {
+                if (originalOnConfirm != null) {
+                    originalOnConfirm.accept(color);
+                }
+                this.activePopup = null;
+            });
+
+            popup.setOnCancel(() -> {
+                if (originalOnCancel != null) {
+                    originalOnCancel.run();
+                }
+                this.activePopup = null;
+            });
+
             this.activePopup = popup;
         });
 
@@ -694,15 +1004,69 @@ public class CustomConfigScreen extends Screen {
         return widget;
     }
 
+    private CollapsibleWidget createCollapsible(String label, String tooltip) {
+        CollapsibleWidget widget = new CollapsibleWidget(label);
+        widget.setTooltip(tooltip);
+        return widget;
+    }
+
+    /**
+     * Updates a Theme field in real-time based on field name.
+     */
+    private void updateThemeField(String fieldName, int value) {
+        switch (fieldName) {
+            case "themeScreenBackground": Theme.screenBackground = value; break;
+            case "themePanelBackground": Theme.panelBackground = value; break;
+            case "themeWidgetBackground": Theme.widgetBackground = value; break;
+            case "themeWidgetBackgroundHover": Theme.widgetBackgroundHover = value; break;
+            case "themeBorderPrimary": Theme.borderPrimary = value; break;
+            case "themeBorderHover": Theme.borderHover = value; break;
+            case "themeBorderFocus": Theme.borderFocus = value; break;
+            case "themeTextPrimary": Theme.textPrimary = value; break;
+            case "themeTextSecondary": Theme.textSecondary = value; break;
+            case "themeTextDisabled": Theme.textDisabled = value; break;
+            case "themeTextAccent": Theme.textAccent = value; break;
+            case "themeAccentPrimary": Theme.accentPrimary = value; break;
+            case "themeToggleOn": Theme.toggleOn = value; break;
+            case "themeToggleOff": Theme.toggleOff = value; break;
+            case "themeToggleHandle": Theme.toggleHandle = value; break;
+            case "themeSliderTrack": Theme.sliderTrack = value; break;
+            case "themeSliderFill": Theme.sliderFill = value; break;
+            case "themeSliderHandle": Theme.sliderHandle = value; break;
+            case "themeScrollbarTrack": Theme.scrollbarTrack = value; break;
+            case "themeScrollbarThumb": Theme.scrollbarThumb = value; break;
+            case "themeScrollbarThumbHover": Theme.scrollbarThumbHover = value; break;
+            case "themeSidebarBackground": Theme.sidebarBackground = value; break;
+            case "themeSidebarItemSelected": Theme.sidebarItemSelected = value; break;
+            case "themeSidebarItemHover": Theme.sidebarItemHover = value; break;
+            case "themeTooltipBackground": Theme.tooltipBackground = value; break;
+            case "themeTooltipBorder": Theme.tooltipBorder = value; break;
+            case "themeTooltipText": Theme.tooltipText = value; break;
+        }
+    }
+
     /**
      * Saves all widget values back to config fields.
      */
     private void saveAllWidgetValues() {
         for (CategoryContainer category : categories) {
             for (Component child : category.getChildren()) {
-                if (BindingRegistry.hasBinding(child)) {
-                    saveWidgetValue(child);
-                }
+                saveWidgetRecursive(child);
+            }
+        }
+    }
+
+    private void saveWidgetRecursive(Component widget) {
+        // Save this widget if it has a binding
+        if (BindingRegistry.hasBinding(widget)) {
+            saveWidgetValue(widget);
+        }
+
+        // Recursively save children of CollapsibleWidget
+        if (widget instanceof CollapsibleWidget) {
+            CollapsibleWidget collapsible = (CollapsibleWidget) widget;
+            for (Component child : collapsible.getChildWidgets()) {
+                saveWidgetRecursive(child);
             }
         }
     }
@@ -764,12 +1128,5 @@ public class CustomConfigScreen extends Screen {
             }
             return false;
         }
-    }
-
-    /**
-     * Interface for components that provide tooltips.
-     */
-    private interface TooltipProvider {
-        String getTooltip();
     }
 }

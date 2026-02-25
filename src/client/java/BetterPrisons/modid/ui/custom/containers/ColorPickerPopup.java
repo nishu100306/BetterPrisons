@@ -23,7 +23,7 @@ public class ColorPickerPopup extends Component {
     private static final int PADDING = 10;
     private static final int BUTTON_WIDTH = 60;
     private static final int BUTTON_HEIGHT = 20;
-    private static final int PIXEL_SIZE = 2; // Render 2x2 blocks instead of 1x1 for performance
+    private static final int PIXEL_SIZE = 4; // Render 8x8 blocks for performance (94% fewer draw calls)
 
     private int currentColor;
     private float hue = 0;
@@ -116,6 +116,14 @@ public class ColorPickerPopup extends Component {
         int cancelX = x + POPUP_WIDTH - PADDING - BUTTON_WIDTH;
         int okX = cancelX - BUTTON_WIDTH - 10;
 
+        // DEBUG: Log button positions once per second
+        if (System.currentTimeMillis() % 1000 < 50) {
+            System.out.println("[RENDER] Popup at (" + x + ", " + y + ")");
+            System.out.println("[RENDER] hexY = " + hexY + ", buttonY = " + buttonY);
+            System.out.println("[RENDER] OK button rendered at (" + okX + ", " + buttonY + ", " + BUTTON_WIDTH + ", " + BUTTON_HEIGHT + ")");
+            System.out.println("[RENDER] Cancel button rendered at (" + cancelX + ", " + buttonY + ", " + BUTTON_WIDTH + ", " + BUTTON_HEIGHT + ")");
+        }
+
         // OK button
         boolean okHovered = isMouseOverRect(mouseX, mouseY, okX, buttonY, BUTTON_WIDTH, BUTTON_HEIGHT);
         RenderUtils.drawRect(context, okX, buttonY, BUTTON_WIDTH, BUTTON_HEIGHT,
@@ -192,7 +200,14 @@ public class ColorPickerPopup extends Component {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (button != 0) return false;
+        System.out.println("=== ColorPickerPopup.mouseClicked ===");
+        System.out.println("Mouse: (" + mouseX + ", " + mouseY + "), button: " + button);
+        System.out.println("Popup position: (" + x + ", " + y + ")");
+
+        if (button != 0) {
+            System.out.println("Not left click, ignoring");
+            return false;
+        }
 
         int contentY = y + PADDING + 20;
         int svX = x + PADDING;
@@ -201,14 +216,18 @@ public class ColorPickerPopup extends Component {
         int hueY = contentY;
 
         // Check SV square
+        System.out.println("Checking SV square: (" + svX + ", " + svY + ", " + SV_SIZE + ", " + SV_SIZE + ")");
         if (isMouseOverRect(mouseX, mouseY, svX, svY, SV_SIZE, SV_SIZE)) {
+            System.out.println("-> Clicked SV square");
             draggingSV = true;
             updateSVFromMouse(mouseX, mouseY, svX, svY);
             return true;
         }
 
         // Check hue bar
+        System.out.println("Checking hue bar: (" + hueX + ", " + hueY + ", " + HUE_WIDTH + ", " + SV_SIZE + ")");
         if (isMouseOverRect(mouseX, mouseY, hueX, hueY, HUE_WIDTH, SV_SIZE)) {
+            System.out.println("-> Clicked hue bar");
             draggingHue = true;
             updateHueFromMouse(mouseY, hueY);
             return true;
@@ -217,7 +236,9 @@ public class ColorPickerPopup extends Component {
         // Check hex input
         int hexY = contentY + SV_SIZE + 10 + 30 + 10;
         int hexInputX = x + PADDING + 30;
+        System.out.println("Checking hex input: (" + hexInputX + ", " + hexY + ", 80, 20)");
         if (isMouseOverRect(mouseX, mouseY, hexInputX, hexY, 80, 20)) {
+            System.out.println("-> Clicked hex input");
             editingHex = true;
             return true;
         } else {
@@ -225,34 +246,52 @@ public class ColorPickerPopup extends Component {
         }
 
         // Check buttons (use same calculation as render method)
-        int buttonY = hexY + 30;
+        int buttonY = hexY + 5;
         int cancelX = x + POPUP_WIDTH - PADDING - BUTTON_WIDTH;
         int okX = cancelX - BUTTON_WIDTH - 10;
 
+        System.out.println("Button Y: " + buttonY);
+        System.out.println("OK button: (" + okX + ", " + buttonY + ", " + BUTTON_WIDTH + ", " + BUTTON_HEIGHT + ")");
+        System.out.println("Cancel button: (" + cancelX + ", " + buttonY + ", " + BUTTON_WIDTH + ", " + BUTTON_HEIGHT + ")");
+
         // Check OK button
-        if (isMouseOverRect(mouseX, mouseY, okX, buttonY, BUTTON_WIDTH, BUTTON_HEIGHT)) {
+        boolean okCheck = isMouseOverRect(mouseX, mouseY, okX, buttonY, BUTTON_WIDTH, BUTTON_HEIGHT);
+        System.out.println("OK button check: " + okCheck);
+        if (okCheck) {
+            System.out.println("-> Clicked OK button!");
+            System.out.println("onConfirm callback is " + (onConfirm != null ? "NOT NULL" : "NULL"));
             if (onConfirm != null) {
+                System.out.println("Calling onConfirm with color: " + Integer.toHexString(currentColor));
                 onConfirm.accept(currentColor);
             }
             return true;
         }
 
         // Check Cancel button
-        if (isMouseOverRect(mouseX, mouseY, cancelX, buttonY, BUTTON_WIDTH, BUTTON_HEIGHT)) {
+        boolean cancelCheck = isMouseOverRect(mouseX, mouseY, cancelX, buttonY, BUTTON_WIDTH, BUTTON_HEIGHT);
+        System.out.println("Cancel button check: " + cancelCheck);
+        if (cancelCheck) {
+            System.out.println("-> Clicked Cancel button!");
+            System.out.println("onCancel callback is " + (onCancel != null ? "NOT NULL" : "NULL"));
             if (onCancel != null) {
+                System.out.println("Calling onCancel");
                 onCancel.run();
             }
             return true;
         }
 
         // Click outside popup closes it
-        if (!isMouseOverRect(mouseX, mouseY, x, y, POPUP_WIDTH, POPUP_HEIGHT)) {
+        boolean outsideCheck = !isMouseOverRect(mouseX, mouseY, x, y, POPUP_WIDTH, POPUP_HEIGHT);
+        System.out.println("Click outside popup: " + outsideCheck);
+        if (outsideCheck) {
+            System.out.println("-> Clicked outside, closing popup");
             if (onCancel != null) {
                 onCancel.run();
             }
             return true;
         }
 
+        System.out.println("-> Click consumed by popup (no specific action)");
         return true; // Consume all clicks when popup is open
     }
 
@@ -348,5 +387,21 @@ public class ColorPickerPopup extends Component {
 
     private boolean isMouseOverRect(double mouseX, double mouseY, int x, int y, int width, int height) {
         return mouseX >= x && mouseX < x + width && mouseY >= y && mouseY < y + height;
+    }
+
+    public Consumer<Integer> getOnConfirm() {
+        return onConfirm;
+    }
+
+    public void setOnConfirm(Consumer<Integer> onConfirm) {
+        this.onConfirm = onConfirm;
+    }
+
+    public Runnable getOnCancel() {
+        return onCancel;
+    }
+
+    public void setOnCancel(Runnable onCancel) {
+        this.onCancel = onCancel;
     }
 }

@@ -172,18 +172,25 @@ public class EasyView {
     }
 
     /**
-     * Extract trailing number from item display name
+     * Extract level number from item display name, supporting prestige suffixes.
      * For example: "Diamond Pickaxe 15" -> "15"
+     *              "Diamond Pickaxe 72 II" -> "72" (II is the prestige tier)
      */
     private String extractTrailingNumber(String name) {
         try {
-            // Split by spaces and get the last part
             String[] parts = name.trim().split("\\s+");
             if (parts.length > 0) {
                 String lastPart = parts[parts.length - 1];
-                // Check if it's a number
+                // Direct number at the end
                 if (lastPart.matches("\\d+")) {
                     return lastPart;
+                }
+                // Roman numeral prestige suffix (e.g. II, III, IV) — check second-to-last for the level
+                if (lastPart.matches("[IVXLCDM]+") && parts.length >= 2) {
+                    String secondLast = parts[parts.length - 2];
+                    if (secondLast.matches("\\d+")) {
+                        return secondLast;
+                    }
                 }
             }
         } catch (Exception e) {
@@ -299,28 +306,28 @@ public class EasyView {
                 String nrg = name.replace(" Cosmic Energy", "");
                 nrg = nrg.replaceAll(",", "");
                 long nrgValue = Long.parseLong(nrg);
-                return new TextWithColor(formatCompact(nrgValue), 0xFF000000 | BetterPrisonsClient.config.easyViewEnergyColor);
+                return new TextWithColor(formatCompact(nrgValue), 0xFF000000 | BetterPrisonsClient.config.easyViewEnergyColor, 0.5f, BetterPrisonsClient.config.easyViewEnergyBold);
             }
             if (isMoneyNote(stack)) {
                 String money = name.replace("$", "");
                 money = money.replaceAll(",", "");
                 money = money.split("\\.")[0];
                 long moneyValue = Long.parseLong(money);
-                return new TextWithColor(formatCompact(moneyValue), 0xFF000000 | BetterPrisonsClient.config.easyViewMoneyColor);
+                return new TextWithColor(formatCompact(moneyValue), 0xFF000000 | BetterPrisonsClient.config.easyViewMoneyColor, 0.5f, BetterPrisonsClient.config.easyViewMoneyBold);
             }
             if (isGangPointNote(stack)) {
                 String points = name.replace(" GANG POINTS", "").replace(" Gang Points", "");
                 points = points.replaceAll(",", "");
                 long pointsValue = Long.parseLong(points);
-                return new TextWithColor(formatCompact(pointsValue), 0xFF000000 | BetterPrisonsClient.config.easyViewGangPointsColor);
+                return new TextWithColor(formatCompact(pointsValue), 0xFF000000 | BetterPrisonsClient.config.easyViewGangPointsColor, 0.5f, BetterPrisonsClient.config.easyViewGangPointsBold);
             }
             if (isBlackScroll(stack)) {
                 String percent = name.replace("Black Scroll (", "").replace("%)", "");
-                return new TextWithColor(percent + "%", 0xFF000000 | BetterPrisonsClient.config.easyViewBlackScrollColor);
+                return new TextWithColor(percent + "%", 0xFF000000 | BetterPrisonsClient.config.easyViewBlackScrollColor, 0.5f, BetterPrisonsClient.config.easyViewBlackScrollBold);
             }
             if (isChargeOrb(stack)) {
                 String percent = name.replace("% Charge Orb", "");
-                return new TextWithColor(percent + "%", 0xFF000000 | BetterPrisonsClient.config.easyViewChargeOrbColor);
+                return new TextWithColor(percent + "%", 0xFF000000 | BetterPrisonsClient.config.easyViewChargeOrbColor, 0.5f, BetterPrisonsClient.config.easyViewChargeOrbBold);
             }
             if (isArmor(stack)) {
                 String number = extractTrailingNumber(name);
@@ -352,7 +359,7 @@ public class EasyView {
                 int endIdx = name.indexOf("%)", startIdx);
                 if (startIdx != -1 && endIdx != -1) {
                     String percent = name.substring(startIdx + 7, endIdx); // +7 to skip " Dust ("
-                    return new TextWithColor(percent + "%", 0xFF000000 | BetterPrisonsClient.config.easyViewDustColor);
+                    return new TextWithColor(percent + "%", 0xFF000000 | BetterPrisonsClient.config.easyViewDustColor, 0.5f, BetterPrisonsClient.config.easyViewDustBold);
                 }
             }
             if (isPage(stack)) {
@@ -361,7 +368,7 @@ public class EasyView {
                 int endIdx = name.indexOf("%)", startIdx);
                 if (startIdx != -1 && endIdx != -1) {
                     String percent = name.substring(startIdx + 7, endIdx); // +7 to skip " Page ("
-                    return new TextWithColor(percent + "%", 0xFF000000 | BetterPrisonsClient.config.easyViewPagesColor);
+                    return new TextWithColor(percent + "%", 0xFF000000 | BetterPrisonsClient.config.easyViewPagesColor, 0.5f, BetterPrisonsClient.config.easyViewPagesBold);
                 }
             }
         } catch (Exception e) {

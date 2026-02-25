@@ -99,7 +99,7 @@ public class Theme {
             tooltipBorder = getField(config, "themeTooltipBorder", 0xFF3E3E42);
             tooltipText = getField(config, "themeTooltipText", 0xFFCCCCCC);
 
-            animationsEnabled = getBooleanField(config, "themeAnimationsEnabled", true);
+            animationsEnabled = false; // Animations disabled
         } catch (Exception e) {
             // If fields don't exist yet, use defaults
             loadDefaults();
@@ -146,7 +146,7 @@ public class Theme {
         tooltipBorder = 0xFF3E3E42;
         tooltipText = 0xFFCCCCCC;
 
-        animationsEnabled = true;
+        animationsEnabled = false;
     }
 
     /**

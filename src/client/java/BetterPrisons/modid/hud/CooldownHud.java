@@ -218,6 +218,17 @@ public class CooldownHud extends BaseHud {
         }
     }
 
+    // Resets the Combat cooldown to its full duration, but only if it is already active.
+    // Called when the local player hits another player or is hit by one.
+    public void resetCombatCooldown() {
+        for (ActiveCooldown cd : activeCooldowns) {
+            if (cd.name.equals("Combat")) {
+                cd.startTime = System.currentTimeMillis();
+                return;
+            }
+        }
+    }
+
     // Called by enchants or other systems to add a simple cooldown
     public void addCooldown(String name, int durationSeconds) {
         addCooldown(name, durationSeconds, null, 0xFFFFFF);

@@ -284,7 +284,7 @@ public class StatsHud extends BaseHud {
                         // Format: "71,110,189 (§a0%§7) to §f81§"
                         // Extract first number (XP needed)
                         String[] parts = stripped.split(" ");
-                        BetterPrisonsClient.LOGGER.info(Arrays.deepToString(parts));
+                        //BetterPrisonsClient.LOGGER.info(Arrays.deepToString(parts));
                         if (parts.length > 0) {
                             long xpNeeded = BetterPrisonsClient.enchantParsing.parseFormattedNumber(parts[0]);
                             if (xpNeeded > 0) {

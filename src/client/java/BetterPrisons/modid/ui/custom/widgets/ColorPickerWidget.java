@@ -3,6 +3,7 @@ package BetterPrisons.modid.ui.custom.widgets;
 import BetterPrisons.modid.ui.custom.containers.ColorPickerPopup;
 import BetterPrisons.modid.ui.custom.core.Component;
 import BetterPrisons.modid.ui.custom.core.Theme;
+import BetterPrisons.modid.ui.custom.core.TooltipProvider;
 import BetterPrisons.modid.ui.custom.rendering.ColorUtils;
 import BetterPrisons.modid.ui.custom.rendering.RenderUtils;
 import net.minecraft.client.MinecraftClient;
@@ -13,19 +14,24 @@ import java.util.function.Consumer;
 /**
  * Color picker widget that displays a color preview and opens a popup when clicked.
  */
-public class ColorPickerWidget extends Component {
+public class ColorPickerWidget extends Component implements TooltipProvider {
     private String label;
     private int color;
+    private int defaultColor;
     private String tooltip;
     private static final int PREVIEW_SIZE = 20;
     private static final int LABEL_SPACING = 8;
+    private static final int RESET_BUTTON_SIZE = 14;
+    private static final int RESET_BUTTON_SPACING = 6;
 
     private ColorPickerPopup popup;
     private Consumer<ColorPickerPopup> onPopupOpen;
+    private Consumer<Integer> onChange;
 
     public ColorPickerWidget(String label, int initialColor) {
         this.label = label;
         this.color = initialColor;
+        this.defaultColor = initialColor;
         this.height = PREVIEW_SIZE;
     }
 
@@ -43,6 +49,13 @@ public class ColorPickerWidget extends Component {
 
     public void setColor(int color) {
         this.color = color;
+        if (onChange != null) {
+            onChange.accept(color);
+        }
+    }
+
+    public void setOnChange(Consumer<Integer> onChange) {
+        this.onChange = onChange;
     }
 
     /**
@@ -58,6 +71,9 @@ public class ColorPickerWidget extends Component {
         if (!visible) return;
 
         MinecraftClient client = MinecraftClient.getInstance();
+
+        // Update hover state
+        updateHoverState(mouseX, mouseY);
 
         // Draw label
         context.drawText(client.textRenderer, label, x, y + (PREVIEW_SIZE - 8) / 2, Theme.textPrimary, false);
@@ -80,20 +96,62 @@ public class ColorPickerWidget extends Component {
         int hexY = y + (PREVIEW_SIZE - 8) / 2;
         context.drawText(client.textRenderer, hexText, hexX, hexY, Theme.textSecondary, false);
 
-        // Update total width for layout
+        // Draw reset button
         int hexWidth = client.textRenderer.getWidth(hexText);
-        this.width = labelWidth + LABEL_SPACING + PREVIEW_SIZE + LABEL_SPACING + hexWidth;
+        int resetX = hexX + hexWidth + RESET_BUTTON_SPACING;
+        int resetY = y + (PREVIEW_SIZE - RESET_BUTTON_SIZE) / 2;
+        boolean resetHovered = mouseX >= resetX && mouseX < resetX + RESET_BUTTON_SIZE &&
+                              mouseY >= resetY && mouseY < resetY + RESET_BUTTON_SIZE;
+
+        int resetBgColor = resetHovered ? Theme.widgetBackgroundHover : Theme.widgetBackground;
+        RenderUtils.drawRect(context, resetX, resetY, RESET_BUTTON_SIZE, RESET_BUTTON_SIZE, resetBgColor);
+        RenderUtils.drawRectOutline(context, resetX, resetY, RESET_BUTTON_SIZE, RESET_BUTTON_SIZE,
+            resetHovered ? Theme.borderHover : Theme.borderPrimary, 1);
+
+        // Draw reset icon (circular arrow)
+        String resetIcon = "↻";
+        int iconWidth = client.textRenderer.getWidth(resetIcon);
+        context.drawText(client.textRenderer, resetIcon,
+            resetX + (RESET_BUTTON_SIZE - iconWidth) / 2,
+            resetY + (RESET_BUTTON_SIZE - 8) / 2,
+            Theme.textSecondary, false);
+
+        // Update total width for layout
+        this.width = labelWidth + LABEL_SPACING + PREVIEW_SIZE + LABEL_SPACING + hexWidth + RESET_BUTTON_SPACING + RESET_BUTTON_SIZE;
     }
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (!visible) return false;
 
-        if (button == 0 && isMouseOver(mouseX, mouseY)) {
-            openColorPicker();
-            return true;
+        if (button == 0) {
+            MinecraftClient client = MinecraftClient.getInstance();
+            int labelWidth = client.textRenderer.getWidth(label);
+            int previewX = x + labelWidth + LABEL_SPACING;
+            String hexText = "#" + ColorUtils.toHex(color, false);
+            int hexWidth = client.textRenderer.getWidth(hexText);
+            int hexX = previewX + PREVIEW_SIZE + LABEL_SPACING;
+            int resetX = hexX + hexWidth + RESET_BUTTON_SPACING;
+            int resetY = y + (PREVIEW_SIZE - RESET_BUTTON_SIZE) / 2;
+
+            // Check if clicking reset button
+            if (mouseX >= resetX && mouseX < resetX + RESET_BUTTON_SIZE &&
+                mouseY >= resetY && mouseY < resetY + RESET_BUTTON_SIZE) {
+                resetToDefault();
+                return true;
+            }
+
+            // Check if clicking color picker
+            if (isMouseOver(mouseX, mouseY)) {
+                openColorPicker();
+                return true;
+            }
         }
         return false;
+    }
+
+    public void resetToDefault() {
+        setColor(defaultColor);
     }
 
     private void openColorPicker() {
@@ -104,7 +162,7 @@ public class ColorPickerWidget extends Component {
         popup = new ColorPickerPopup(
             color,
             newColor -> {
-                this.color = newColor;
+                setColor(newColor);
                 popup = null;
             },
             () -> {

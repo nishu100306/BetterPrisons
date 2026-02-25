@@ -33,12 +33,19 @@ public class CategoryContainer extends ScrollContainer {
      */
     private void layoutChildren() {
         int currentY = PADDING;
+        int availableWidth = width - (PADDING * 3) - PADDING;
 
         for (Component child : children) {
             if (child.isVisible()) {
                 // Apply scroll offset to Y position
                 int finalY = y + currentY - scrollOffset;
                 child.setPosition(x + PADDING * 3, finalY);
+
+                // Set width for container widgets (like CollapsibleWidget)
+                if (child instanceof BetterPrisons.modid.ui.custom.core.Container) {
+                    child.setSize(availableWidth, child.getHeight());
+                }
+
                 currentY += child.getHeight() + SPACING;
             }
         }

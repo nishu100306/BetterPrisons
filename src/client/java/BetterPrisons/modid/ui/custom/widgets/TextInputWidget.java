@@ -2,6 +2,7 @@ package BetterPrisons.modid.ui.custom.widgets;
 
 import BetterPrisons.modid.ui.custom.core.Component;
 import BetterPrisons.modid.ui.custom.core.Theme;
+import BetterPrisons.modid.ui.custom.core.TooltipProvider;
 import BetterPrisons.modid.ui.custom.rendering.RenderUtils;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
@@ -11,18 +12,22 @@ import org.lwjgl.glfw.GLFW;
  * Text input widget for entering text values.
  * Features cursor, text selection, and keyboard navigation.
  */
-public class TextInputWidget extends Component {
+public class TextInputWidget extends Component implements TooltipProvider {
     private String label;
     private String value;
+    private String defaultValue;
     private String placeholder;
     private String tooltip;
     private boolean focused = false;
     private int cursorPosition = 0;
     private int maxLength = 32;
+    private int scrollOffset = 0; // Number of characters scrolled off the left
 
     private static final int INPUT_HEIGHT = 20;
     private static final int INPUT_WIDTH = 120;
     private static final int LABEL_SPACING = 8;
+    private static final int RESET_BUTTON_SIZE = 14;
+    private static final int RESET_BUTTON_SPACING = 6;
 
     public TextInputWidget(String label, String initialValue) {
         this(label, initialValue, "");
@@ -31,6 +36,7 @@ public class TextInputWidget extends Component {
     public TextInputWidget(String label, String initialValue, String placeholder) {
         this.label = label;
         this.value = initialValue != null ? initialValue : "";
+        this.defaultValue = this.value;
         this.placeholder = placeholder;
         this.cursorPosition = this.value.length();
         this.height = INPUT_HEIGHT;
@@ -71,6 +77,9 @@ public class TextInputWidget extends Component {
 
         MinecraftClient client = MinecraftClient.getInstance();
 
+        // Update hover state
+        updateHoverState(mouseX, mouseY);
+
         // Draw label
         context.drawText(client.textRenderer, label, x, y + (INPUT_HEIGHT - 8) / 2, Theme.textPrimary, false);
 
@@ -90,45 +99,83 @@ public class TextInputWidget extends Component {
         // Draw text or placeholder
         String displayText = value.isEmpty() && !focused ? placeholder : value;
         int textColor = value.isEmpty() && !focused ? Theme.textDisabled : Theme.textPrimary;
+        scrollOffset = 0; // Reset scroll offset
 
         if (!displayText.isEmpty()) {
-            // Clip text if too long
-            String clippedText = displayText;
-            int textWidth = client.textRenderer.getWidth(clippedText);
+            // Calculate text scrolling to keep cursor visible
             int maxWidth = INPUT_WIDTH - 8;
 
-            if (textWidth > maxWidth) {
-                // Show end of text when focused
-                if (focused) {
-                    while (textWidth > maxWidth && clippedText.length() > 0) {
-                        clippedText = clippedText.substring(1);
-                        textWidth = client.textRenderer.getWidth(clippedText);
-                    }
-                } else {
-                    // Show start of text with ellipsis
+            if (focused) {
+                // Calculate the width of text from start to cursor
+                String textToCursor = value.substring(0, Math.min(cursorPosition, value.length()));
+                int cursorTextWidth = client.textRenderer.getWidth(textToCursor);
+
+                // Scroll left if cursor is beyond the right edge
+                scrollOffset = 0;
+                while (cursorTextWidth - client.textRenderer.getWidth(value.substring(0, scrollOffset)) > maxWidth) {
+                    scrollOffset++;
+                }
+
+                // Display text starting from scroll offset
+                String clippedText = value.substring(scrollOffset);
+                int textWidth = client.textRenderer.getWidth(clippedText);
+
+                // Trim from the right if still too long
+                while (textWidth > maxWidth && clippedText.length() > 0) {
+                    clippedText = clippedText.substring(0, clippedText.length() - 1);
+                    textWidth = client.textRenderer.getWidth(clippedText);
+                }
+
+                context.drawText(client.textRenderer, clippedText, inputX + 4, inputY + 6, textColor, false);
+            } else {
+                // Not focused - show start of text with ellipsis if needed
+                String clippedText = displayText;
+                int textWidth = client.textRenderer.getWidth(clippedText);
+
+                if (textWidth > maxWidth) {
                     while (textWidth > maxWidth && clippedText.length() > 0) {
                         clippedText = clippedText.substring(0, clippedText.length() - 1);
                         textWidth = client.textRenderer.getWidth(clippedText + "...");
                     }
                     clippedText += "...";
                 }
-            }
 
-            context.drawText(client.textRenderer, clippedText, inputX + 4, inputY + 6, textColor, false);
+                context.drawText(client.textRenderer, clippedText, inputX + 4, inputY + 6, textColor, false);
+            }
         }
 
         // Draw cursor
         if (focused && System.currentTimeMillis() % 1000 < 500) {
             int cursorX = inputX + 4;
-            if (cursorPosition > 0) {
-                String beforeCursor = value.substring(0, Math.min(cursorPosition, value.length()));
-                cursorX += client.textRenderer.getWidth(beforeCursor);
+            if (cursorPosition > scrollOffset) {
+                // Only calculate width of visible text before cursor
+                String visibleBeforeCursor = value.substring(scrollOffset, Math.min(cursorPosition, value.length()));
+                cursorX += client.textRenderer.getWidth(visibleBeforeCursor);
             }
             RenderUtils.drawRect(context, cursorX, inputY + 4, 1, 12, Theme.textPrimary);
         }
 
+        // Draw reset button
+        int resetX = inputX + INPUT_WIDTH + RESET_BUTTON_SPACING;
+        int resetY = inputY + (INPUT_HEIGHT - RESET_BUTTON_SIZE) / 2;
+        boolean resetHovered = mouseX >= resetX && mouseX < resetX + RESET_BUTTON_SIZE &&
+                              mouseY >= resetY && mouseY < resetY + RESET_BUTTON_SIZE;
+
+        int resetBgColor = resetHovered ? Theme.widgetBackgroundHover : Theme.widgetBackground;
+        RenderUtils.drawRect(context, resetX, resetY, RESET_BUTTON_SIZE, RESET_BUTTON_SIZE, resetBgColor);
+        RenderUtils.drawRectOutline(context, resetX, resetY, RESET_BUTTON_SIZE, RESET_BUTTON_SIZE,
+            resetHovered ? Theme.borderHover : Theme.borderPrimary, 1);
+
+        // Draw reset icon (circular arrow)
+        String resetIcon = "↻";
+        int iconWidth = client.textRenderer.getWidth(resetIcon);
+        context.drawText(client.textRenderer, resetIcon,
+            resetX + (RESET_BUTTON_SIZE - iconWidth) / 2,
+            resetY + (RESET_BUTTON_SIZE - 8) / 2,
+            Theme.textSecondary, false);
+
         // Update total width for layout
-        this.width = labelWidth + LABEL_SPACING + INPUT_WIDTH;
+        this.width = labelWidth + LABEL_SPACING + INPUT_WIDTH + RESET_BUTTON_SPACING + RESET_BUTTON_SIZE;
     }
 
     @Override
@@ -141,14 +188,24 @@ public class TextInputWidget extends Component {
         int inputY = y;
 
         if (button == 0) {
+            // Check if clicking reset button
+            int resetX = inputX + INPUT_WIDTH + RESET_BUTTON_SPACING;
+            int resetY = inputY + (INPUT_HEIGHT - RESET_BUTTON_SIZE) / 2;
+            if (mouseX >= resetX && mouseX < resetX + RESET_BUTTON_SIZE &&
+                mouseY >= resetY && mouseY < resetY + RESET_BUTTON_SIZE) {
+                resetToDefault();
+                return true;
+            }
+
+            // Check if clicking input field
             if (mouseX >= inputX && mouseX < inputX + INPUT_WIDTH &&
                 mouseY >= inputY && mouseY < inputY + INPUT_HEIGHT) {
                 focused = true;
-                // Calculate cursor position from mouse
+                // Calculate cursor position from mouse, accounting for scroll offset
                 int relativeX = (int) (mouseX - inputX - 4);
-                cursorPosition = 0;
+                cursorPosition = scrollOffset; // Start from scroll offset
                 int totalWidth = 0;
-                for (int i = 0; i < value.length(); i++) {
+                for (int i = scrollOffset; i < value.length(); i++) {
                     int charWidth = client.textRenderer.getWidth(String.valueOf(value.charAt(i)));
                     if (totalWidth + charWidth / 2 > relativeX) {
                         break;
@@ -162,6 +219,11 @@ public class TextInputWidget extends Component {
             }
         }
         return false;
+    }
+
+    public void resetToDefault() {
+        setValue(defaultValue);
+        cursorPosition = value.length();
     }
 
     @Override

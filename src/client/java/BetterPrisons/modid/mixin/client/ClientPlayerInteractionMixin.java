@@ -34,10 +34,16 @@ public class ClientPlayerInteractionMixin {
     }
 
     /**
-     * Prevents attacking all entities when peaceful mining is active
+     * Prevents attacking all entities when peaceful mining is active.
+     * Also resets the combat cooldown when hitting another player.
      */
     @Inject(method = "attackEntity", at = @At("HEAD"), cancellable = true)
     private void onAttackEntity(PlayerEntity player, Entity entity, CallbackInfo ci) {
+        // Reset combat cooldown when hitting another player
+        if (entity instanceof PlayerEntity && BetterPrisonsClient.cooldownHud != null) {
+            BetterPrisonsClient.cooldownHud.resetCombatCooldown();
+        }
+
         // Check if peaceful mining is active
         if (!isPeacefulMiningActive()) {
             return;

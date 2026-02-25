@@ -2,6 +2,7 @@ package BetterPrisons.modid.ui.custom.widgets;
 
 import BetterPrisons.modid.ui.custom.core.Component;
 import BetterPrisons.modid.ui.custom.core.Theme;
+import BetterPrisons.modid.ui.custom.core.TooltipProvider;
 import BetterPrisons.modid.ui.custom.rendering.RenderUtils;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
@@ -11,7 +12,7 @@ import org.lwjgl.glfw.GLFW;
 /**
  * Keybind widget for capturing and displaying keyboard shortcuts.
  */
-public class KeybindWidget extends Component {
+public class KeybindWidget extends Component implements TooltipProvider {
     private String label;
     private int keyCode;
     private String tooltip;
@@ -55,6 +56,9 @@ public class KeybindWidget extends Component {
         if (!visible) return;
 
         MinecraftClient client = MinecraftClient.getInstance();
+
+        // Update hover state
+        updateHoverState(mouseX, mouseY);
 
         // Draw label
         context.drawText(client.textRenderer, label, x, y + (BUTTON_HEIGHT - 8) / 2, Theme.textPrimary, false);
