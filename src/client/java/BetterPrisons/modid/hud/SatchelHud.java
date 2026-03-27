@@ -7,13 +7,17 @@ import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.LoreComponent;
+import net.minecraft.item.Items;
+import net.minecraft.item.Item;
 import net.minecraft.text.Text;
 import net.minecraft.text.Style;
 import net.minecraft.util.Formatting;
 import org.joml.Matrix3x2fStack;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -39,6 +43,44 @@ public class SatchelHud extends BaseHud {
         "Emerald Ore Satchel",
         "Emerald Satchel"
     );
+
+    // Map Minecraft items to satchel type names (for renamed satchels)
+    private static final Map<Item, String> ITEM_TO_SATCHEL = new HashMap<>();
+    static {
+        ITEM_TO_SATCHEL.put(Items.COAL_ORE, "Coal Ore Satchel");
+        ITEM_TO_SATCHEL.put(Items.COAL, "Coal Satchel");
+        ITEM_TO_SATCHEL.put(Items.IRON_ORE, "Iron Ore Satchel");
+        ITEM_TO_SATCHEL.put(Items.IRON_INGOT, "Iron Satchel");
+        ITEM_TO_SATCHEL.put(Items.LAPIS_ORE, "Lapis Ore Satchel");
+        ITEM_TO_SATCHEL.put(Items.LAPIS_LAZULI, "Lapis Satchel");
+        ITEM_TO_SATCHEL.put(Items.REDSTONE_ORE, "Redstone Ore Satchel");
+        ITEM_TO_SATCHEL.put(Items.REDSTONE, "Redstone Satchel");
+        ITEM_TO_SATCHEL.put(Items.GOLD_ORE, "Gold Ore Satchel");
+        ITEM_TO_SATCHEL.put(Items.GOLD_INGOT, "Gold Satchel");
+        ITEM_TO_SATCHEL.put(Items.DIAMOND_ORE, "Diamond Ore Satchel");
+        ITEM_TO_SATCHEL.put(Items.DIAMOND, "Diamond Satchel");
+        ITEM_TO_SATCHEL.put(Items.EMERALD_ORE, "Emerald Ore Satchel");
+        ITEM_TO_SATCHEL.put(Items.EMERALD, "Emerald Satchel");
+    }
+
+    // Default colors for each satchel type (used when custom name strips the original style)
+    private static final Map<String, Formatting> SATCHEL_COLORS = new HashMap<>();
+    static {
+        SATCHEL_COLORS.put("Coal Ore Satchel", Formatting.DARK_GRAY);
+        SATCHEL_COLORS.put("Coal Satchel", Formatting.DARK_GRAY);
+        SATCHEL_COLORS.put("Iron Ore Satchel", Formatting.GRAY);
+        SATCHEL_COLORS.put("Iron Satchel", Formatting.GRAY);
+        SATCHEL_COLORS.put("Lapis Ore Satchel", Formatting.BLUE);
+        SATCHEL_COLORS.put("Lapis Satchel", Formatting.BLUE);
+        SATCHEL_COLORS.put("Redstone Ore Satchel", Formatting.RED);
+        SATCHEL_COLORS.put("Redstone Satchel", Formatting.RED);
+        SATCHEL_COLORS.put("Gold Ore Satchel", Formatting.GOLD);
+        SATCHEL_COLORS.put("Gold Satchel", Formatting.GOLD);
+        SATCHEL_COLORS.put("Diamond Ore Satchel", Formatting.AQUA);
+        SATCHEL_COLORS.put("Diamond Satchel", Formatting.AQUA);
+        SATCHEL_COLORS.put("Emerald Ore Satchel", Formatting.GREEN);
+        SATCHEL_COLORS.put("Emerald Satchel", Formatting.GREEN);
+    }
 
     public SatchelHud() {
         super("satchel");
@@ -85,31 +127,14 @@ public class SatchelHud extends BaseHud {
             List<SatchelInfo> combined = new ArrayList<>();
 
             while (!foundSatchels.isEmpty()) {
-                SatchelInfo satchel = foundSatchels.get(0);
-                foundSatchels.remove(satchel);
+                SatchelInfo satchel = foundSatchels.remove(0);
                 combined.add(satchel);
-                String thisSatchelType = "";
-                for (String validName : VALID_SATCHELS) {
-                    String satchelName = satchel.name;
-                    if (satchelName.startsWith(validName)) {
-                        thisSatchelType = validName;
-                        satchel.displayName = Text.literal(validName).setStyle(satchel.displayName.getStyle());
-                    }
-                }
                 for (int j = 0; j < foundSatchels.size(); j++) {
                     SatchelInfo other = foundSatchels.get(j);
-                    String otherSatchelType = "";
-                    for (String validName : VALID_SATCHELS) {
-                        String satchelName = other.name;
-                        if (satchelName.startsWith(validName)) {
-                            otherSatchelType = validName;
-                        }
-                    }
-                    if (thisSatchelType.equals(otherSatchelType)) {
-                        // Combine
+                    if (satchel.name.equals(other.name)) {
                         satchel.current += other.current;
                         satchel.max += other.max;
-                        foundSatchels.remove(other);
+                        foundSatchels.remove(j);
                         j--;
                     }
                 }
@@ -127,15 +152,19 @@ public class SatchelHud extends BaseHud {
         String displayName = stack.getName().getString();
         String satchelName = displayName.split("\\(")[0].trim();
 
-
         // Check if the parsed name is in the whitelist
         for (String validName : VALID_SATCHELS) {
             if (satchelName.startsWith(validName)) {
                 return true;
             }
         }
-        return VALID_SATCHELS.contains(satchelName);
 
+        // Fallback: check if item type matches a known satchel item AND name contains capacity pattern
+        if (ITEM_TO_SATCHEL.containsKey(stack.getItem()) && displayName.matches(".*\\(\\d[\\d,]*\\s*/\\s*\\d[\\d,]*\\).*")) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -249,18 +278,43 @@ public class SatchelHud extends BaseHud {
 
         // Parse the trimmed name (remove capacity part)
         String trimmedName = fullNameString.split("\\(")[0].trim();
-        info.name = trimmedName;
 
-        // Parse the style from toString() and create a Text object with the trimmed name
+        // Check if the name matches a known satchel type
+        String matchedType = null;
+        for (String validName : VALID_SATCHELS) {
+            if (trimmedName.startsWith(validName)) {
+                matchedType = validName;
+                break;
+            }
+        }
+
+        // If name doesn't match, fall back to item-based detection
+        if (matchedType == null) {
+            matchedType = ITEM_TO_SATCHEL.get(stack.getItem());
+        }
+
+        // If name matched whitelist, use parsed style from the Text; otherwise use fallback color
+        boolean nameMatched = matchedType != null && trimmedName.startsWith(matchedType);
+        info.name = matchedType != null ? matchedType : trimmedName;
+
         try {
-            String textToString = fullName.toString();
-            //BetterPrisonsClient.LOGGER.info("Full name toString: " + textToString);
-
-            Style parsedStyle = parseStyleFromToString(textToString);
-            info.displayName = Text.literal(trimmedName).setStyle(parsedStyle);
+            if (nameMatched) {
+                // Standard name — parse style from the custom name Text
+                String textToString = fullName.toString();
+                Style parsedStyle = parseStyleFromToString(textToString);
+                info.displayName = Text.literal(info.name).setStyle(parsedStyle);
+            } else {
+                // Renamed satchel — use known color for the satchel type
+                Formatting color = SATCHEL_COLORS.get(info.name);
+                Style fallbackStyle = Style.EMPTY.withBold(true);
+                if (color != null) {
+                    fallbackStyle = fallbackStyle.withColor(color);
+                }
+                info.displayName = Text.literal(info.name).setStyle(fallbackStyle);
+            }
         } catch (Exception e) {
             BetterPrisonsClient.LOGGER.warn("Failed to parse satchel style, using default: " + e.getMessage());
-            info.displayName = Text.literal(trimmedName);
+            info.displayName = Text.literal(info.name);
         }
 
         info.itemStack = stack.copy(); // Store the ItemStack for icon rendering

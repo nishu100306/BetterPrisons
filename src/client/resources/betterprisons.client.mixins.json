@@ -16,6 +16,7 @@
 		"GenericContainerScreenMixin",
 		"InGameHudMixin",
 		"ItemDropMixin",
+		"InventoryDropMixin",
 		"HeldItemScaleMixin",
 		"LocalPlayerHurtMixin"
 	],

@@ -1,7 +1,7 @@
 package BetterPrisons.modid.mixin.client;
 
 import BetterPrisons.modid.BetterPrisonsClient;
-import BetterPrisons.modid.hud.MeteorHud;
+import BetterPrisons.modid.hud.EventsHud;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.hud.ChatHud;
 import net.minecraft.sound.SoundEvents;
@@ -14,6 +14,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Mixin(ChatHud.class)
@@ -22,6 +23,15 @@ public class ChatReceiveMixin {
     private String previousMessage = "";
     // Pattern to match private messages: [any] [username -> me] message
     private static final Pattern PM_PATTERN = Pattern.compile("\\[.*?]\\s*\\[.+?\\s*->\\s*me].*");
+    // Merchant message patterns (single-line)
+    private static final Pattern MERCHANT_SPAWN_PATTERN = Pattern.compile(
+        "\\(!\\) A (\\w+) Ore Merchant traveled to (-?\\d+)x, (-?\\d+)y, (-?\\d+)z");
+    private static final Pattern MERCHANT_SLAIN_PATTERN = Pattern.compile(
+        "\\(!\\) A (\\w+) Ore Merchant has been slain by .+ at (-?\\d+)x, (-?\\d+)y, (-?\\d+)z");
+    private static final Pattern GANG_PING_PATTERN = Pattern.compile(
+        "\\[!]\\s+(\\S+)\\s+has pinged at\\s+(-?\\d+)x\\s+(-?\\d+)y\\s+(-?\\d+)z\\s+(\\S+)\\s+\\|\\s+HP:\\s+([\\d.]+)/([\\d.]+)\\s+\\|\\s+Facing:\\s+(\\w+)");
+    private static final Pattern TRUCE_PING_PATTERN = Pattern.compile(
+        "\\[T!]\\s+(\\S+)\\s+has pinged at\\s+(-?\\d+)x\\s+(-?\\d+)y\\s+(-?\\d+)z\\s+(\\S+)\\s+\\|\\s+HP:\\s+([\\d.]+)/([\\d.]+)\\s+\\|\\s+Facing:\\s+(\\w+)");
 
     @Inject(method = "addMessage(Lnet/minecraft/text/Text;)V", at = @At("HEAD"))
     private void onReceiveMessage(Text message, CallbackInfo ci) {
@@ -32,16 +42,87 @@ public class ChatReceiveMixin {
         // Check for private messages
         checkPrivateMessage(text);
 
+        // Check for merchant spawn
+        Matcher merchantSpawnMatcher = MERCHANT_SPAWN_PATTERN.matcher(text);
+        if (merchantSpawnMatcher.find()) {
+            try {
+                String tierName = merchantSpawnMatcher.group(1);
+                int x = Integer.parseInt(merchantSpawnMatcher.group(2));
+                int y = Integer.parseInt(merchantSpawnMatcher.group(3));
+                int z = Integer.parseInt(merchantSpawnMatcher.group(4));
+                BetterPrisonsClient.eventsHud.onMerchantSpawned(tierName, x, y, z);
+            } catch (NumberFormatException e) {
+                LOGGER.warn("Failed to parse merchant spawn coordinates: {}", text);
+            }
+        }
+
+        // Check for merchant slain
+        Matcher merchantSlainMatcher = MERCHANT_SLAIN_PATTERN.matcher(text);
+        if (merchantSlainMatcher.find()) {
+            try {
+                String tierName = merchantSlainMatcher.group(1);
+                int x = Integer.parseInt(merchantSlainMatcher.group(2));
+                int y = Integer.parseInt(merchantSlainMatcher.group(3));
+                int z = Integer.parseInt(merchantSlainMatcher.group(4));
+                BetterPrisonsClient.eventsHud.onMerchantSlain(tierName, x, y, z);
+            } catch (NumberFormatException e) {
+                LOGGER.warn("Failed to parse merchant slain coordinates: {}", text);
+            }
+        }
+
         // Check for meteor falling (coordinates in current message, announcement in previous)
         if (previousMessage.startsWith("(!) A meteor is falling from the sky at:")) {
-            BetterPrisonsClient.meteorHud.onMeteorFalling(text, MeteorHud.MeteorType.NATURAL);
+            BetterPrisonsClient.eventsHud.onMeteorFalling(text, EventsHud.MeteorType.NATURAL);
         } else if (previousMessage.startsWith("(!) A meteor summoned by") && previousMessage.contains("is falling from the sky at:")) {
-            BetterPrisonsClient.meteorHud.onMeteorFalling(text, MeteorHud.MeteorType.SUMMONED);
+            BetterPrisonsClient.eventsHud.onMeteorFalling(text, EventsHud.MeteorType.SUMMONED);
         }
 
         // Check for meteor crashed (coordinates in current message, announcement in previous)
         if (previousMessage.contains("(!) A meteor has crashed at:")) {
-            BetterPrisonsClient.meteorHud.onMeteorCrashed(text);
+            BetterPrisonsClient.eventsHud.onMeteorCrashed(text);
+        }
+
+        // Check for gang ping or truce ping
+        if (text.contains("has pinged at")) {
+            boolean isTruce = false;
+            Matcher pingMatcher = null;
+
+            if (BetterPrisonsClient.config.trucePingEnabled && text.contains("[T!]")) {
+                pingMatcher = TRUCE_PING_PATTERN.matcher(text);
+                if (pingMatcher.find()) isTruce = true;
+                else pingMatcher = null;
+            }
+            if (pingMatcher == null && BetterPrisonsClient.config.gangPingEnabled && text.contains("[!]")) {
+                pingMatcher = GANG_PING_PATTERN.matcher(text);
+                if (!pingMatcher.find()) pingMatcher = null;
+            }
+
+            if (pingMatcher != null) {
+                try {
+                    String playerName = pingMatcher.group(1);
+                    int px = Integer.parseInt(pingMatcher.group(2));
+                    int py = Integer.parseInt(pingMatcher.group(3));
+                    int pz = Integer.parseInt(pingMatcher.group(4));
+                    String world = pingMatcher.group(5);
+                    float hp = Float.parseFloat(pingMatcher.group(6));
+                    float maxHp = Float.parseFloat(pingMatcher.group(7));
+                    String facing = pingMatcher.group(8);
+                    BetterPrisonsClient.gangPingManager.onGangPingReceived(
+                            playerName, px, py, pz, world, hp, maxHp, facing, isTruce);
+
+                    // Play notification sound (only if ping is in current world)
+                    if (BetterPrisonsClient.config.gangPingSoundEnabled
+                            && world.equals(BetterPrisons.modid.waypoint.WaypointManager.detectWorldKey())) {
+                        MinecraftClient client = MinecraftClient.getInstance();
+                        if (client.player != null) {
+                            float volume = BetterPrisonsClient.config.gangPingSoundVolume / 100.0f;
+                            client.player.playSound(SoundEvents.BLOCK_NOTE_BLOCK_PLING.value(), volume, 2.0f);
+                        }
+                    }
+                } catch (NumberFormatException e) {
+                    LOGGER.warn("Failed to parse {} ping: {}", isTruce ? "truce" : "gang", text);
+                }
+            }
         }
 
         // Store current message for next iteration

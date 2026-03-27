@@ -35,7 +35,18 @@
       "WebFetch(domain:gist.github.com)",
       "WebFetch(domain:linkie.shedaniel.dev)",
       "WebFetch(domain:docs.neoforged.net)",
-      "WebFetch(domain:misode.github.io)"
+      "WebFetch(domain:misode.github.io)",
+      "WebFetch(domain:api.github.com)",
+      "Bash(gh api:*)",
+      "Bash(ls:*)",
+      "Bash(which gh:*)",
+      "WebFetch(domain:codeberg.org)",
+      "Bash(\"/c/Program Files/Java/jdk-21/bin/jar\" tf \"C:/Users/Nishu/.gradle/caches/fabric-loom/minecraftMaven/net/minecraft/minecraft-clientonly/1.21.11-net.fabricmc.yarn.1_21_11.1.21.11+build.4-v2/minecraft-clientonly-1.21.11-net.fabricmc.yarn.1_21_11.1.21.11+build.4-v2.jar\")",
+      "Bash(\"/c/Program Files/Java/jdk-21/bin/javap\" -p \"jar:file:C:/Users/Nishu/.gradle/caches/fabric-loom/minecraftMaven/net/minecraft/minecraft-clientonly/1.21.11-net.fabricmc.yarn.1_21_11.1.21.11+build.4-v2/minecraft-clientonly-1.21.11-net.fabricmc.yarn.1_21_11.1.21.11+build.4-v2.jar!/net/minecraft/client/gui/DrawContext.class\")",
+      "Bash(\"/c/Program Files/Java/jdk-21/bin/javap\" -p \"jar:file:C:/Users/Nishu/.gradle/caches/fabric-loom/minecraftMaven/net/minecraft/minecraft-clientonly/1.21.11-net.fabricmc.yarn.1_21_11.1.21.11+build.4-v2/minecraft-clientonly-1.21.11-net.fabricmc.yarn.1_21_11.1.21.11+build.4-v2.jar!/net/minecraft/client/gui/RenderPipelines.class\")",
+      "Bash(\"/c/Program Files/Java/jdk-21/bin/javap\" -p \"jar:file:C:/Users/Nishu/.gradle/caches/fabric-loom/minecraftMaven/net/minecraft/minecraft-clientonly/1.21.11-net.fabricmc.yarn.1_21_11.1.21.11+build.4-v2/minecraft-clientonly-1.21.11-net.fabricmc.yarn.1_21_11.1.21.11+build.4-v2.jar!/net/minecraft/client/gl/RenderPipelines.class\")",
+      "Bash(\"/c/Program Files/Java/jdk-21/bin/javap\" -c -p \"jar:file:C:/Users/Nishu/.gradle/caches/fabric-loom/minecraftMaven/net/minecraft/minecraft-clientonly/1.21.11-net.fabricmc.yarn.1_21_11.1.21.11+build.4-v2/minecraft-clientonly-1.21.11-net.fabricmc.yarn.1_21_11.1.21.11+build.4-v2.jar!/net/minecraft/client/gui/PlayerSkinDrawer.class\" 2>&1)"
     ]
-  }
+  },
+  "outputStyle": "default"
 }

@@ -4,16 +4,22 @@ import BetterPrisons.modid.devtools.DevCommands;
 import BetterPrisons.modid.devtools.ParticleDebugTracker;
 import BetterPrisons.modid.devtools.SoundDebugListener;
 import BetterPrisons.modid.devtools.SoundTracker;
+import BetterPrisons.modid.gangping.GangPingManager;
 import BetterPrisons.modid.enchants.EnchantParsing;
 import BetterPrisons.modid.enchants.EnchantTracker;
 import BetterPrisons.modid.hud.CooldownHud;
 import BetterPrisons.modid.hud.EnchantHud;
-import BetterPrisons.modid.hud.MeteorHud;
+import BetterPrisons.modid.hud.EventsHud;
+import BetterPrisons.modid.hud.MinimapHud;
 import BetterPrisons.modid.hud.SatchelHud;
 import BetterPrisons.modid.hud.StatsHud;
 import BetterPrisons.modid.hud.SuperBreakerAura;
 import BetterPrisons.modid.misc.EasyView;
 import BetterPrisons.modid.misc.PickaxeDropConfirmation;
+import BetterPrisons.modid.render.BeaconBeamRenderer;
+import BetterPrisons.modid.waypoint.WaypointManager;
+import BetterPrisons.modid.render.WaypointRenderer;
+import BetterPrisons.modid.render.WorldSpaceTransform;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -37,7 +43,8 @@ public class BetterPrisonsClient implements ClientModInitializer {
     public static SatchelHud satchelHud;
     public static StatsHud statsHud;
     public static EnchantHud enchantHud;
-    public static MeteorHud meteorHud;
+    public static EventsHud eventsHud;
+    public static MinimapHud minimapHud;
 
     // Enchant detection system
     public static EnchantParsing enchantParsing;
@@ -46,6 +53,12 @@ public class BetterPrisonsClient implements ClientModInitializer {
     // Misc features
     public static EasyView easyView;
     public static PickaxeDropConfirmation pickaxeDropConfirmation;
+
+    // Custom waypoints
+    public static WaypointManager waypointManager;
+
+    // Gang pings
+    public static GangPingManager gangPingManager;
 
     // Debug listeners
     public static SoundDebugListener soundDebugListener;
@@ -60,6 +73,13 @@ public class BetterPrisonsClient implements ClientModInitializer {
         config = new Config();
         config.load();
 
+        // Initialize waypoint manager
+        waypointManager = new WaypointManager();
+        waypointManager.load();
+
+        // Initialize gang ping manager
+        gangPingManager = new GangPingManager();
+
         // Initialize keybinds
         keybinds = new KeyBindings();
 
@@ -70,7 +90,7 @@ public class BetterPrisonsClient implements ClientModInitializer {
         satchelHud = new SatchelHud();
         statsHud = new StatsHud();
         enchantHud = new EnchantHud();
-        meteorHud = new MeteorHud();
+        eventsHud = new EventsHud();
 
         // Load positions and settings from config
         cooldownHud.x = config.cooldownHudX;
@@ -97,14 +117,39 @@ public class BetterPrisonsClient implements ClientModInitializer {
         enchantHud.scale = config.enchantHudScale;
         LOGGER.info("EnchantHud: x={}, y={}, enabled={}, scale={}", enchantHud.x, enchantHud.y, enchantHud.enabled, enchantHud.scale);
 
-        meteorHud.x = config.meteorHudX;
-        meteorHud.y = config.meteorHudY;
-        meteorHud.enabled = config.meteorHudEnabled;
-        meteorHud.scale = config.meteorHudScale;
-        LOGGER.info("MeteorHud: x={}, y={}, enabled={}, scale={}", meteorHud.x, meteorHud.y, meteorHud.enabled, meteorHud.scale);
+        eventsHud.x = config.eventsHudX;
+        eventsHud.y = config.eventsHudY;
+        eventsHud.enabled = config.eventsHudEnabled;
+        eventsHud.scale = config.eventsHudScale;
+        LOGGER.info("EventsHud: x={}, y={}, enabled={}, scale={}", eventsHud.x, eventsHud.y, eventsHud.enabled, eventsHud.scale);
+
+        minimapHud = new MinimapHud();
+        minimapHud.x                = config.minimapX;
+        minimapHud.y                = config.minimapY;
+        minimapHud.enabled          = config.minimapEnabled;
+        minimapHud.scale            = config.minimapScale / 100.0f;
+        minimapHud.mapSize          = config.minimapSize;
+        minimapHud.pixelsPerBlock   = config.minimapPixelsPerBlock;
+        minimapHud.circleShape      = config.minimapCircleShape;
+        minimapHud.rotating         = config.minimapRotating;
+        minimapHud.showWaypoints    = config.minimapShowWaypoints;
+        minimapHud.showCoords       = config.minimapShowCoords;
+        minimapHud.borderColor      = config.minimapBorderColor;
+        minimapHud.borderOpacity    = config.minimapBorderOpacity;
+        minimapHud.borderThickness  = config.minimapBorderThickness;
+        LOGGER.info("MinimapHud: x={}, y={}, enabled={}", minimapHud.x, minimapHud.y, minimapHud.enabled);
 
         // HudRenderer coordinates all HUDs
         hudRenderer = new HudRenderer();
+
+        // Capture view/projection matrices each frame for accurate 2D projection
+        WorldSpaceTransform.register();
+
+        // Register waypoint overlay (screen-edge direction indicators)
+        WaypointRenderer.register();
+
+        // Register 3D beacon beam renderer (vertical pillars at event coords)
+        BeaconBeamRenderer.register();
 
         // Super Breaker aura
         superBreakerAura = new SuperBreakerAura();
@@ -128,6 +173,18 @@ public class BetterPrisonsClient implements ClientModInitializer {
         });
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            // Keep waypoint manager aware of which world the player is in
+            if (client.world != null) {
+                String worldKey = WaypointManager.detectWorldKey();
+                if (!worldKey.equals(waypointManager.getCurrentWorld())) {
+                    // First world join in this session — clear stale event waypoints
+                    if ("unknown".equals(waypointManager.getCurrentWorld())) {
+                        waypointManager.clearAllEventWaypoints();
+                    }
+                    waypointManager.setCurrentWorld(worldKey);
+                }
+            }
+
             // Register sound listener once when sound manager is available
             if (soundDebugEnabled && !soundListenerRegistered && client.getSoundManager() != null) {
                 client.getSoundManager().registerListener(soundDebugListener);
@@ -140,7 +197,9 @@ public class BetterPrisonsClient implements ClientModInitializer {
             statsHud.tick(client);
             enchantTracker.tick(client);
             enchantHud.tick();
-            meteorHud.tick();
+            eventsHud.tick();
+            gangPingManager.tick();
+            minimapHud.tick(client);
             easyView.tick(client);
             pickaxeDropConfirmation.tick();
 
@@ -154,5 +213,26 @@ public class BetterPrisonsClient implements ClientModInitializer {
         ClientCommandRegistrationCallback.EVENT.register(DevCommands::register);
 
         LOGGER.info("BetterPrisons initialized successfully!");
+    }
+
+    /** Re-applies config-backed fields to live HUD objects. Call after config.save(). */
+    public static void applyConfig() {
+        cooldownHud.enabled = config.cooldownHudEnabled;
+        satchelHud.enabled = config.satchelHudEnabled;
+        statsHud.enabled = config.statsHudEnabled;
+        enchantHud.enabled = config.enchantHudEnabled;
+        eventsHud.enabled = config.eventsHudEnabled;
+        easyView.enabled = config.easyViewEnabled;
+
+        minimapHud.enabled         = config.minimapEnabled;
+        minimapHud.mapSize         = config.minimapSize;
+        minimapHud.pixelsPerBlock  = config.minimapPixelsPerBlock;
+        minimapHud.circleShape     = config.minimapCircleShape;
+        minimapHud.rotating        = config.minimapRotating;
+        minimapHud.showWaypoints   = config.minimapShowWaypoints;
+        minimapHud.showCoords      = config.minimapShowCoords;
+        minimapHud.borderColor     = config.minimapBorderColor;
+        minimapHud.borderOpacity   = config.minimapBorderOpacity;
+        minimapHud.borderThickness = config.minimapBorderThickness;
     }
 }

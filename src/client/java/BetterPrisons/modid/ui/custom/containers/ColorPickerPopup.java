@@ -352,6 +352,10 @@ public class ColorPickerPopup extends Component {
                 return true;
             }
         }
+        if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
+            if (onCancel != null) onCancel.run();
+            return true;
+        }
         return false;
     }
 

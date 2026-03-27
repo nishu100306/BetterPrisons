@@ -69,11 +69,13 @@ public class SuperBreakerAura {
         drawSemicircle(ctx, centerX, centerY, radius, thickness, lightColor, false, progress);
 
         // Draw countdown timer in center (using the same transformation)
-        int timerWidth = client.textRenderer.getWidth(timeText);
-        int timerX = centerX - timerWidth / 2;
-        int timerY = centerY - 4;
+        if (BetterPrisonsClient.config.superBreakerTimerEnabled) {
+            int timerWidth = client.textRenderer.getWidth(timeText);
+            int timerX = centerX - timerWidth / 2 + BetterPrisonsClient.config.superBreakerTimerOffsetX;
+            int timerY = centerY - 4 + BetterPrisonsClient.config.superBreakerTimerOffsetY;
 
-        ctx.drawTextWithShadow(client.textRenderer, Text.literal(timeText), timerX, timerY, timerColor);
+            ctx.drawTextWithShadow(client.textRenderer, Text.literal(timeText), timerX, timerY, timerColor);
+        }
 
         // Pop matrix to restore original transformation
         matrices.popMatrix();

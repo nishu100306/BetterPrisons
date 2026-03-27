@@ -9,6 +9,7 @@ import net.minecraft.client.gui.DrawContext;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * Dropdown menu widget for selecting from a list of options.
@@ -30,6 +31,16 @@ public class DropdownWidget extends Component implements TooltipProvider {
     private static final int RESET_BUTTON_SPACING = 6;
 
     private int scrollOffset = 0;
+    private Consumer<String> onChange;
+    private int[] optionColors = null;
+
+    public void setOptionColors(int[] colors) {
+        this.optionColors = colors;
+    }
+
+    public void setOnChange(Consumer<String> onChange) {
+        this.onChange = onChange;
+    }
 
     public DropdownWidget(String label, List<String> options, int initialIndex) {
         this.label = label;
@@ -54,6 +65,7 @@ public class DropdownWidget extends Component implements TooltipProvider {
     public void setSelectedIndex(int index) {
         this.selectedIndex = Math.max(0, Math.min(options.size() - 1, index));
         this.expanded = false;
+        if (onChange != null) onChange.accept(getSelectedValue());
     }
 
     public String getSelectedValue() {
@@ -108,7 +120,9 @@ public class DropdownWidget extends Component implements TooltipProvider {
                 }
                 selectedText += "...";
             }
-            context.drawText(client.textRenderer, selectedText, dropdownX + 4, dropdownY + 6, Theme.textPrimary, false);
+            int selectedTextColor = (optionColors != null && selectedIndex >= 0 && selectedIndex < optionColors.length)
+                ? (0xFF000000 | (optionColors[selectedIndex] & 0xFFFFFF)) : Theme.textPrimary;
+            context.drawText(client.textRenderer, selectedText, dropdownX + 4, dropdownY + 6, selectedTextColor, false);
         }
 
         // Draw arrow
@@ -174,9 +188,11 @@ public class DropdownWidget extends Component implements TooltipProvider {
                 RenderUtils.drawRect(context, dropdownX, optionY, dropdownWidth, OPTION_HEIGHT, Theme.widgetBackgroundHover);
             }
 
-            // Draw option text
+            // Draw option text (use per-option color if provided)
             String optionText = options.get(i);
-            context.drawText(client.textRenderer, optionText, dropdownX + 4, optionY + 5, Theme.textPrimary, false);
+            int optionTextColor = (optionColors != null && i < optionColors.length)
+                ? (0xFF000000 | (optionColors[i] & 0xFFFFFF)) : Theme.textPrimary;
+            context.drawText(client.textRenderer, optionText, dropdownX + 4, optionY + 5, optionTextColor, false);
         }
     }
 

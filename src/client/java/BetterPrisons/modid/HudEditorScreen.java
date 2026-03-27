@@ -138,8 +138,8 @@ public class HudEditorScreen extends Screen {
         config.statsHudY = BetterPrisonsClient.statsHud.y;
         config.enchantHudX = BetterPrisonsClient.enchantHud.x;
         config.enchantHudY = BetterPrisonsClient.enchantHud.y;
-        config.meteorHudX = BetterPrisonsClient.meteorHud.x;
-        config.meteorHudY = BetterPrisonsClient.meteorHud.y;
+        config.eventsHudX = BetterPrisonsClient.eventsHud.x;
+        config.eventsHudY = BetterPrisonsClient.eventsHud.y;
 
         config.save();
         BetterPrisonsClient.LOGGER.info("Saved HUD positions to config");

@@ -1,7 +1,9 @@
 package BetterPrisons.modid.mixin.client;
 
 import BetterPrisons.modid.BetterPrisonsClient;
+import BetterPrisons.modid.render.WorldSpaceTransform;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.render.Camera;
 import net.minecraft.client.render.GameRenderer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.hit.BlockHitResult;
@@ -11,10 +13,37 @@ import net.minecraft.world.RaycastContext;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(GameRenderer.class)
 public class GameRendererMixin {
+
+    /**
+     * Capture the effective FOV for the main world render pass so that
+     * WorldSpaceTransform can project waypoints correctly under any zoom mod.
+     *
+     * Why @ModifyArg on renderWorld at getProjectionMatrix instead of @Inject on getFov:
+     *   Zoomify uses MixinExtras @ModifyReturnValue on getFov, which may be ordered
+     *   AFTER our @Inject at RETURN. If so, our inject reads the un-zoomed value.
+     *   Sprint FOV works because it modifies getFov's body directly — not via
+     *   @ModifyReturnValue — so it's visible to any @Inject at RETURN.
+     *
+     *   By intercepting the fov argument at the renderWorld→getProjectionMatrix call
+     *   site, all mixin transformations (including Zoomify's @ModifyReturnValue) have
+     *   already been fully applied to the value. Scoping to renderWorld also prevents
+     *   this from firing for renderItemInHand's separate projection matrix call.
+     */
+    @ModifyArg(
+        method = "renderWorld",
+        at = @At(value = "INVOKE",
+                 target = "Lnet/minecraft/client/render/GameRenderer;getProjectionMatrix(F)Lorg/joml/Matrix4f;"),
+        index = 0
+    )
+    private float captureWorldRenderFov(float fov) {
+        WorldSpaceTransform.captureFov(fov);
+        return fov;
+    }
 
     /**
      * Intercept crosshair targeting to ignore entity hits and force block raycasts

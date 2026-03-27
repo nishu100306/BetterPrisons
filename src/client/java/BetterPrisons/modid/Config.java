@@ -17,7 +17,7 @@ public class Config {
     public boolean satchelHudEnabled = true;
     public boolean statsHudEnabled = true;
     public boolean enchantHudEnabled = true;
-    public boolean meteorHudEnabled = true;
+    public boolean eventsHudEnabled = true;
     public boolean useCommaFormatting = false;
     public boolean peacefulMiningEnabled = true;
     public boolean satchelShowPercentage = false;
@@ -32,8 +32,8 @@ public class Config {
     public int statsHudY = 212;
     public int enchantHudX = 517;
     public int enchantHudY = 4;
-    public int meteorHudX = 8;
-    public int meteorHudY = 74;
+    public int eventsHudX = 8;
+    public int eventsHudY = 74;
 
     // Colors (as integers)
     public int cooldownBarColor = 0xFF00FF;
@@ -45,6 +45,9 @@ public class Config {
     public int superBreakerLightColor = 1444602; // RGB color (blue)
     public int superBreakerLightOpacity = 191; // 0-255 (191 = 0xBF, ~75% opacity)
     public boolean superBreakerAuraEnabled = true;
+    public boolean superBreakerTimerEnabled = true;
+    public int superBreakerTimerOffsetX = 0;
+    public int superBreakerTimerOffsetY = -20;
 
     // Peaceful Mining opacity
     public int peacefulMiningOpacity = 50; // 0-255
@@ -53,6 +56,8 @@ public class Config {
 
     // Pickaxe drop confirmation
     public boolean pickaxeDropConfirmationEnabled = true;
+    public boolean pickaxeDropBlockEnabled = false;
+    public boolean pickaxeDropDragBlockEnabled = false;
 
     // Held item scaling (25-150%)
     public int heldItemPickaxeScale = 100;
@@ -99,13 +104,14 @@ public class Config {
     public boolean easyViewPickaxesBold = true;
     public boolean easyViewDustBold = true;
     public boolean easyViewPagesBold = true;
+    public boolean easyViewPagesTierColor = false;
 
     // HUD Scaling
     public int cooldownHudScale = 100;
     public int satchelHudScale = 100;
     public int statsHudScale = 100;
     public int enchantHudScale = 100;
-    public int meteorHudScale = 100;
+    public int eventsHudScale = 100;
     public int superBreakerAuraScale = 100;
 
     // Cooldown HUD styling
@@ -137,12 +143,12 @@ public class Config {
     public int enchantBorderThickness = 2;
     public int enchantTimeColor = 1045763; // green
 
-    // Meteor HUD styling
-    public int meteorBgColor = 0x000000;
-    public int meteorBgOpacity = 128;
-    public int meteorBorderColor = 0xFFFFFF;
-    public int meteorBorderOpacity = 128;
-    public int meteorBorderThickness = 2;
+    // Events HUD styling
+    public int eventsBgColor = 0x000000;
+    public int eventsBgOpacity = 128;
+    public int eventsBorderColor = 0xFFFFFF;
+    public int eventsBorderOpacity = 128;
+    public int eventsBorderThickness = 2;
 
     // Stats HUD element toggles
     public boolean statsShowCurrentXP = true;
@@ -200,21 +206,101 @@ public class Config {
     public int statsHudTitleColor = 14352636; // purple
     public boolean showEnchantHudTitle = true;
     public int enchantHudTitleColor = 300510; // cyan
-    public boolean showMeteorHudTitle = true;
-    public int meteorHudTitleColor = 14558468; // pink
+    public boolean showEventsHudTitle = true;
+    public int eventsHudTitleColor = 14558468; // pink
 
-    // Meteor HUD text color
-    public int meteorTextColor = 14558468; // pink
+    // Events HUD text color
+    public int eventsTextColor = 14558468; // pink
 
-    // Meteor HUD heading colors
-    public int meteorNaturalHeadingColor = 0x00FF00; // green
-    public int meteorSummonedHeadingColor = 0xFF4500; // orange-red
+    // Events HUD heading colors
+    public int eventsNaturalHeadingColor = 0x00FF00; // green
+    public int eventsSummonedHeadingColor = 0xFF4500; // orange-red
 
-    // Meteor HUD icon (minecraft: prefix is added automatically)
-    public String meteorIconItemId = "nether_quartz_ore";
+    // Events HUD icon (minecraft: prefix is added automatically)
+    public String eventsIconItemId = "nether_quartz_ore";
 
-    // Meteor HUD crashed display duration (in seconds)
-    public int meteorCrashedDisplayDuration = 15;
+    // Events HUD crashed display duration (in seconds)
+    public int eventsCrashedDisplayDuration = 15;
+
+    // Events HUD distance display toggles
+    public boolean meteorShowDistance = true;
+    public boolean merchantShowDistance = true;
+
+    // Merchant settings
+    public boolean merchantsEnabled = true;
+    public int merchantTimeoutMinutes = 20;
+    public int merchantSlainDisplayDuration = 10;
+
+    // Merchant tier toggles
+    public boolean coalMerchantEnabled = true;
+    public boolean ironMerchantEnabled = true;
+    public boolean lapisMerchantEnabled = true;
+    public boolean redstoneMerchantEnabled = true;
+    public boolean goldMerchantEnabled = true;
+    public boolean diamondMerchantEnabled = true;
+    public boolean emeraldMerchantEnabled = true;
+
+    // Merchant tier heading colors
+    public int coalMerchantHeadingColor     = 0x555555; // dark gray
+    public int ironMerchantHeadingColor     = 0xAAAAAA; // gray
+    public int lapisMerchantHeadingColor    = 0x5555FF; // blue
+    public int redstoneMerchantHeadingColor = 0xFF5555; // red
+    public int goldMerchantHeadingColor     = 0xFFAA00; // gold
+    public int diamondMerchantHeadingColor  = 0x55FFFF; // aqua
+    public int emeraldMerchantHeadingColor  = 0x55FF55; // green
+
+    // Waypoint settings
+    public boolean waypointsEnabled = true;
+    public boolean waypointMeteorsEnabled = true;
+    public boolean waypointMerchantsEnabled = true;
+    public boolean waypointCustomEnabled = true;
+    public boolean waypointMeteorsEdgeEnabled = true;
+    public boolean waypointMerchantsEdgeEnabled = true;
+    public boolean waypointCustomEdgeEnabled = true;
+    public boolean beaconBeamsEnabled = true;
+    public boolean beaconBeamThroughWalls = true;
+    public int meteorBeamOpacity   = 160; // 0-255 default beam opacity for meteors
+    public int merchantBeamOpacity = 160; // 0-255 default beam opacity for merchants
+    // Defaults applied to newly created custom waypoints
+    public int   customWaypointDefaultOpacity    = 255;
+    public float customWaypointOnScreenScale     = 1.0f;
+    public float customWaypointOffScreenScale    = 1.0f;
+
+    // Gang Ping
+    public boolean gangPingEnabled = true;
+    public int gangPingColor = 0xAA55FF;         // purple
+    public int gangPingBaseOpacity = 200;        // 0-255 base alpha before distance fade
+    public boolean gangPingBeamEnabled = true;
+    public int gangPingBeamOpacity = 120;
+    public boolean gangPingEdgeEnabled = false;
+    public boolean gangPingSoundEnabled = true;
+    public int gangPingSoundVolume = 80;         // 0-200
+    public boolean gangPingShowName = true;
+    public boolean gangPingShowTimer = false;
+    public boolean gangPingShowCoords = true;
+    public boolean gangPingShowHp = false;
+    public boolean gangPingShowFacing = false;
+    public float gangPingTextScale = 1.0f;          // 0.5 - 2.0
+    public float gangPingIconMinScale = 0.5f;       // minimum icon scale
+    public float gangPingIconMaxScale = 1.5f;       // maximum icon scale (at 75+ blocks)
+    public boolean gangPingDistanceScaling = true;   // false = always use min scale
+    public boolean trucePingEnabled = true;
+    public int trucePingColor = 0x55AAFF;         // light blue
+
+    // Minimap
+    public boolean minimapEnabled       = false;
+    public int     minimapX             = 5;
+    public int     minimapY             = 5;
+    public int     minimapScale         = 100;
+    public int     minimapSize          = 128;   // pixel diameter
+    public int     minimapPixelsPerBlock = 1;    // zoom (1 = most detail)
+    public boolean minimapCircleShape   = true;
+    public boolean minimapRotating      = false; // false = north-up
+    public boolean minimapShowWaypoints = true;
+    public boolean minimapShowCoords    = true;
+    public int     minimapBorderColor   = 0xFFFFFF;
+    public int     minimapBorderOpacity = 220;
+    public int     minimapBorderThickness = 2;
 
     // Message Notifications
     public boolean messageNotifsEnabled = true;
@@ -264,7 +350,7 @@ public class Config {
                 this.satchelHudEnabled = loaded.satchelHudEnabled;
                 this.statsHudEnabled = loaded.statsHudEnabled;
                 this.enchantHudEnabled = loaded.enchantHudEnabled;
-                this.meteorHudEnabled = loaded.meteorHudEnabled;
+                this.eventsHudEnabled = loaded.eventsHudEnabled;
                 this.useCommaFormatting = loaded.useCommaFormatting;
                 this.peacefulMiningEnabled = loaded.peacefulMiningEnabled;
                 this.cooldownHudX = loaded.cooldownHudX;
@@ -275,8 +361,8 @@ public class Config {
                 this.statsHudY = loaded.statsHudY;
                 this.enchantHudX = loaded.enchantHudX;
                 this.enchantHudY = loaded.enchantHudY;
-                this.meteorHudX = loaded.meteorHudX;
-                this.meteorHudY = loaded.meteorHudY;
+                this.eventsHudX = loaded.eventsHudX;
+                this.eventsHudY = loaded.eventsHudY;
                 this.cooldownBarColor = loaded.cooldownBarColor;
                 this.satchelBarColor = loaded.satchelBarColor;
 
@@ -306,11 +392,11 @@ public class Config {
                 this.enchantBorderThickness = loaded.enchantBorderThickness;
                 this.enchantTimeColor = loaded.enchantTimeColor;
 
-                this.meteorBgColor = loaded.meteorBgColor;
-                this.meteorBgOpacity = loaded.meteorBgOpacity;
-                this.meteorBorderColor = loaded.meteorBorderColor;
-                this.meteorBorderOpacity = loaded.meteorBorderOpacity;
-                this.meteorBorderThickness = loaded.meteorBorderThickness;
+                this.eventsBgColor = loaded.eventsBgColor;
+                this.eventsBgOpacity = loaded.eventsBgOpacity;
+                this.eventsBorderColor = loaded.eventsBorderColor;
+                this.eventsBorderOpacity = loaded.eventsBorderOpacity;
+                this.eventsBorderThickness = loaded.eventsBorderThickness;
 
                 // Load Stats HUD element toggles
                 this.statsShowCurrentXP = loaded.statsShowCurrentXP;
@@ -368,21 +454,42 @@ public class Config {
                 this.statsHudTitleColor = loaded.statsHudTitleColor;
                 this.showEnchantHudTitle = loaded.showEnchantHudTitle;
                 this.enchantHudTitleColor = loaded.enchantHudTitleColor;
-                this.showMeteorHudTitle = loaded.showMeteorHudTitle;
-                this.meteorHudTitleColor = loaded.meteorHudTitleColor;
+                this.showEventsHudTitle = loaded.showEventsHudTitle;
+                this.eventsHudTitleColor = loaded.eventsHudTitleColor;
 
-                // Load Meteor HUD text color
-                this.meteorTextColor = loaded.meteorTextColor;
+                // Load Events HUD text color
+                this.eventsTextColor = loaded.eventsTextColor;
 
-                // Load Meteor HUD heading colors
-                this.meteorNaturalHeadingColor = loaded.meteorNaturalHeadingColor;
-                this.meteorSummonedHeadingColor = loaded.meteorSummonedHeadingColor;
+                // Load Events HUD heading colors
+                this.eventsNaturalHeadingColor = loaded.eventsNaturalHeadingColor;
+                this.eventsSummonedHeadingColor = loaded.eventsSummonedHeadingColor;
 
-                // Load Meteor HUD icon
-                this.meteorIconItemId = loaded.meteorIconItemId;
+                // Load Events HUD icon
+                this.eventsIconItemId = loaded.eventsIconItemId;
 
-                // Load Meteor HUD crashed display duration
-                this.meteorCrashedDisplayDuration = loaded.meteorCrashedDisplayDuration;
+                // Load Events HUD crashed display duration
+                this.eventsCrashedDisplayDuration = loaded.eventsCrashedDisplayDuration;
+                this.meteorShowDistance = loaded.meteorShowDistance;
+                this.merchantShowDistance = loaded.merchantShowDistance;
+
+                // Load merchant settings
+                this.merchantsEnabled = loaded.merchantsEnabled;
+                this.merchantTimeoutMinutes = loaded.merchantTimeoutMinutes;
+                this.merchantSlainDisplayDuration = loaded.merchantSlainDisplayDuration;
+                this.coalMerchantEnabled = loaded.coalMerchantEnabled;
+                this.ironMerchantEnabled = loaded.ironMerchantEnabled;
+                this.lapisMerchantEnabled = loaded.lapisMerchantEnabled;
+                this.redstoneMerchantEnabled = loaded.redstoneMerchantEnabled;
+                this.goldMerchantEnabled = loaded.goldMerchantEnabled;
+                this.diamondMerchantEnabled = loaded.diamondMerchantEnabled;
+                this.emeraldMerchantEnabled = loaded.emeraldMerchantEnabled;
+                this.coalMerchantHeadingColor = loaded.coalMerchantHeadingColor;
+                this.ironMerchantHeadingColor = loaded.ironMerchantHeadingColor;
+                this.lapisMerchantHeadingColor = loaded.lapisMerchantHeadingColor;
+                this.redstoneMerchantHeadingColor = loaded.redstoneMerchantHeadingColor;
+                this.goldMerchantHeadingColor = loaded.goldMerchantHeadingColor;
+                this.diamondMerchantHeadingColor = loaded.diamondMerchantHeadingColor;
+                this.emeraldMerchantHeadingColor = loaded.emeraldMerchantHeadingColor;
 
                 // Load super breaker aura settings
                 this.superBreakerBaseColor = loaded.superBreakerBaseColor;
@@ -390,12 +497,17 @@ public class Config {
                 this.superBreakerLightColor = loaded.superBreakerLightColor;
                 this.superBreakerLightOpacity = loaded.superBreakerLightOpacity;
                 this.superBreakerAuraEnabled = loaded.superBreakerAuraEnabled;
+                this.superBreakerTimerEnabled = loaded.superBreakerTimerEnabled;
+                this.superBreakerTimerOffsetX = loaded.superBreakerTimerOffsetX;
+                this.superBreakerTimerOffsetY = loaded.superBreakerTimerOffsetY;
 
                 // Load peaceful mining settings
                 this.peacefulMiningOpacity = loaded.peacefulMiningOpacity;
                 this.peacefulMiningDistance = loaded.peacefulMiningDistance;
                 this.peacefulMiningDisableOnCombat = loaded.peacefulMiningDisableOnCombat;
                 this.pickaxeDropConfirmationEnabled = loaded.pickaxeDropConfirmationEnabled;
+                this.pickaxeDropBlockEnabled = loaded.pickaxeDropBlockEnabled;
+                this.pickaxeDropDragBlockEnabled = loaded.pickaxeDropDragBlockEnabled;
 
                 // Load held item scaling settings
                 this.heldItemPickaxeScale = loaded.heldItemPickaxeScale;
@@ -442,13 +554,14 @@ public class Config {
                 this.easyViewPickaxesBold = loaded.easyViewPickaxesBold;
                 this.easyViewDustBold = loaded.easyViewDustBold;
                 this.easyViewPagesBold = loaded.easyViewPagesBold;
+                this.easyViewPagesTierColor = loaded.easyViewPagesTierColor;
 
                 // Load HUD scaling settings
                 this.cooldownHudScale = loaded.cooldownHudScale;
                 this.satchelHudScale = loaded.satchelHudScale;
                 this.statsHudScale = loaded.statsHudScale;
                 this.enchantHudScale = loaded.enchantHudScale;
-                this.meteorHudScale = loaded.meteorHudScale;
+                this.eventsHudScale = loaded.eventsHudScale;
                 this.superBreakerAuraScale = loaded.superBreakerAuraScale;
 
                 // Load satchel percentage option
@@ -456,10 +569,62 @@ public class Config {
 
                 this.combineSimilarSatchels = loaded.combineSimilarSatchels;
 
+                // Load minimap settings
+                this.minimapEnabled        = loaded.minimapEnabled;
+                this.minimapX              = loaded.minimapX;
+                this.minimapY              = loaded.minimapY;
+                this.minimapScale          = loaded.minimapScale;
+                this.minimapSize           = loaded.minimapSize;
+                this.minimapPixelsPerBlock  = loaded.minimapPixelsPerBlock;
+                this.minimapCircleShape    = loaded.minimapCircleShape;
+                this.minimapRotating       = loaded.minimapRotating;
+                this.minimapShowWaypoints  = loaded.minimapShowWaypoints;
+                this.minimapShowCoords     = loaded.minimapShowCoords;
+                this.minimapBorderColor    = loaded.minimapBorderColor;
+                this.minimapBorderOpacity  = loaded.minimapBorderOpacity;
+                this.minimapBorderThickness = loaded.minimapBorderThickness;
+
                 // Load message notifications settings
                 this.messageNotifsEnabled = loaded.messageNotifsEnabled;
                 this.messageNotifsSound = loaded.messageNotifsSound;
                 this.messageNotifsVolume = loaded.messageNotifsVolume;
+
+                // Load waypoint settings
+                this.waypointsEnabled = loaded.waypointsEnabled;
+                this.waypointMeteorsEnabled = loaded.waypointMeteorsEnabled;
+                this.waypointMerchantsEnabled = loaded.waypointMerchantsEnabled;
+                this.waypointCustomEnabled = loaded.waypointCustomEnabled;
+                this.waypointMeteorsEdgeEnabled = loaded.waypointMeteorsEdgeEnabled;
+                this.waypointMerchantsEdgeEnabled = loaded.waypointMerchantsEdgeEnabled;
+                this.waypointCustomEdgeEnabled = loaded.waypointCustomEdgeEnabled;
+                this.beaconBeamsEnabled = loaded.beaconBeamsEnabled;
+                this.beaconBeamThroughWalls = loaded.beaconBeamThroughWalls;
+                this.meteorBeamOpacity   = loaded.meteorBeamOpacity;
+                this.merchantBeamOpacity = loaded.merchantBeamOpacity;
+                this.customWaypointDefaultOpacity = loaded.customWaypointDefaultOpacity;
+                this.customWaypointOnScreenScale  = loaded.customWaypointOnScreenScale;
+                this.customWaypointOffScreenScale = loaded.customWaypointOffScreenScale;
+
+                // Load gang ping settings
+                this.gangPingEnabled = loaded.gangPingEnabled;
+                this.gangPingColor = loaded.gangPingColor;
+                this.gangPingBaseOpacity = loaded.gangPingBaseOpacity;
+                this.gangPingBeamEnabled = loaded.gangPingBeamEnabled;
+                this.gangPingBeamOpacity = loaded.gangPingBeamOpacity;
+                this.gangPingEdgeEnabled = loaded.gangPingEdgeEnabled;
+                this.gangPingSoundEnabled = loaded.gangPingSoundEnabled;
+                this.gangPingSoundVolume = loaded.gangPingSoundVolume;
+                this.gangPingShowName = loaded.gangPingShowName;
+                this.gangPingShowTimer = loaded.gangPingShowTimer;
+                this.gangPingShowCoords = loaded.gangPingShowCoords;
+                this.gangPingShowHp = loaded.gangPingShowHp;
+                this.gangPingShowFacing = loaded.gangPingShowFacing;
+                this.gangPingTextScale = loaded.gangPingTextScale;
+                this.gangPingIconMinScale = loaded.gangPingIconMinScale;
+                this.gangPingIconMaxScale = loaded.gangPingIconMaxScale;
+                this.gangPingDistanceScaling = loaded.gangPingDistanceScaling;
+                this.trucePingEnabled = loaded.trucePingEnabled;
+                this.trucePingColor = loaded.trucePingColor;
             }
         } catch (IOException e) {
             e.printStackTrace();

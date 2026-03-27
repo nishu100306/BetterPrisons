@@ -87,7 +87,9 @@ public class CustomConfigScreen extends Screen {
         sidebar.addTab("Satchel HUD");
         sidebar.addTab("Stats HUD");
         sidebar.addTab("Enchant HUD");
-        sidebar.addTab("Meteor HUD");
+        sidebar.addTab("Events HUD");
+        sidebar.addTab("Waypoints");
+        sidebar.addTab("Gang Pings");
         sidebar.addSeparator();
         sidebar.addTab("Super Breaker");
         sidebar.addTab("Peaceful Mining");
@@ -109,7 +111,9 @@ public class CustomConfigScreen extends Screen {
         categories.add(createSatchelHudCategory());
         categories.add(createStatsHudCategory());
         categories.add(createEnchantHudCategory());
-        categories.add(createMeteorHudCategory());
+        categories.add(createEventsHudCategory());
+        categories.add(createWaypointsCategory());
+        categories.add(createGangPingsCategory());
         categories.add(createSuperBreakerCategory());
         categories.add(createPeacefulMiningCategory());
         categories.add(createHeldItemScalingCategory());
@@ -153,6 +157,9 @@ public class CustomConfigScreen extends Screen {
 
         // Save config to file
         config.save();
+
+        // Re-sync live HUD objects from the updated config
+        BetterPrisonsClient.applyConfig();
 
         // Close screen
         if (client != null) {
@@ -740,35 +747,147 @@ public class CustomConfigScreen extends Screen {
         return category;
     }
 
-    private CategoryContainer createMeteorHudCategory() {
-        CategoryContainer category = new CategoryContainer("Meteor HUD");
+    private CategoryContainer createEventsHudCategory() {
+        CategoryContainer category = new CategoryContainer("Events HUD");
 
-        category.addWidget(createToggle("Enabled", "meteorHudEnabled", true, "Enable/disable the Meteor HUD"));
-        category.addWidget(createIntSlider("Scale", "meteorHudScale", 100, 70, 150, "%", "HUD scale percentage"));
-        category.addWidget(createColorPicker("Text Color", "meteorTextColor", 14558468));
-        category.addWidget(createColorPicker("Natural Heading Color", "meteorNaturalHeadingColor", 0x00FF00));
-        category.addWidget(createColorPicker("Summoned Heading Color", "meteorSummonedHeadingColor", 0xFF4500));
-        category.addWidget(createTextInput("Icon Item ID", "meteorIconItemId", "nether_quartz_ore", "Item ID for meteor icon (minecraft: prefix added automatically)"));
-        category.addWidget(createIntSlider("Crashed Display Duration", "meteorCrashedDisplayDuration", 15, 5, 60, "s", "Seconds to show crashed meteor"));
+        category.addWidget(createToggle("Enabled", "eventsHudEnabled", true, "Enable/disable the Events HUD"));
+        category.addWidget(createIntSlider("Scale", "eventsHudScale", 100, 70, 150, "%", "HUD scale percentage"));
+        category.addWidget(createColorPicker("Text Color", "eventsTextColor", 14558468));
+
+        // Meteor settings
+        CollapsibleWidget meteorGroup = createCollapsible("Meteors", "Configure meteor display on the Events HUD");
+        meteorGroup.addWidget(createColorPicker("Natural Heading Color", "eventsNaturalHeadingColor", 0x00FF00));
+        meteorGroup.addWidget(createColorPicker("Summoned Heading Color", "eventsSummonedHeadingColor", 0xFF4500));
+        meteorGroup.addWidget(createTextInput("Icon Item ID", "eventsIconItemId", "nether_quartz_ore", "Item ID for meteor icon (minecraft: prefix added automatically)"));
+        meteorGroup.addWidget(createIntSlider("Crashed Display Duration", "eventsCrashedDisplayDuration", 15, 5, 60, "s", "Seconds to show crashed meteor"));
+        meteorGroup.addWidget(createToggle("Show Distance", "meteorShowDistance", true, "Show distance to meteor in the Events HUD"));
+        meteorGroup.addWidget(createIntSlider("Default Beam Opacity", "meteorBeamOpacity", 160, 0, 255, "", "Default beacon beam opacity for newly detected meteors (0=transparent, 255=opaque)"));
+        category.addWidget(meteorGroup);
 
         // Title settings
         CollapsibleWidget titleGroup = createCollapsible("Title", "Configure HUD title display");
-        titleGroup.addWidget(createToggle("Show Title", "showMeteorHudTitle", true, "Show the HUD title"));
-        titleGroup.addWidget(createColorPicker("Title Color", "meteorHudTitleColor", 14558468));
+        titleGroup.addWidget(createToggle("Show Title", "showEventsHudTitle", true, "Show the HUD title"));
+        titleGroup.addWidget(createColorPicker("Title Color", "eventsHudTitleColor", 14558468));
         category.addWidget(titleGroup);
 
         // Background styling
         CollapsibleWidget bgGroup = createCollapsible("Background", "Configure background styling");
-        bgGroup.addWidget(createColorPicker("Color", "meteorBgColor", 0x000000));
-        bgGroup.addWidget(createIntSlider("Opacity", "meteorBgOpacity", 128, 0, 255, "", "0 = transparent, 255 = opaque"));
+        bgGroup.addWidget(createColorPicker("Color", "eventsBgColor", 0x000000));
+        bgGroup.addWidget(createIntSlider("Opacity", "eventsBgOpacity", 128, 0, 255, "", "0 = transparent, 255 = opaque"));
         category.addWidget(bgGroup);
 
         // Border styling
         CollapsibleWidget borderGroup = createCollapsible("Border", "Configure border styling");
-        borderGroup.addWidget(createColorPicker("Color", "meteorBorderColor", 0xFFFFFF));
-        borderGroup.addWidget(createIntSlider("Opacity", "meteorBorderOpacity", 128, 0, 255, "", "0 = transparent, 255 = opaque"));
-        borderGroup.addWidget(createIntSlider("Thickness", "meteorBorderThickness", 2, 0, 5, "px", "Border thickness in pixels"));
+        borderGroup.addWidget(createColorPicker("Color", "eventsBorderColor", 0xFFFFFF));
+        borderGroup.addWidget(createIntSlider("Opacity", "eventsBorderOpacity", 128, 0, 255, "", "0 = transparent, 255 = opaque"));
+        borderGroup.addWidget(createIntSlider("Thickness", "eventsBorderThickness", 2, 0, 5, "px", "Border thickness in pixels"));
         category.addWidget(borderGroup);
+
+        // Merchant settings
+        CollapsibleWidget merchantGroup = createCollapsible("Merchants", "Configure merchant display on the Events HUD");
+        merchantGroup.addWidget(createToggle("Enabled", "merchantsEnabled", true, "Show/hide all merchants on the Events HUD"));
+        merchantGroup.addWidget(createIntSlider("Timeout", "merchantTimeoutMinutes", 20, 1, 60, "min", "Minutes before a merchant entry is automatically removed"));
+        merchantGroup.addWidget(createIntSlider("Slain Display Duration", "merchantSlainDisplayDuration", 10, 1, 60, "s", "Seconds to keep a slain merchant visible before removing it"));
+        merchantGroup.addWidget(createToggle("Show Distance", "merchantShowDistance", true, "Show distance to merchant in the Events HUD"));
+        merchantGroup.addWidget(createIntSlider("Default Beam Opacity", "merchantBeamOpacity", 160, 0, 255, "", "Default beacon beam opacity for newly detected merchants (0=transparent, 255=opaque)"));
+
+        // Tier toggles
+        CollapsibleWidget tierToggles = createCollapsible("Tier Toggles", "Show or hide individual merchant tiers");
+        tierToggles.addWidget(createToggle("Coal", "coalMerchantEnabled", true, "Show Coal Ore Merchants"));
+        tierToggles.addWidget(createToggle("Iron", "ironMerchantEnabled", true, "Show Iron Ore Merchants"));
+        tierToggles.addWidget(createToggle("Lapis", "lapisMerchantEnabled", true, "Show Lapis Ore Merchants"));
+        tierToggles.addWidget(createToggle("Redstone", "redstoneMerchantEnabled", true, "Show Redstone Ore Merchants"));
+        tierToggles.addWidget(createToggle("Gold", "goldMerchantEnabled", true, "Show Gold Ore Merchants"));
+        tierToggles.addWidget(createToggle("Diamond", "diamondMerchantEnabled", true, "Show Diamond Ore Merchants"));
+        tierToggles.addWidget(createToggle("Emerald", "emeraldMerchantEnabled", true, "Show Emerald Ore Merchants"));
+        merchantGroup.addWidget(tierToggles);
+
+        // Tier heading colors
+        CollapsibleWidget tierColors = createCollapsible("Tier Colors", "Heading colors for each merchant tier");
+        tierColors.addWidget(createColorPicker("Coal", "coalMerchantHeadingColor", 0x555555));
+        tierColors.addWidget(createColorPicker("Iron", "ironMerchantHeadingColor", 0xAAAAAA));
+        tierColors.addWidget(createColorPicker("Lapis", "lapisMerchantHeadingColor", 0x5555FF));
+        tierColors.addWidget(createColorPicker("Redstone", "redstoneMerchantHeadingColor", 0xFF5555));
+        tierColors.addWidget(createColorPicker("Gold", "goldMerchantHeadingColor", 0xFFAA00));
+        tierColors.addWidget(createColorPicker("Diamond", "diamondMerchantHeadingColor", 0x55FFFF));
+        tierColors.addWidget(createColorPicker("Emerald", "emeraldMerchantHeadingColor", 0x55FF55));
+        merchantGroup.addWidget(tierColors);
+
+        category.addWidget(merchantGroup);
+
+        return category;
+    }
+
+    private CategoryContainer createWaypointsCategory() {
+        CategoryContainer category = new CategoryContainer("Waypoints");
+
+        category.addWidget(createToggle("Enabled", "waypointsEnabled", true, "Master toggle for all waypoint overlays"));
+        category.addWidget(new ButtonComponent("Open Waypoints", 0, 0, 160, 16,
+            () -> { if (client != null) client.setScreen(new WaypointsScreen()); }));
+
+        CollapsibleWidget screenGroup = createCollapsible("Screen Indicators", "2D screen-edge direction markers");
+        screenGroup.addWidget(createToggle("Show Meteors", "waypointMeteorsEnabled", true, "Show meteor waypoint indicators"));
+        screenGroup.addWidget(createToggle("Meteors: Edge Indicators", "waypointMeteorsEdgeEnabled", true, "Show meteor indicators at screen edge when off-screen"));
+        screenGroup.addWidget(createToggle("Show Merchants", "waypointMerchantsEnabled", true, "Show merchant waypoint indicators"));
+        screenGroup.addWidget(createToggle("Merchants: Edge Indicators", "waypointMerchantsEdgeEnabled", true, "Show merchant indicators at screen edge when off-screen"));
+        screenGroup.addWidget(createToggle("Custom: Edge Indicators", "waypointCustomEdgeEnabled", false, "Show custom waypoint indicators at screen edge when off-screen"));
+        category.addWidget(screenGroup);
+
+        CollapsibleWidget beamGroup = createCollapsible("Beacon Beams", "3D vertical beam pillars in world space");
+        beamGroup.addWidget(createToggle("Enabled", "beaconBeamsEnabled", true, "Show beacon beam pillars at event locations"));
+        beamGroup.addWidget(createToggle("Visible Through Blocks", "beaconBeamThroughWalls", false, "Beam renders through walls (always visible)"));
+        category.addWidget(beamGroup);
+
+        CollapsibleWidget customGroup = createCollapsible("Custom Waypoints", "Player-defined named waypoints");
+        customGroup.addWidget(createToggle("Enabled", "waypointCustomEnabled", true, "Show custom waypoints in overlay and as beacon beams"));
+        customGroup.addWidget(new ButtonComponent("Manage Waypoints", 0, 0, 160, 16,
+            () -> { if (client != null) client.setScreen(new WaypointsScreen()); }));
+
+        CollapsibleWidget customDefaultsGroup = createCollapsible("New Waypoint Defaults", "Default values pre-filled when creating a new custom waypoint");
+        customDefaultsGroup.addWidget(createIntSlider("Default Opacity", "customWaypointDefaultOpacity", 255, 0, 255, "", "Default beacon beam opacity for new waypoints (0=transparent, 255=opaque)"));
+        customDefaultsGroup.addWidget(createFloatSlider("On-Screen Scale", "customWaypointOnScreenScale", 1.0f, 0.25f, 4.0f, "x", "Default icon scale when waypoint is visible on screen"));
+        customDefaultsGroup.addWidget(createFloatSlider("Off-Screen Scale", "customWaypointOffScreenScale", 1.0f, 0.25f, 4.0f, "x", "Default icon scale for edge indicator when waypoint is off-screen"));
+        customGroup.addWidget(customDefaultsGroup);
+
+        category.addWidget(customGroup);
+
+        return category;
+    }
+
+    private CategoryContainer createGangPingsCategory() {
+        CategoryContainer category = new CategoryContainer("Gang Pings");
+
+        category.addWidget(createToggle("Gang Pings Enabled", "gangPingEnabled", true, "Enable gang ping sending and receiving"));
+        category.addWidget(createColorPicker("Gang Ping Color", "gangPingColor", 0xAA55FF));
+        category.addWidget(createToggle("Truce Pings Enabled", "trucePingEnabled", true, "Enable truce ping sending and receiving"));
+        category.addWidget(createColorPicker("Truce Ping Color", "trucePingColor", 0x55AAFF));
+
+        CollapsibleWidget iconGroup = createCollapsible("Icon Settings", "Waypoint icon appearance and behavior (shared)");
+        iconGroup.addWidget(createIntSlider("Icon Opacity", "gangPingBaseOpacity", 200, 0, 255, "", "Base icon opacity before distance fade (0=transparent, 255=opaque)"));
+        iconGroup.addWidget(createToggle("Edge Indicators", "gangPingEdgeEnabled", true, "Show gang ping arrows at screen edge when off-screen"));
+        iconGroup.addWidget(createToggle("Distance Scaling", "gangPingDistanceScaling", true, "Scale icon size based on distance (off = always use min scale)"));
+        iconGroup.addWidget(createFloatSlider("Min Icon Scale", "gangPingIconMinScale", 0.5f, 0.1f, 3.0f, "x", "Minimum icon scale (used at close range or when distance scaling is off)"));
+        iconGroup.addWidget(createFloatSlider("Max Icon Scale", "gangPingIconMaxScale", 1.5f, 0.1f, 3.0f, "x", "Maximum icon scale (reached at 75+ blocks)"));
+        category.addWidget(iconGroup);
+
+        CollapsibleWidget beamGroup = createCollapsible("Beacon Beams", "3D vertical beam pillars at gang ping locations");
+        beamGroup.addWidget(createToggle("Enabled", "gangPingBeamEnabled", true, "Show beacon beam pillars at gang ping locations"));
+        beamGroup.addWidget(createIntSlider("Beam Opacity", "gangPingBeamOpacity", 120, 0, 255, "", "Beacon beam opacity for gang pings"));
+        category.addWidget(beamGroup);
+
+        CollapsibleWidget soundGroup = createCollapsible("Sound", "Notification sound settings");
+        soundGroup.addWidget(createToggle("Enabled", "gangPingSoundEnabled", true, "Play a notification sound when a gang ping is received"));
+        soundGroup.addWidget(createIntSlider("Volume", "gangPingSoundVolume", 80, 0, 200, "%", "Volume for gang ping notification sound"));
+        category.addWidget(soundGroup);
+
+        CollapsibleWidget textGroup = createCollapsible("Text Display", "Configure which info lines show on the waypoint");
+        textGroup.addWidget(createToggle("Show Name", "gangPingShowName", true, "Show player name on gang ping waypoint"));
+        textGroup.addWidget(createToggle("Show Timer", "gangPingShowTimer", false, "Show time since ping below waypoint"));
+        textGroup.addWidget(createToggle("Show Coords", "gangPingShowCoords", true, "Show coordinates and distance on waypoint"));
+        textGroup.addWidget(createToggle("Show HP", "gangPingShowHp", false, "Show player health on waypoint"));
+        textGroup.addWidget(createToggle("Show Facing", "gangPingShowFacing", false, "Show player facing direction on waypoint"));
+        textGroup.addWidget(createFloatSlider("Text Scale", "gangPingTextScale", 1.0f, 0.5f, 2.0f, "x", "Scale of text labels on ping waypoints"));
+        category.addWidget(textGroup);
 
         return category;
     }
@@ -782,6 +901,9 @@ public class CustomConfigScreen extends Screen {
         category.addWidget(createIntSlider("Base Opacity", "superBreakerBaseOpacity", 79, 0, 255, "", "0 = transparent, 255 = opaque"));
         category.addWidget(createColorPicker("Light Color", "superBreakerLightColor", 1444602));
         category.addWidget(createIntSlider("Light Opacity", "superBreakerLightOpacity", 191, 0, 255, "", "0 = transparent, 255 = opaque"));
+        category.addWidget(createToggle("Timer Enabled", "superBreakerTimerEnabled", true, "Show countdown timer on aura"));
+        category.addWidget(createIntSlider("Timer Offset X", "superBreakerTimerOffsetX", 0, -100, 100, "px", "Horizontal offset from center"));
+        category.addWidget(createIntSlider("Timer Offset Y", "superBreakerTimerOffsetY", -20, -100, 100, "px", "Vertical offset from center"));
 
         return category;
     }
@@ -876,6 +998,7 @@ public class CustomConfigScreen extends Screen {
         pagesGroup.addWidget(createToggle("Enabled", "easyViewPagesEnabled", true, "Show pages info"));
         pagesGroup.addWidget(createColorPicker("Color", "easyViewPagesColor", 0xF5DEB3));
         pagesGroup.addWidget(createToggle("Bold", "easyViewPagesBold", true, "Bold pages text"));
+        pagesGroup.addWidget(createToggle("Tier Color", "easyViewPagesTierColor", false, "Use tier color from page name instead of custom color"));
         category.addWidget(pagesGroup);
 
         return category;
@@ -885,6 +1008,8 @@ public class CustomConfigScreen extends Screen {
         CategoryContainer category = new CategoryContainer("Pickaxe Drop Confirmation");
 
         category.addWidget(createToggle("Enabled", "pickaxeDropConfirmationEnabled", true, "Require confirmation to drop pickaxes"));
+        category.addWidget(createToggle("Block Drop Entirely", "pickaxeDropBlockEnabled", false, "Completely prevent dropping pickaxes with the drop key"));
+        category.addWidget(createToggle("Block Inventory Drag", "pickaxeDropDragBlockEnabled", false, "Prevent dropping pickaxes by dragging them out of the inventory"));
 
         return category;
     }
@@ -1000,6 +1125,18 @@ public class CustomConfigScreen extends Screen {
         return widget;
     }
 
+    private SliderWidget createFloatSlider(String label, String fieldName, float defaultValue, float min, float max, String suffix, String tooltip) {
+        SliderWidget widget = new SliderWidget(label, defaultValue, min, max, suffix);
+        widget.setTooltip(tooltip);
+        widget.setDecimalPlaces(2);
+
+        FieldBinding<Float> binding = new FieldBinding<>(config, fieldName, defaultValue);
+        widget.setValue(binding.getValue());
+        BindingRegistry.register(widget, binding);
+
+        return widget;
+    }
+
     private TextInputWidget createTextInput(String label, String fieldName, String defaultValue, String tooltip) {
         TextInputWidget widget = new TextInputWidget(label, defaultValue);
         widget.setTooltip(tooltip);
@@ -1104,6 +1241,8 @@ public class CustomConfigScreen extends Screen {
             ((ConfigBinding<Integer>) binding).setValue(((ColorPickerWidget) widget).getColor());
         } else if (widget instanceof IntSliderWidget) {
             ((ConfigBinding<Integer>) binding).setValue(((IntSliderWidget) widget).getValue());
+        } else if (widget instanceof SliderWidget) {
+            ((ConfigBinding<Float>) binding).setValue(((SliderWidget) widget).getValue());
         } else if (widget instanceof TextInputWidget) {
             ((ConfigBinding<String>) binding).setValue(((TextInputWidget) widget).getValue());
         } else if (widget instanceof DropdownWidget) {

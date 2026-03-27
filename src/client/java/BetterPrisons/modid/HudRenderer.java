@@ -18,7 +18,8 @@ public class HudRenderer {
         huds.add(BetterPrisonsClient.satchelHud);
         huds.add(BetterPrisonsClient.statsHud);
         huds.add(BetterPrisonsClient.enchantHud);
-        huds.add(BetterPrisonsClient.meteorHud);
+        huds.add(BetterPrisonsClient.eventsHud);
+        huds.add(BetterPrisonsClient.minimapHud);
     }
 
     public void render(DrawContext context, RenderTickCounter counter) {

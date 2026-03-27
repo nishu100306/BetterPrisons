@@ -13,6 +13,7 @@
 	},
 	"license": "CC0-1.0",
 	"icon": "assets/betterprisons/BetterPrisons.png",
+	"accessWidener": "betterprisons.accesswidener",
 	"environment": "*",
 	"entrypoints": {
 		"main": [

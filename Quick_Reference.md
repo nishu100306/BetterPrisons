@@ -1,61 +1,66 @@
 # BetterPrisons: Quick Reference Guide
 
-BetterPrisons is a highly customizable client-side enhancement mod designed to streamline your gameplay through visual overlays and quality-of-life mining features.
-### Disclaimer: This mod requires Cloth Config API as  dependency. download it here: https://modrinth.com/mod/cloth-config?version=1.21.8 
----
-
-## 🎨 Ultimate Customizability
-The core of BetterPrisons is **total control**. Almost every element can be tweaked via the in-game configuration screen (accessible via Mod Menu):
-* **Move & Scale:** Use the drag-and-drop HUD editor to place elements anywhere.
-* **Visuals:** Adjust background colors, border thickness, opacity, and text colors.
-* **Toggles:** Every single feature can be turned on or off independently to keep your screen as clean or as informative as you like.
+BetterPrisons is a client-side enhancement mod for CosmicPrisons. No external dependencies required.
 
 ---
 
-## 🖥️ HUD Elements (On-Screen Overlays)
-* **Cooldown HUD:** Track commands (`/jet`, `/feed`, `/fix`, `/home`) and combat timers with colored countdowns.
-* **Satchel HUD:** View fill levels and capacity for all satchels. Includes "Auto-Combine" for same-type satchels and threshold color alerts.
-* **Stats HUD:** Real-time tracking for XP, XP/Hour, Cosmic Energy, and session totals (Compact or Full number modes).
-* **Enchant HUD:** Timers for active buffs like Super Breaker and Powerball.
-* **Meteor HUD:** Visual icons and coordinates for meteor announcements.
-* **Super Breaker Aura:** A WoW-style "WeakAura" ring timer centered on your crosshair for maximum visibility.
+## HUDs (On-Screen Overlays)
+
+- **Cooldown HUD** — Timers for /jet, /feed, /fix, /home, /tpa, /tpahere, and combat. Super Breaker & Powerball tracked by Enchant HUD.
+- **Satchel HUD** — Fill level and capacity for all satchels (works with renamed satchels). Combines same-type satchels. Threshold color alerts.
+- **Stats HUD** — XP, XP/hour, Cosmic Energy, session totals, time until next level. Shows visual indicator when paused.
+- **Enchant HUD** — Countdown timers for Super Breaker and Powerball.
+- **Events HUD** — Coordinates and icon for each meteor (natural/summoned) and active Ore Merchants (per-tier toggles, distance, timeout).
+- **Waypoints** — Screen-edge arrows and optional 3D beacon beams for every active meteor and merchant. Renders at any distance.
+- **Gang Pings** — Broadcast your position to gang (G) or truce (H) chat. Received pings show as player head icons with beacon beams, info text (name, timer, coords, HP, facing), and sound alerts. 3-second cooldown. Dedicated config tab.
+- **Super Breaker Aura** — Centered ring timer (WeakAura-style) for Super Breaker. Timer offset and enable/disable toggle.
 
 ---
 
-## 🎒 EasyView (Inventory Overlays)
-Get instant info on items without hovering. Adds compact text to items in your **inventory** for:
-* **Resources:** Cosmic Energy, Money Notes, Gang Points, Black Scrolls, Charge Orbs.
-* **Equipment:** Armor, Weapons (swords/axes), and Pickaxes (displays item levels).
-* *Note: Colors and visibility are toggleable per item type.*
+## EasyView (Inventory Overlays)
+
+Compact text labels on inventory items — no tooltip needed. Supports: Cosmic Energy, Money Notes, Gang Points, Black Scrolls, Charge Orbs, Dust, Pages (with optional tier coloring), Armor, Weapons, and Pickaxes. Each type is toggleable and color-configurable independently.
 
 ---
 
-## ⛏️ Peaceful Mining
-Designed for high-traffic mines to eliminate distractions and misclicks:
-* **Ghost Players:** Nearby players become translucent when you hold a pickaxe (adjustable opacity: 0-255).
-* **Visual Clarity:** Block-breaking progress remains visible through "ghosted" players.
-* **Interaction Lock:** Disables accidental hits or right-clicks on players while mining.
-* **Custom Range:** You define the "Peaceful" radius (default: 8 blocks).
-* **Auto-Disable on Combat:** Toggleable feature that automatically disables peaceful mining when combat starts and re-enables it when combat ends.
+## Peaceful Mining
+
+- Nearby players become translucent while holding a pickaxe (opacity 0–255, radius configurable).
+- Block-breaking progress remains visible through ghosted players.
+- Disables accidental hits and right-clicks on players while mining.
+- Auto-disable on combat: peaceful mining turns off when you enter combat and re-enables when combat ends (toggleable).
 
 ---
 
-## 🎮 Quality-of-Life Features
-Enhancements that improve your gameplay experience:
-* **Message Notifications:** Audio alerts when you receive private messages. Choose from 7 sounds (Anvil, Bell, XP Orb, etc.) with adjustable volume (0-200%).
-* **Held Item Scaling:** Customize the visual size of items in your hand (pickaxes, swords, axes, other items). Scale from 25-150% per item type.
-* **Pickaxe Drop Confirmation:** Requires double-pressing the drop key within 3 seconds to drop a pickaxe, preventing accidental drops.
+## Quality-of-Life
+
+- **Message Notifications** — Audio alert on private messages. 7 sounds to choose from, volume 0–200%.
+- **Held Item Scaling** — Resize held items per type (pickaxe, sword, axe, other) from 25–150%.
+- **Pickaxe Drop Protection** — Requires pressing drop twice within 3 seconds to drop a pickaxe. Options to block dropping entirely or block dragging out of inventory.
 
 ---
 
-## ⌨️ Keyboard Shortcuts
-* **I** — Open configuration screen
-* **R** — Reset Stats HUD tracking (clears session totals)
-* **B** — Pause/Resume Stats HUD tracking
+## Config Screen
+
+Fully custom UI — no external mod required. Open with **I** or via Mod Menu.
+
+- Tabs in a left sidebar (HUD Settings / Feature Settings / Configuration).
+- Collapsible sections and per-setting reset buttons (X icon).
+- Hover tooltips on most settings.
+- **Color picker** — HSV selector square, hue bar, live preview, and hex input.
+- **HUD Editor** — Drag to reposition. Right-click a HUD for an inline scale slider (70–150%). Color-coded: green = hovered, yellow = dragging, orange = scaling. Reset Positions button available.
+- **Theme** — 27 color settings (backgrounds, borders, text, accents, etc.) with real-time preview.
 
 ---
 
-## ⚙️ Quick Start & Support
-* **Settings:** Open your config via the config keybind or **Mod Menu**.
-* **Persistence:** All changes save automatically to your config file.
-* **Support:** Contact **nishu06** on Discord or open a ticket in the official mod server https://discord.gg/gW4sBdNmac.
+## Keyboard Shortcuts
+
+- **I** — Open config screen
+- **R** — Reset Stats HUD (clears session totals)
+- **B** — Pause / Resume Stats HUD tracking
+- **G** — Send gang ping
+- **H** — Send truce ping
+
+---
+
+**Support:** Contact nishu06 on Discord or open a ticket at https://discord.gg/gW4sBdNmac.

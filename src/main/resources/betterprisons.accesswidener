@@ -1,0 +1,6 @@
+accessWidener v2 named
+
+# Expose DEBUG_FILLED_SNIPPET from RenderPipelines so we can derive a custom
+# POSITION_COLOR pipeline with depth test disabled (renders through all blocks).
+accessible field net/minecraft/client/gl/RenderPipelines POSITION_COLOR_SNIPPET Lcom/mojang/blaze3d/pipeline/RenderPipeline$Snippet;
+

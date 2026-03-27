@@ -2,7 +2,12 @@ package BetterPrisons.modid.devtools;
 
 import BetterPrisons.modid.BetterPrisonsClient;
 import BetterPrisons.modid.JsonLoader;
+import BetterPrisons.modid.hud.EventsHud;
+import BetterPrisons.modid.ui.custom.screens.WaypointsScreen;
+import BetterPrisons.modid.waypoint.CustomWaypoint;
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
@@ -36,6 +41,194 @@ public class DevCommands {
 
         dispatcher.register(ClientCommandManager.literal("bploadcmd")
                 .executes(DevCommands::createDefaultCommands));
+
+        // /bpevents — test commands for EventsHud
+        dispatcher.register(ClientCommandManager.literal("bpevents")
+            .then(ClientCommandManager.literal("clear")
+                .executes(ctx -> {
+                    BetterPrisonsClient.eventsHud.clearMeteors();
+                    BetterPrisonsClient.eventsHud.clearMerchants();
+                    ctx.getSource().sendFeedback(Text.literal("§aCleared all meteors and merchants."));
+                    return 1;
+                }))
+            .then(ClientCommandManager.literal("meteor")
+                .then(ClientCommandManager.literal("add")
+                    .then(ClientCommandManager.argument("x", IntegerArgumentType.integer())
+                    .then(ClientCommandManager.argument("y", IntegerArgumentType.integer())
+                    .then(ClientCommandManager.argument("z", IntegerArgumentType.integer())
+                        // /bpevents meteor add <x> <y> <z>  — defaults to natural
+                        .executes(ctx -> addMeteor(ctx, EventsHud.MeteorType.NATURAL))
+                        .then(ClientCommandManager.argument("type", StringArgumentType.word())
+                            .suggests((ctx, builder) -> {
+                                builder.suggest("natural");
+                                builder.suggest("summoned");
+                                return builder.buildFuture();
+                            })
+                            .executes(ctx -> {
+                                String type = StringArgumentType.getString(ctx, "type");
+                                EventsHud.MeteorType meteorType = type.equalsIgnoreCase("summoned")
+                                    ? EventsHud.MeteorType.SUMMONED : EventsHud.MeteorType.NATURAL;
+                                return addMeteor(ctx, meteorType);
+                            }))))))
+                .then(ClientCommandManager.literal("crash")
+                    .then(ClientCommandManager.argument("x", IntegerArgumentType.integer())
+                    .then(ClientCommandManager.argument("y", IntegerArgumentType.integer())
+                    .then(ClientCommandManager.argument("z", IntegerArgumentType.integer())
+                        .executes(ctx -> {
+                            int x = IntegerArgumentType.getInteger(ctx, "x");
+                            int y = IntegerArgumentType.getInteger(ctx, "y");
+                            int z = IntegerArgumentType.getInteger(ctx, "z");
+                            String coordsLine = x + "x, " + y + "y, " + z + "z";
+                            BetterPrisonsClient.eventsHud.onMeteorCrashed(coordsLine);
+                            ctx.getSource().sendFeedback(Text.literal("§aMeteor crashed at " + coordsLine));
+                            return 1;
+                        })))))
+                .then(ClientCommandManager.literal("clear")
+                    .executes(ctx -> {
+                        BetterPrisonsClient.eventsHud.clearMeteors();
+                        ctx.getSource().sendFeedback(Text.literal("§aCleared all meteors."));
+                        return 1;
+                    })))
+            .then(ClientCommandManager.literal("merchant")
+                .then(ClientCommandManager.literal("add")
+                    .then(ClientCommandManager.argument("tier", StringArgumentType.word())
+                        .suggests((ctx, builder) -> {
+                            for (EventsHud.MerchantType t : EventsHud.MerchantType.values()) {
+                                if (t != EventsHud.MerchantType.UNKNOWN)
+                                    builder.suggest(t.name().toLowerCase());
+                            }
+                            return builder.buildFuture();
+                        })
+                        .then(ClientCommandManager.argument("x", IntegerArgumentType.integer())
+                        .then(ClientCommandManager.argument("y", IntegerArgumentType.integer())
+                        .then(ClientCommandManager.argument("z", IntegerArgumentType.integer())
+                            .executes(ctx -> {
+                                String tier = StringArgumentType.getString(ctx, "tier");
+                                int x = IntegerArgumentType.getInteger(ctx, "x");
+                                int y = IntegerArgumentType.getInteger(ctx, "y");
+                                int z = IntegerArgumentType.getInteger(ctx, "z");
+                                BetterPrisonsClient.eventsHud.onMerchantSpawned(tier, x, y, z);
+                                ctx.getSource().sendFeedback(Text.literal(
+                                    "§aAdded " + tier + " merchant at " + x + ", " + y + ", " + z));
+                                return 1;
+                            }))))))
+                .then(ClientCommandManager.literal("kill")
+                    .then(ClientCommandManager.argument("x", IntegerArgumentType.integer())
+                    .then(ClientCommandManager.argument("y", IntegerArgumentType.integer())
+                    .then(ClientCommandManager.argument("z", IntegerArgumentType.integer())
+                        .executes(ctx -> {
+                            int x = IntegerArgumentType.getInteger(ctx, "x");
+                            int y = IntegerArgumentType.getInteger(ctx, "y");
+                            int z = IntegerArgumentType.getInteger(ctx, "z");
+                            BetterPrisonsClient.eventsHud.onMerchantSlain("unknown", x, y, z);
+                            ctx.getSource().sendFeedback(Text.literal(
+                                "§aMerchant killed at " + x + ", " + y + ", " + z));
+                            return 1;
+                        })))))
+                .then(ClientCommandManager.literal("clear")
+                    .executes(ctx -> {
+                        BetterPrisonsClient.eventsHud.clearMerchants();
+                        ctx.getSource().sendFeedback(Text.literal("§aCleared all merchants."));
+                        return 1;
+                    }))));
+
+        // /bpworld — print current world key
+        dispatcher.register(ClientCommandManager.literal("bpworld")
+            .executes(ctx -> {
+                String world = BetterPrisons.modid.waypoint.WaypointManager.detectWorldKey();
+                ctx.getSource().sendFeedback(Text.literal("§7Current world: §f" + world));
+                return 1;
+            }));
+
+        // /bpwaypoints — open the waypoints management screen
+        dispatcher.register(ClientCommandManager.literal("bpwaypoints")
+            .executes(ctx -> {
+                ctx.getSource().getClient().setScreen(new WaypointsScreen());
+                return 1;
+            }));
+
+        // /bpwaypoint — CRUD commands
+        dispatcher.register(ClientCommandManager.literal("bpwaypoint")
+            .then(ClientCommandManager.literal("add")
+                .then(ClientCommandManager.argument("name", StringArgumentType.word())
+                .then(ClientCommandManager.argument("x", IntegerArgumentType.integer())
+                .then(ClientCommandManager.argument("y", IntegerArgumentType.integer())
+                .then(ClientCommandManager.argument("z", IntegerArgumentType.integer())
+                    // /bpwaypoint add <name> <x> <y> <z>  — white by default
+                    .executes(ctx -> {
+                        String name = StringArgumentType.getString(ctx, "name");
+                        int x = IntegerArgumentType.getInteger(ctx, "x");
+                        int y = IntegerArgumentType.getInteger(ctx, "y");
+                        int z = IntegerArgumentType.getInteger(ctx, "z");
+                        BetterPrisonsClient.waypointManager.add(new CustomWaypoint(name, x, y, z, 0xFFFFFF));
+                        ctx.getSource().sendFeedback(Text.literal("§aWaypoint '" + name + "' added at " + x + ", " + y + ", " + z));
+                        return 1;
+                    })
+                    .then(ClientCommandManager.argument("color", StringArgumentType.word())
+                        .executes(ctx -> {
+                            String name = StringArgumentType.getString(ctx, "name");
+                            int x = IntegerArgumentType.getInteger(ctx, "x");
+                            int y = IntegerArgumentType.getInteger(ctx, "y");
+                            int z = IntegerArgumentType.getInteger(ctx, "z");
+                            int color;
+                            try {
+                                color = (int) Long.parseLong(
+                                    StringArgumentType.getString(ctx, "color").replace("#",""), 16) & 0xFFFFFF;
+                            } catch (NumberFormatException e) { color = 0xFFFFFF; }
+                            BetterPrisonsClient.waypointManager.add(new CustomWaypoint(name, x, y, z, color));
+                            ctx.getSource().sendFeedback(Text.literal("§aWaypoint '" + name + "' added."));
+                            return 1;
+                        })))))))
+            .then(ClientCommandManager.literal("here")
+                .then(ClientCommandManager.argument("name", StringArgumentType.word())
+                    .executes(ctx -> {
+                        var player = ctx.getSource().getClient().player;
+                        if (player == null) return 0;
+                        String name = StringArgumentType.getString(ctx, "name");
+                        int x = (int) player.getX(), y = (int) player.getY(), z = (int) player.getZ();
+                        BetterPrisonsClient.waypointManager.add(new CustomWaypoint(name, x, y, z, 0xFFFFFF));
+                        ctx.getSource().sendFeedback(Text.literal("§aWaypoint '" + name + "' added at your position."));
+                        return 1;
+                    })))
+            .then(ClientCommandManager.literal("remove")
+                .then(ClientCommandManager.argument("name", StringArgumentType.greedyString())
+                    .executes(ctx -> {
+                        String name = StringArgumentType.getString(ctx, "name");
+                        var wps = BetterPrisonsClient.waypointManager.getAll();
+                        for (int i = 0; i < wps.size(); i++) {
+                            if (wps.get(i).name.equalsIgnoreCase(name)) {
+                                BetterPrisonsClient.waypointManager.remove(i);
+                                ctx.getSource().sendFeedback(Text.literal("§aRemoved waypoint '" + name + "'."));
+                                return 1;
+                            }
+                        }
+                        ctx.getSource().sendFeedback(Text.literal("§cNo waypoint named '" + name + "'."));
+                        return 0;
+                    })))
+            .then(ClientCommandManager.literal("list")
+                .executes(ctx -> {
+                    var wps = BetterPrisonsClient.waypointManager.getAll();
+                    if (wps.isEmpty()) {
+                        ctx.getSource().sendFeedback(Text.literal("§7No waypoints."));
+                        return 1;
+                    }
+                    ctx.getSource().sendFeedback(Text.literal("§eWaypoints:"));
+                    for (CustomWaypoint wp : wps) {
+                        String status = wp.enabled ? "§a[ON]" : "§c[OFF]";
+                        ctx.getSource().sendFeedback(Text.literal(
+                            status + " §f" + wp.name + " §7" + wp.x + ", " + wp.y + ", " + wp.z));
+                    }
+                    return 1;
+                }))
+            .then(ClientCommandManager.literal("clear")
+                .executes(ctx -> {
+                    int count = BetterPrisonsClient.waypointManager.getAll().size();
+                    while (!BetterPrisonsClient.waypointManager.getAll().isEmpty()) {
+                        BetterPrisonsClient.waypointManager.remove(0);
+                    }
+                    ctx.getSource().sendFeedback(Text.literal("§aCleared " + count + " waypoints."));
+                    return 1;
+                })));
     }
 
     private static int inspectHeldItem(CommandContext<FabricClientCommandSource> context) {
@@ -196,6 +389,17 @@ public class DevCommands {
     private static int createDefaultCommands(CommandContext<FabricClientCommandSource> context) {
         JsonLoader.createDefaultCommands();
         context.getSource().sendFeedback(Text.literal("§aDefault commands configuration created/overwritten."));
+        return 1;
+    }
+
+    private static int addMeteor(CommandContext<FabricClientCommandSource> ctx, EventsHud.MeteorType type) {
+        int x = IntegerArgumentType.getInteger(ctx, "x");
+        int y = IntegerArgumentType.getInteger(ctx, "y");
+        int z = IntegerArgumentType.getInteger(ctx, "z");
+        String coordsLine = x + "x, " + y + "y, " + z + "z";
+        BetterPrisonsClient.eventsHud.onMeteorFalling(coordsLine, type);
+        ctx.getSource().sendFeedback(Text.literal(
+            "§aAdded " + type.name().toLowerCase() + " meteor at " + x + ", " + y + ", " + z));
         return 1;
     }
 }

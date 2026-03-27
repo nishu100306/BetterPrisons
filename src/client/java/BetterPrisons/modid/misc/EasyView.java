@@ -7,7 +7,10 @@ import net.minecraft.component.DataComponentTypes;
 import net.minecraft.item.ItemStack;
 import net.minecraft.screen.PlayerScreenHandler;
 import net.minecraft.screen.slot.Slot;
+import net.minecraft.text.Text;
+import net.minecraft.text.TextColor;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class EasyView {
@@ -199,6 +202,28 @@ public class EasyView {
         return null;
     }
 
+    /**
+     * Extract the tier color from an item's custom name Text component.
+     * The first sibling of the custom name typically contains the tier name with its color style.
+     * Returns the RGB color int, or -1 if no color could be extracted.
+     */
+    private int extractTierColorFromName(ItemStack stack) {
+        try {
+            Text customName = stack.get(DataComponentTypes.CUSTOM_NAME);
+            if (customName == null) return -1;
+            List<Text> siblings = customName.getSiblings();
+            if (siblings.isEmpty()) return -1;
+            // The first sibling is the tier name (e.g. "Uncommon Page " with color=green)
+            TextColor textColor = siblings.get(0).getStyle().getColor();
+            if (textColor != null) {
+                return textColor.getRgb();
+            }
+        } catch (Exception e) {
+            // Ignore
+        }
+        return -1;
+    }
+
     public void drawText(int slot, String text) {
         slotTexts.put(slot, text);
     }
@@ -368,7 +393,14 @@ public class EasyView {
                 int endIdx = name.indexOf("%)", startIdx);
                 if (startIdx != -1 && endIdx != -1) {
                     String percent = name.substring(startIdx + 7, endIdx); // +7 to skip " Page ("
-                    return new TextWithColor(percent + "%", 0xFF000000 | BetterPrisonsClient.config.easyViewPagesColor, 0.5f, BetterPrisonsClient.config.easyViewPagesBold);
+                    int pageColor = BetterPrisonsClient.config.easyViewPagesColor;
+                    if (BetterPrisonsClient.config.easyViewPagesTierColor) {
+                        int tierColor = extractTierColorFromName(stack);
+                        if (tierColor != -1) {
+                            pageColor = tierColor;
+                        }
+                    }
+                    return new TextWithColor(percent + "%", 0xFF000000 | pageColor, 0.5f, BetterPrisonsClient.config.easyViewPagesBold);
                 }
             }
         } catch (Exception e) {

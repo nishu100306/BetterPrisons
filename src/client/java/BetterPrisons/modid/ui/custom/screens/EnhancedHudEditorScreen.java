@@ -50,9 +50,13 @@ public class EnhancedHudEditorScreen extends Screen {
     }
 
     @Override
+    public boolean shouldPause() {
+        return false;
+    }
+
+    @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        // Draw background
-        RenderUtils.drawRect(context, 0, 0, width, height, Theme.screenBackground);
+        // No background — transparent so the game world is visible behind the editor
 
         // Draw title
         context.drawCenteredTextWithShadow(this.textRenderer, this.title, this.width / 2, 10, Theme.textPrimary);
@@ -285,9 +289,9 @@ public class EnhancedHudEditorScreen extends Screen {
         config.enchantHudY = BetterPrisonsClient.enchantHud.y;
         config.enchantHudScale = (int) (BetterPrisonsClient.enchantHud.scale * 100);
 
-        config.meteorHudX = BetterPrisonsClient.meteorHud.x;
-        config.meteorHudY = BetterPrisonsClient.meteorHud.y;
-        config.meteorHudScale = (int) (BetterPrisonsClient.meteorHud.scale * 100);
+        config.eventsHudX = BetterPrisonsClient.eventsHud.x;
+        config.eventsHudY = BetterPrisonsClient.eventsHud.y;
+        config.eventsHudScale = (int) (BetterPrisonsClient.eventsHud.scale * 100);
 
         config.save();
         BetterPrisonsClient.LOGGER.info("Saved HUD positions and scales to config");
@@ -314,9 +318,9 @@ public class EnhancedHudEditorScreen extends Screen {
         BetterPrisonsClient.enchantHud.y = 4;
         BetterPrisonsClient.enchantHud.scale = 1.0f;
 
-        BetterPrisonsClient.meteorHud.x = 8;
-        BetterPrisonsClient.meteorHud.y = 74;
-        BetterPrisonsClient.meteorHud.scale = 1.0f;
+        BetterPrisonsClient.eventsHud.x = 8;
+        BetterPrisonsClient.eventsHud.y = 74;
+        BetterPrisonsClient.eventsHud.scale = 1.0f;
 
         // Clear selection
         selectedHud = null;
@@ -329,8 +333,8 @@ public class EnhancedHudEditorScreen extends Screen {
     }
 
     @Override
-    public boolean shouldPause() {
-        return false;
+    public void renderBackground(DrawContext context, int mouseX, int mouseY, float delta) {
+        // Do nothing — keep the world fully visible with no blur or darkening
     }
 
     /**
@@ -343,7 +347,7 @@ public class EnhancedHudEditorScreen extends Screen {
         switch (hud.id) {
             case "cooldown":
             case "enchant":
-            case "meteor":
+            case "events":
                 basePadding = 4;
                 break;
             case "satchel":
@@ -383,8 +387,8 @@ public class EnhancedHudEditorScreen extends Screen {
             case "enchant":
                 thickness = config.enchantBorderThickness;
                 break;
-            case "meteor":
-                thickness = config.meteorBorderThickness;
+            case "events":
+                thickness = config.eventsBorderThickness;
                 break;
             default:
                 thickness = 2; // Default to 2px

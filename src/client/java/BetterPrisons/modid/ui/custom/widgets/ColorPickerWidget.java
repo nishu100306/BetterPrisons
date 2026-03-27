@@ -30,8 +30,8 @@ public class ColorPickerWidget extends Component implements TooltipProvider {
 
     public ColorPickerWidget(String label, int initialColor) {
         this.label = label;
-        this.color = initialColor;
-        this.defaultColor = initialColor;
+        this.color = 0xFF000000 | (initialColor & 0xFFFFFF);
+        this.defaultColor = this.color;
         this.height = PREVIEW_SIZE;
     }
 
@@ -48,9 +48,9 @@ public class ColorPickerWidget extends Component implements TooltipProvider {
     }
 
     public void setColor(int color) {
-        this.color = color;
+        this.color = 0xFF000000 | (color & 0xFFFFFF);
         if (onChange != null) {
-            onChange.accept(color);
+            onChange.accept(this.color);
         }
     }
 

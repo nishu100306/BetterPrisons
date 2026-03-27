@@ -25,6 +25,12 @@ public class PickaxeDropConfirmation {
             return true;
         }
 
+        // Block pickaxe dropping entirely
+        if (BetterPrisonsClient.config.pickaxeDropBlockEnabled) {
+            showBlockedMessage();
+            return false;
+        }
+
         long now = System.currentTimeMillis();
         long timeSinceLastAttempt = now - lastDropAttemptTime;
 
@@ -44,6 +50,16 @@ public class PickaxeDropConfirmation {
     /**
      * Shows the confirmation message in chat
      */
+    private void showBlockedMessage() {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client.player != null) {
+            client.player.sendMessage(
+                Text.literal("§c§l[!] §cPickaxe dropping is disabled."),
+                false
+            );
+        }
+    }
+
     private void showConfirmationMessage() {
         MinecraftClient client = MinecraftClient.getInstance();
         if (client.player != null) {
