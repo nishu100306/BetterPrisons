@@ -32,6 +32,10 @@ public class ChatReceiveMixin {
         "\\[!]\\s+(\\S+)\\s+has pinged at\\s+(-?\\d+)x\\s+(-?\\d+)y\\s+(-?\\d+)z\\s+(\\S+)\\s+\\|\\s+HP:\\s+([\\d.]+)/([\\d.]+)\\s+\\|\\s+Facing:\\s+(\\w+)");
     private static final Pattern TRUCE_PING_PATTERN = Pattern.compile(
         "\\[T!]\\s+(\\S+)\\s+has pinged at\\s+(-?\\d+)x\\s+(-?\\d+)y\\s+(-?\\d+)z\\s+(\\S+)\\s+\\|\\s+HP:\\s+([\\d.]+)/([\\d.]+)\\s+\\|\\s+Facing:\\s+(\\w+)");
+    private static final Pattern BANDIT_RUSH_PATTERN = Pattern.compile(
+        "(\\w+) BANDIT RUSH has spawned at (-?\\d+), (-?\\d+), (-?\\d+)");
+    private static final Pattern BANDIT_RUSH_WON_PATTERN = Pattern.compile(
+        "won the\\s+(\\w+)\\s+BANDIT RUSH\\s+at\\s+(-?\\d+),\\s*(-?\\d+),\\s*(-?\\d+)");
 
     @Inject(method = "addMessage(Lnet/minecraft/text/Text;)V", at = @At("HEAD"))
     private void onReceiveMessage(Text message, CallbackInfo ci) {
@@ -82,17 +86,57 @@ public class ChatReceiveMixin {
             BetterPrisonsClient.eventsHud.onMeteorCrashed(text);
         }
 
+        // Strip §-codes for bandit rush matching (they can appear inline in coordinates)
+        String strippedText = text.replaceAll("§.", "");
+
+        // Check for bandit rush spawn
+        Matcher banditRushMatcher = BANDIT_RUSH_PATTERN.matcher(strippedText);
+        if (banditRushMatcher.find()) {
+            try {
+                String tier = banditRushMatcher.group(1);
+                int bx = Integer.parseInt(banditRushMatcher.group(2));
+                int by = Integer.parseInt(banditRushMatcher.group(3));
+                int bz = Integer.parseInt(banditRushMatcher.group(4));
+                BetterPrisonsClient.eventsHud.onBanditRushSpawned(tier, bx, by, bz);
+            } catch (NumberFormatException e) {
+                LOGGER.warn("Failed to parse bandit rush coordinates: {}", strippedText);
+            }
+        }
+
+        // Check for bandit rush won
+        if (strippedText.contains("BANDIT RUSH") && strippedText.contains("won the")) {
+            Matcher banditRushWonMatcher = BANDIT_RUSH_WON_PATTERN.matcher(strippedText);
+            if (banditRushWonMatcher.find()) {
+                try {
+                    String wonTier = banditRushWonMatcher.group(1);
+                    int bx = Integer.parseInt(banditRushWonMatcher.group(2));
+                    int bz = Integer.parseInt(banditRushWonMatcher.group(4));
+                    BetterPrisonsClient.eventsHud.onBanditRushWon(wonTier, bx, bz);
+                } catch (NumberFormatException e) {
+                    LOGGER.warn("Failed to parse bandit rush won coordinates: {}", strippedText);
+                }
+            }
+        }
+
         // Check for gang ping or truce ping
         if (text.contains("has pinged at")) {
             boolean isTruce = false;
             Matcher pingMatcher = null;
 
-            if (BetterPrisonsClient.config.trucePingEnabled && text.contains("[T!]")) {
+            boolean showNonGang = BetterPrisonsClient.config.gangPingShowNonGang;
+            boolean fromGangChat = text.contains("[GC]");
+            boolean fromTruceChat = text.contains("[TC]");
+
+            // Truce pings: accept from [TC] or [GC], or any chat if showNonGang is enabled
+            if (BetterPrisonsClient.config.trucePingEnabled && text.contains("[T!]")
+                    && (fromTruceChat || fromGangChat || showNonGang)) {
                 pingMatcher = TRUCE_PING_PATTERN.matcher(text);
                 if (pingMatcher.find()) isTruce = true;
                 else pingMatcher = null;
             }
-            if (pingMatcher == null && BetterPrisonsClient.config.gangPingEnabled && text.contains("[!]")) {
+            // Gang pings: accept from [GC], or any chat if showNonGang is enabled
+            if (pingMatcher == null && BetterPrisonsClient.config.gangPingEnabled && text.contains("[!]")
+                    && (fromGangChat || showNonGang)) {
                 pingMatcher = GANG_PING_PATTERN.matcher(text);
                 if (!pingMatcher.find()) pingMatcher = null;
             }

@@ -15,6 +15,7 @@ import BetterPrisons.modid.hud.SatchelHud;
 import BetterPrisons.modid.hud.StatsHud;
 import BetterPrisons.modid.hud.SuperBreakerAura;
 import BetterPrisons.modid.misc.EasyView;
+import BetterPrisons.modid.misc.ItemCooldownOverlay;
 import BetterPrisons.modid.misc.PickaxeDropConfirmation;
 import BetterPrisons.modid.render.BeaconBeamRenderer;
 import BetterPrisons.modid.waypoint.WaypointManager;
@@ -52,6 +53,7 @@ public class BetterPrisonsClient implements ClientModInitializer {
 
     // Misc features
     public static EasyView easyView;
+    public static ItemCooldownOverlay itemCooldownOverlay;
     public static PickaxeDropConfirmation pickaxeDropConfirmation;
 
     // Custom waypoints
@@ -161,6 +163,7 @@ public class BetterPrisonsClient implements ClientModInitializer {
         // Misc features
         easyView = new EasyView();
         easyView.enabled = config.easyViewEnabled;
+        itemCooldownOverlay = new ItemCooldownOverlay();
         pickaxeDropConfirmation = new PickaxeDropConfirmation();
 
         // Debug listeners

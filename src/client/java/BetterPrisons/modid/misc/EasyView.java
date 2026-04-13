@@ -174,6 +174,30 @@ public class EasyView {
         return false;
     }
 
+    public boolean isPrestigeToken(ItemStack stack) {
+        if (stack.isEmpty()) return false;
+        if (!BetterPrisonsClient.config.easyViewPrestigeTokenEnabled) return false;
+        try {
+            String name = stack.getName().getString();
+            return name.startsWith("Pickaxe Prestige Token ");
+        } catch (Exception e) {
+            // Ignore
+        }
+        return false;
+    }
+
+    public boolean isXpBottle(ItemStack stack) {
+        if (stack.isEmpty()) return false;
+        if (!BetterPrisonsClient.config.easyViewXpBottleEnabled) return false;
+        try {
+            String name = stack.getName().getString();
+            return (name.startsWith("XP Bottle (") || name.startsWith("Player XP Bottle (")) && name.endsWith(")");
+        } catch (Exception e) {
+            // Ignore
+        }
+        return false;
+    }
+
     /**
      * Extract level number from item display name, supporting prestige suffixes.
      * For example: "Diamond Pickaxe 15" -> "15"
@@ -298,6 +322,23 @@ public class EasyView {
                     drawText(slot, percent + "%");
                 }
             }
+            if (isPrestigeToken(stack)) {
+                // Extract Roman numeral from "Pickaxe Prestige Token II"
+                String level = name.replace("Pickaxe Prestige Token ", "").trim();
+                if (!level.isEmpty()) {
+                    drawText(slot, level);
+                }
+            }
+            if (isXpBottle(stack)) {
+                // Extract amount from "XP Bottle (17,614,015)" or "Player XP Bottle (900,000)"
+                int startIdx = name.indexOf('(');
+                int endIdx = name.indexOf(')', startIdx);
+                if (startIdx != -1 && endIdx != -1) {
+                    String amountStr = name.substring(startIdx + 1, endIdx).replaceAll(",", "");
+                    long amount = Long.parseLong(amountStr);
+                    drawText(slot, formatCompact(amount));
+                }
+            }
         } catch (Exception e) {
             // Silently ignore parsing errors
         }
@@ -401,6 +442,28 @@ public class EasyView {
                         }
                     }
                     return new TextWithColor(percent + "%", 0xFF000000 | pageColor, 0.5f, BetterPrisonsClient.config.easyViewPagesBold);
+                }
+            }
+            if (isPrestigeToken(stack)) {
+                String level = name.replace("Pickaxe Prestige Token ", "").trim();
+                if (!level.isEmpty()) {
+                    return new TextWithColor(level, 0xFF000000 | BetterPrisonsClient.config.easyViewPrestigeTokenColor, 0.5f, BetterPrisonsClient.config.easyViewPrestigeTokenBold);
+                }
+            }
+            if (isXpBottle(stack)) {
+                int startIdx = name.indexOf('(');
+                int endIdx = name.indexOf(')', startIdx);
+                if (startIdx != -1 && endIdx != -1) {
+                    String amountStr = name.substring(startIdx + 1, endIdx).replaceAll(",", "");
+                    long amount = Long.parseLong(amountStr);
+                    int xpColor = BetterPrisonsClient.config.easyViewXpBottleColor;
+                    if (BetterPrisonsClient.config.easyViewXpBottleTierColor) {
+                        int tierColor = extractTierColorFromName(stack);
+                        if (tierColor != -1) {
+                            xpColor = tierColor;
+                        }
+                    }
+                    return new TextWithColor(formatCompact(amount), 0xFF000000 | xpColor, 0.5f, BetterPrisonsClient.config.easyViewXpBottleBold);
                 }
             }
         } catch (Exception e) {

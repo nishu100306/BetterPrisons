@@ -24,9 +24,10 @@ public abstract class GenericContainerScreenMixin {
 
     @Inject(method = "render", at = @At("TAIL"))
     private void onRender(DrawContext context, int mouseX, int mouseY, float delta, CallbackInfo ci) {
-        if (BetterPrisonsClient.easyView == null || !BetterPrisonsClient.easyView.enabled) {
-            return;
-        }
+        boolean easyViewActive = BetterPrisonsClient.easyView != null && BetterPrisonsClient.easyView.enabled;
+        boolean cooldownActive = BetterPrisonsClient.itemCooldownOverlay != null && BetterPrisonsClient.config.itemCooldownsEnabled;
+
+        if (!easyViewActive && !cooldownActive) return;
 
         MinecraftClient client = MinecraftClient.getInstance();
         GenericContainerScreen screen = (GenericContainerScreen) (Object) this;
@@ -42,22 +43,43 @@ public abstract class GenericContainerScreenMixin {
             ItemStack stack = slot.getStack();
             if (stack.isEmpty()) continue;
 
-            // Process all items on-the-fly
-            BetterPrisons.modid.misc.EasyView.TextWithColor result = BetterPrisonsClient.easyView.processStackForTextWithColor(stack);
+            int slotX = slot.x;
+            int slotY = slot.y;
 
-            if (result != null && result.text != null && !result.text.isEmpty()) {
-                int slotX = slot.x;
-                int slotY = slot.y;
+            // EasyView overlay
+            if (easyViewActive) {
+                BetterPrisons.modid.misc.EasyView.TextWithColor result = BetterPrisonsClient.easyView.processStackForTextWithColor(stack);
 
-                matrices.pushMatrix();
-                matrices.translate(xSlot + slotX + 1, ySlot + slotY + 1);
-                matrices.scale(result.scale, result.scale);
+                if (result != null && result.text != null && !result.text.isEmpty()) {
+                    matrices.pushMatrix();
+                    matrices.translate(xSlot + slotX + 1, ySlot + slotY + 1);
+                    matrices.scale(result.scale, result.scale);
 
-                net.minecraft.text.Text displayText = net.minecraft.text.Text.literal(result.text)
-                        .styled(style -> style.withBold(result.bold));
-                context.drawText(client.textRenderer, displayText, 0, 0, result.color, true);
+                    net.minecraft.text.Text displayText = net.minecraft.text.Text.literal(result.text)
+                            .styled(style -> style.withBold(result.bold));
+                    context.drawText(client.textRenderer, displayText, 0, 0, result.color, true);
 
-                matrices.popMatrix();
+                    matrices.popMatrix();
+                }
+            }
+
+            // Item cooldown overlay (centered in slot)
+            if (cooldownActive) {
+                BetterPrisons.modid.misc.ItemCooldownOverlay.CooldownResult cooldown = BetterPrisonsClient.itemCooldownOverlay.getCooldownOverlay(stack);
+                if (cooldown != null) {
+                    float scale = cooldown.scale;
+
+                    net.minecraft.text.Text cdText = net.minecraft.text.Text.literal(cooldown.text)
+                            .styled(style -> style.withBold(cooldown.bold));
+                    int textWidth = client.textRenderer.getWidth(cdText);
+                    int textHeight = client.textRenderer.fontHeight;
+
+                    matrices.pushMatrix();
+                    matrices.translate(xSlot + slotX + 8, ySlot + slotY + 8);
+                    matrices.scale(scale, scale);
+                    context.drawText(client.textRenderer, cdText, -textWidth / 2, -textHeight / 2, cooldown.color, true);
+                    matrices.popMatrix();
+                }
             }
         }
     }

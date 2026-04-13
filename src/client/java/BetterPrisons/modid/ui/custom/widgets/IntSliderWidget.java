@@ -22,6 +22,8 @@ public class IntSliderWidget extends Component implements TooltipProvider {
     private String suffix;
     private String tooltip;
     private boolean dragging = false;
+    private boolean editing = false;
+    private String editBuffer = "";
     private Consumer<Integer> onChange;
 
     private static final int SLIDER_WIDTH = 120;
@@ -111,15 +113,33 @@ public class IntSliderWidget extends Component implements TooltipProvider {
         RenderUtils.drawRect(context, handleX, handleY, HANDLE_SIZE, HANDLE_SIZE, handleColor);
         RenderUtils.drawRectOutline(context, handleX, handleY, HANDLE_SIZE, HANDLE_SIZE, borderColor, 1);
 
-        // Draw value text
-        String valueText = value + suffix;
-        int valueWidth = client.textRenderer.getWidth(valueText);
+        // Draw value text (or edit field)
         int valueX = sliderX + SLIDER_WIDTH + LABEL_SPACING;
         int valueY = y + (height - 8) / 2;
-        context.drawText(client.textRenderer, valueText, valueX, valueY, Theme.textSecondary, false);
+        String valueText;
+        int valueWidth;
 
-        // Draw reset button
-        int resetX = valueX + valueWidth + RESET_BUTTON_SPACING;
+        if (editing) {
+            // Draw edit field with cursor
+            String displayText = editBuffer + "_";
+            valueWidth = client.textRenderer.getWidth(displayText);
+            int editBgX = valueX - 2;
+            int editBgY = valueY - 2;
+            int editBgW = Math.max(valueWidth + 4, 40);
+            int editBgH = 12;
+            RenderUtils.drawRect(context, editBgX, editBgY, editBgW, editBgH, Theme.widgetBackground);
+            RenderUtils.drawRectOutline(context, editBgX, editBgY, editBgW, editBgH, Theme.borderFocus, 1);
+            context.drawText(client.textRenderer, displayText, valueX, valueY, Theme.textPrimary, false);
+            valueText = displayText;
+        } else {
+            valueText = value + suffix;
+            valueWidth = client.textRenderer.getWidth(valueText);
+            context.drawText(client.textRenderer, valueText, valueX, valueY, Theme.textSecondary, false);
+        }
+
+        // Draw reset button (offset by edit box width when editing)
+        int valueAreaWidth = editing ? Math.max(valueWidth + 4, 40) : valueWidth;
+        int resetX = valueX + valueAreaWidth + RESET_BUTTON_SPACING;
         int resetY = y + (height - RESET_BUTTON_SIZE) / 2;
         boolean resetHovered = mouseX >= resetX && mouseX < resetX + RESET_BUTTON_SIZE &&
                               mouseY >= resetY && mouseY < resetY + RESET_BUTTON_SIZE;
@@ -138,7 +158,7 @@ public class IntSliderWidget extends Component implements TooltipProvider {
             Theme.textSecondary, false);
 
         // Update total width for layout
-        this.width = labelWidth + LABEL_SPACING + SLIDER_WIDTH + LABEL_SPACING + valueWidth + RESET_BUTTON_SPACING + RESET_BUTTON_SIZE;
+        this.width = labelWidth + LABEL_SPACING + SLIDER_WIDTH + LABEL_SPACING + valueAreaWidth + RESET_BUTTON_SPACING + RESET_BUTTON_SIZE;
     }
 
     @Override
@@ -149,17 +169,36 @@ public class IntSliderWidget extends Component implements TooltipProvider {
             MinecraftClient client = MinecraftClient.getInstance();
             int labelWidth = client.textRenderer.getWidth(label);
             int sliderX = x + labelWidth + LABEL_SPACING;
-            String valueText = value + suffix;
+            String valueText = editing ? (editBuffer + "_") : (value + suffix);
             int valueWidth = client.textRenderer.getWidth(valueText);
             int valueX = sliderX + SLIDER_WIDTH + LABEL_SPACING;
-            int resetX = valueX + valueWidth + RESET_BUTTON_SPACING;
+            int resetX = valueX + Math.max(valueWidth, 40) + RESET_BUTTON_SPACING;
             int resetY = y + (height - RESET_BUTTON_SIZE) / 2;
 
             // Check if clicking reset button
             if (mouseX >= resetX && mouseX < resetX + RESET_BUTTON_SIZE &&
                 mouseY >= resetY && mouseY < resetY + RESET_BUTTON_SIZE) {
+                commitEdit();
                 resetToDefault();
                 return true;
+            }
+
+            // Check if clicking value text area
+            int valueAreaX = valueX - 2;
+            int valueAreaY = y + (height - 8) / 2 - 2;
+            int valueAreaW = Math.max(editing ? Math.max(valueWidth + 4, 40) : valueWidth + 4, 40);
+            if (mouseX >= valueAreaX && mouseX < valueAreaX + valueAreaW &&
+                mouseY >= valueAreaY && mouseY < valueAreaY + 12) {
+                if (!editing) {
+                    editing = true;
+                    editBuffer = String.valueOf(value);
+                }
+                return true;
+            }
+
+            // Clicking elsewhere commits edit
+            if (editing) {
+                commitEdit();
             }
 
             // Check if clicking slider
@@ -170,6 +209,23 @@ public class IntSliderWidget extends Component implements TooltipProvider {
             }
         }
         return false;
+    }
+
+    private void commitEdit() {
+        if (!editing) return;
+        editing = false;
+        try {
+            int parsed = Integer.parseInt(editBuffer.trim());
+            setValue(parsed);
+        } catch (NumberFormatException ignored) {
+            // Invalid input — keep current value
+        }
+        editBuffer = "";
+    }
+
+    private void cancelEdit() {
+        editing = false;
+        editBuffer = "";
     }
 
     public void resetToDefault() {
@@ -192,6 +248,38 @@ public class IntSliderWidget extends Component implements TooltipProvider {
             return true;
         }
         return false;
+    }
+
+    @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (!editing) return false;
+        if (keyCode == 257 || keyCode == 335) { // Enter or numpad enter
+            commitEdit();
+            return true;
+        }
+        if (keyCode == 256) { // Escape
+            cancelEdit();
+            return true;
+        }
+        if (keyCode == 259 && !editBuffer.isEmpty()) { // Backspace
+            editBuffer = editBuffer.substring(0, editBuffer.length() - 1);
+            return true;
+        }
+        return true; // Consume all keys while editing
+    }
+
+    @Override
+    public boolean charTyped(char chr, int modifiers) {
+        if (!editing) return false;
+        if ((chr >= '0' && chr <= '9') || (chr == '-' && editBuffer.isEmpty())) {
+            editBuffer += chr;
+            return true;
+        }
+        return true; // Consume but ignore non-numeric
+    }
+
+    public boolean isEditing() {
+        return editing;
     }
 
     private void updateValueFromMouse(double mouseX) {

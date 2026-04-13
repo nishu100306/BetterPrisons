@@ -2,6 +2,7 @@ package BetterPrisons.modid.ui.custom.screens;
 
 import BetterPrisons.modid.BetterPrisonsClient;
 import BetterPrisons.modid.Config;
+import BetterPrisons.modid.misc.EnergyCalculator;
 import BetterPrisons.modid.ui.custom.binding.BindingRegistry;
 import BetterPrisons.modid.ui.custom.binding.ConfigBinding;
 import BetterPrisons.modid.ui.custom.binding.FieldBinding;
@@ -95,9 +96,11 @@ public class CustomConfigScreen extends Screen {
         sidebar.addTab("Peaceful Mining");
         sidebar.addTab("Held Item Scaling");
         sidebar.addTab("EasyView");
+        sidebar.addTab("Item Cooldowns");
         sidebar.addTab("Pickaxe Drop");
         sidebar.addTab("Notifications");
         sidebar.addSeparator();
+        sidebar.addTab("Tools");
         sidebar.addTab("Config Settings");
 
         sidebar.setSelectedIndex(currentCategoryIndex);
@@ -118,8 +121,10 @@ public class CustomConfigScreen extends Screen {
         categories.add(createPeacefulMiningCategory());
         categories.add(createHeldItemScalingCategory());
         categories.add(createEasyViewCategory());
+        categories.add(createItemCooldownsCategory());
         categories.add(createPickaxeDropCategory());
         categories.add(createNotificationsCategory());
+        categories.add(createToolsCategory());
         categories.add(createConfigSettingsCategory());
 
         // Position categories
@@ -815,6 +820,21 @@ public class CustomConfigScreen extends Screen {
 
         category.addWidget(merchantGroup);
 
+        // Bandit Rush settings
+        CollapsibleWidget banditRushGroup = createCollapsible("Bandit Rushes", "Configure bandit rush display on the Events HUD");
+        banditRushGroup.addWidget(createToggle("Enabled", "banditRushEnabled", true, "Show bandit rush events (only in your badlands sub-world)"));
+        banditRushGroup.addWidget(createIntSlider("Timeout", "banditRushTimeoutSeconds", 60, 10, 300, "s", "How long a bandit rush stays on the HUD before being removed"));
+        banditRushGroup.addWidget(createColorPicker("Heading Color", "banditRushHeadingColor", 0xFFAA00));
+        banditRushGroup.addWidget(createColorPicker("Text Color", "banditRushTextColor", 0xFFAAAA));
+        banditRushGroup.addWidget(createTextInput("Icon Item ID", "banditRushIconItemId", "iron_sword", "Item ID for bandit rush icon (minecraft: prefix added automatically)"));
+        banditRushGroup.addWidget(createToggle("Show Distance", "banditRushShowDistance", true, "Show distance to bandit rush in the Events HUD"));
+        banditRushGroup.addWidget(createIntSlider("Beam Opacity", "banditRushBeamOpacity", 160, 0, 255, "", "Beacon beam opacity for bandit rushes (0=transparent, 255=opaque)"));
+        banditRushGroup.addWidget(createToggle("Sound Notification", "banditRushSoundEnabled", true, "Play a sound when a bandit rush spawns in your sub-world"));
+        banditRushGroup.addWidget(createDropdown("Sound", "banditRushSound",
+            Arrays.asList("anvil", "bell", "xp_orb", "note_pling", "enchant", "level_up", "ender_eye"), "note_pling", "Notification sound"));
+        banditRushGroup.addWidget(createIntSlider("Sound Volume", "banditRushSoundVolume", 100, 0, 200, "%", "Volume for bandit rush notification sound"));
+        category.addWidget(banditRushGroup);
+
         return category;
     }
 
@@ -831,6 +851,8 @@ public class CustomConfigScreen extends Screen {
         screenGroup.addWidget(createToggle("Show Merchants", "waypointMerchantsEnabled", true, "Show merchant waypoint indicators"));
         screenGroup.addWidget(createToggle("Merchants: Edge Indicators", "waypointMerchantsEdgeEnabled", true, "Show merchant indicators at screen edge when off-screen"));
         screenGroup.addWidget(createToggle("Custom: Edge Indicators", "waypointCustomEdgeEnabled", false, "Show custom waypoint indicators at screen edge when off-screen"));
+        screenGroup.addWidget(createToggle("Show Bandit Rushes", "waypointBanditRushEnabled", true, "Show bandit rush waypoint indicators (badlands only)"));
+        screenGroup.addWidget(createToggle("Bandit Rushes: Edge Indicators", "waypointBanditRushEdgeEnabled", true, "Show bandit rush indicators at screen edge when off-screen"));
         category.addWidget(screenGroup);
 
         CollapsibleWidget beamGroup = createCollapsible("Beacon Beams", "3D vertical beam pillars in world space");
@@ -861,6 +883,7 @@ public class CustomConfigScreen extends Screen {
         category.addWidget(createColorPicker("Gang Ping Color", "gangPingColor", 0xAA55FF));
         category.addWidget(createToggle("Truce Pings Enabled", "trucePingEnabled", true, "Enable truce ping sending and receiving"));
         category.addWidget(createColorPicker("Truce Ping Color", "trucePingColor", 0x55AAFF));
+        category.addWidget(createToggle("Show Pings Not From Your Gang/Truce", "gangPingShowNonGang", false, "Accept pings from any chat, not just [GC] and [TC]"));
 
         CollapsibleWidget iconGroup = createCollapsible("Icon Settings", "Waypoint icon appearance and behavior (shared)");
         iconGroup.addWidget(createIntSlider("Icon Opacity", "gangPingBaseOpacity", 200, 0, 255, "", "Base icon opacity before distance fade (0=transparent, 255=opaque)"));
@@ -1001,6 +1024,46 @@ public class CustomConfigScreen extends Screen {
         pagesGroup.addWidget(createToggle("Tier Color", "easyViewPagesTierColor", false, "Use tier color from page name instead of custom color"));
         category.addWidget(pagesGroup);
 
+        CollapsibleWidget prestigeTokenGroup = createCollapsible("Prestige Tokens", "Configure prestige token display");
+        prestigeTokenGroup.addWidget(createToggle("Enabled", "easyViewPrestigeTokenEnabled", true, "Show prestige token level"));
+        prestigeTokenGroup.addWidget(createColorPicker("Color", "easyViewPrestigeTokenColor", 0xFFD700));
+        prestigeTokenGroup.addWidget(createToggle("Bold", "easyViewPrestigeTokenBold", true, "Bold prestige token text"));
+        category.addWidget(prestigeTokenGroup);
+
+        CollapsibleWidget xpBottleGroup = createCollapsible("XP Bottles", "Configure XP bottle display");
+        xpBottleGroup.addWidget(createToggle("Enabled", "easyViewXpBottleEnabled", true, "Show XP bottle amount"));
+        xpBottleGroup.addWidget(createColorPicker("Color", "easyViewXpBottleColor", 0xFFFFFF));
+        xpBottleGroup.addWidget(createToggle("Bold", "easyViewXpBottleBold", true, "Bold XP bottle text"));
+        xpBottleGroup.addWidget(createToggle("Tier Color", "easyViewXpBottleTierColor", true, "Use tier color from bottle name instead of custom color"));
+        category.addWidget(xpBottleGroup);
+
+        return category;
+    }
+
+    private CategoryContainer createItemCooldownsCategory() {
+        CategoryContainer category = new CategoryContainer("Item Cooldowns");
+
+        category.addWidget(createToggle("Enabled", "itemCooldownsEnabled", true, "Show cooldown timers on items"));
+
+        CollapsibleWidget petsGroup = createCollapsible("Pets", "Configure pet cooldown display");
+        petsGroup.addWidget(createToggle("Enabled", "itemCooldownsPetEnabled", true, "Show cooldown timer on pets"));
+        petsGroup.addWidget(createColorPicker("Cooldown Color", "itemCooldownsPetCooldownColor", 0xFF5555));
+        petsGroup.addWidget(createColorPicker("Active Color", "itemCooldownsPetActiveColor", 0x00FF00));
+        petsGroup.addWidget(createToggle("Bold", "itemCooldownsPetBold", true, "Bold pet timer text"));
+        category.addWidget(petsGroup);
+
+        CollapsibleWidget trinketGroup = createCollapsible("Trinkets", "Configure trinket cooldown display");
+        trinketGroup.addWidget(createToggle("Enabled", "itemCooldownsTrinketEnabled", true, "Show cooldown timer on trinkets"));
+        trinketGroup.addWidget(createColorPicker("Color", "itemCooldownsTrinketColor", 0xFF5555));
+        trinketGroup.addWidget(createToggle("Bold", "itemCooldownsTrinketBold", true, "Bold trinket timer text"));
+        category.addWidget(trinketGroup);
+
+        CollapsibleWidget banditBoxGroup = createCollapsible("Bandit Boxes", "Configure bandit box timer display");
+        banditBoxGroup.addWidget(createToggle("Enabled", "itemCooldownsBanditBoxEnabled", true, "Show unlock timer on bandit boxes"));
+        banditBoxGroup.addWidget(createColorPicker("Color", "itemCooldownsBanditBoxColor", 0x00FF00));
+        banditBoxGroup.addWidget(createToggle("Bold", "itemCooldownsBanditBoxBold", true, "Bold bandit box timer text"));
+        category.addWidget(banditBoxGroup);
+
         return category;
     }
 
@@ -1021,6 +1084,121 @@ public class CustomConfigScreen extends Screen {
         category.addWidget(createDropdown("Sound", "messageNotifsSound",
             Arrays.asList("anvil", "bell", "xp_orb", "note_pling", "enchant", "level_up", "ender_eye"), "anvil", "Notification sound"));
         category.addWidget(createIntSlider("Volume", "messageNotifsVolume", 100, 0, 200, "%", "Notification volume"));
+
+        return category;
+    }
+
+    // ===== TOOLS (NON-CONFIG) =====
+
+    private CategoryContainer createToolsCategory() {
+        CategoryContainer category = new CategoryContainer("Tools");
+
+        // --- Energy Calculator ---
+        CollapsibleWidget energyCalc = new CollapsibleWidget("Energy Calculator");
+        energyCalc.setTooltip("Calculate energy cost for pickaxe and satchel upgrades");
+
+        // Result label (updated reactively)
+        LabelWidget resultLabel = new LabelWidget("Select options and press Calculate", Theme.textSecondary);
+
+        // Category dropdown: Pick, Ore Satchel, Refined Satchel
+        List<String> calcCategories = Arrays.asList("Pickaxe", "Ore Satchel", "Refined Satchel");
+        DropdownWidget categoryDropdown = new DropdownWidget("Category", calcCategories, 0);
+
+        // Type dropdown (changes based on category)
+        List<String> pickTypes = Arrays.asList("Wood", "Stone", "Gold", "Iron", "Diamond");
+        List<String> satchelTypes = Arrays.asList("Coal", "Iron", "Lapis", "Redstone", "Gold", "Diamond", "Emerald");
+        DropdownWidget typeDropdown = new DropdownWidget("Type", pickTypes, 0);
+
+        // Level sliders
+        IntSliderWidget startLevel = new IntSliderWidget("Start Level", 1, 1, 110);
+        startLevel.setTooltip("Current level");
+        IntSliderWidget endLevel = new IntSliderWidget("End Level", 50, 1, 110);
+        endLevel.setTooltip("Target level");
+
+        // Recalculate helper
+        Runnable recalculate = () -> {
+            String cat = categoryDropdown.getSelectedValue();
+            String type = typeDropdown.getSelectedValue();
+            int start = startLevel.getValue();
+            int end = endLevel.getValue();
+
+            if (end <= start) {
+                resultLabel.setText("End level must be greater than start level");
+                resultLabel.setColor(0xFFFF5555);
+                return;
+            }
+
+            try {
+                long energy;
+                String label;
+                if (cat.equals("Pickaxe")) {
+                    EnergyCalculator.PickType pickType = EnergyCalculator.PickType.valueOf(type.toUpperCase());
+                    energy = EnergyCalculator.calcPickEnergy(pickType, start, end);
+                    label = type + " Pick";
+                } else if (cat.equals("Ore Satchel")) {
+                    EnergyCalculator.SatchelType satchelType = EnergyCalculator.SatchelType.valueOf(type.toUpperCase());
+                    energy = EnergyCalculator.calcSatchelOreEnergy(satchelType, start, end);
+                    label = type + " Ore Satchel";
+                } else {
+                    EnergyCalculator.SatchelType satchelType = EnergyCalculator.SatchelType.valueOf(type.toUpperCase());
+                    energy = EnergyCalculator.calcSatchelRefinedEnergy(satchelType, start, end);
+                    label = type + " Refined Satchel";
+                }
+                resultLabel.setText(label + " " + start + " -> " + end + ": " + EnergyCalculator.formatEnergy(energy) + " energy");
+                resultLabel.setColor(0xFF55FF55);
+            } catch (IllegalArgumentException e) {
+                resultLabel.setText("Invalid type for selected category");
+                resultLabel.setColor(0xFFFF5555);
+            }
+        };
+
+        // When category changes, swap type options and reset
+        categoryDropdown.setOnChange(selected -> {
+            if (selected.equals("Pickaxe")) {
+                typeDropdown.setOptions(pickTypes);
+                startLevel.setValue(1);
+                endLevel.setValue(50);
+            } else {
+                typeDropdown.setOptions(satchelTypes);
+                startLevel.setValue(1);
+                endLevel.setValue(50);
+            }
+            typeDropdown.setSelectedIndex(0);
+            recalculate.run();
+        });
+
+        typeDropdown.setOnChange(selected -> recalculate.run());
+        startLevel.setOnChange(val -> recalculate.run());
+        endLevel.setOnChange(val -> recalculate.run());
+
+        energyCalc.addWidget(categoryDropdown);
+        energyCalc.addWidget(typeDropdown);
+        energyCalc.addWidget(startLevel);
+        energyCalc.addWidget(endLevel);
+        energyCalc.addWidget(resultLabel);
+
+        // Initial calculation
+        recalculate.run();
+
+        category.addWidget(energyCalc);
+
+        // --- Links ---
+        CollapsibleWidget links = new CollapsibleWidget("Links");
+        links.setTooltip("Useful external resources");
+
+        LinkButtonWidget cosmicBuilds = new LinkButtonWidget("Open CosmicBuilds", "https://cosmicbuilds.com");
+        cosmicBuilds.setTooltip("Opens cosmicbuilds.com in your browser");
+        links.addWidget(cosmicBuilds);
+
+        LinkButtonWidget bpDiscord = new LinkButtonWidget("BetterPrisons Discord", "https://discord.gg/QWYZJW3Avj");
+        bpDiscord.setTooltip("Join the BetterPrisons Discord server");
+        links.addWidget(bpDiscord);
+
+        LinkButtonWidget cosmicDiscord = new LinkButtonWidget("Cosmic Discord", "https://discord.gg/cosmicgames");
+        cosmicDiscord.setTooltip("Join the Cosmic Games Discord server");
+        links.addWidget(cosmicDiscord);
+
+        category.addWidget(links);
 
         return category;
     }

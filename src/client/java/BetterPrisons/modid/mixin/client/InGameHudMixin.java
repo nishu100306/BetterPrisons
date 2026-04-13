@@ -23,10 +23,6 @@ public class InGameHudMixin {
 
     @Inject(method = "render", at = @At("TAIL"))
     private void onRender(DrawContext context, RenderTickCounter tickCounter, CallbackInfo ci) {
-        if (BetterPrisonsClient.easyView == null || !BetterPrisonsClient.easyView.enabled) {
-            return;
-        }
-
         if (this.client.player == null) {
             return;
         }
@@ -36,40 +32,61 @@ public class InGameHudMixin {
             return;
         }
 
+        boolean easyViewActive = BetterPrisonsClient.easyView != null && BetterPrisonsClient.easyView.enabled;
+        boolean cooldownActive = BetterPrisonsClient.itemCooldownOverlay != null && BetterPrisonsClient.config.itemCooldownsEnabled;
+
+        if (!easyViewActive && !cooldownActive) return;
+
         PlayerEntity player = this.client.player;
         int scaledWidth = context.getScaledWindowWidth();
         int scaledHeight = context.getScaledWindowHeight();
 
-        // Hotbar is centered at bottom of screen
-        // Each slot is 20 pixels wide (16px item + 2px padding on each side)
-        // There are 9 slots, so total width is 182 pixels (9 * 20 + 2 for border)
-        int hotbarX = scaledWidth / 2 - 91; // Center of screen minus half hotbar width
-        int hotbarY = scaledHeight - 22; // 22 pixels from bottom
+        int hotbarX = scaledWidth / 2 - 91;
+        int hotbarY = scaledHeight - 22;
 
         Matrix3x2fStack matrices = context.getMatrices();
 
-        // Render overlays for hotbar items (inventory slots 0-8)
         for (int i = 0; i < 9; i++) {
             ItemStack stack = player.getInventory().getStack(i);
             if (stack.isEmpty()) continue;
 
-            BetterPrisons.modid.misc.EasyView.TextWithColor result = BetterPrisonsClient.easyView.processStackForTextWithColor(stack);
+            int slotX = hotbarX + (i * 20) + 3;
+            int slotY = hotbarY + 3;
 
-            if (result != null && result.text != null && !result.text.isEmpty()) {
-                // Calculate slot position
-                // Each slot starts at hotbarX + (i * 20) + 3 (border + padding)
-                int slotX = hotbarX + (i * 20) + 3;
-                int slotY = hotbarY + 3;
+            // EasyView overlay
+            if (easyViewActive) {
+                BetterPrisons.modid.misc.EasyView.TextWithColor result = BetterPrisonsClient.easyView.processStackForTextWithColor(stack);
 
-                matrices.pushMatrix();
-                matrices.translate(slotX + 1, slotY + 1);
-                matrices.scale(result.scale, result.scale);
+                if (result != null && result.text != null && !result.text.isEmpty()) {
+                    matrices.pushMatrix();
+                    matrices.translate(slotX + 1, slotY + 1);
+                    matrices.scale(result.scale, result.scale);
 
-                net.minecraft.text.Text displayText = net.minecraft.text.Text.literal(result.text)
-                        .styled(style -> style.withBold(result.bold));
-                context.drawText(this.client.textRenderer, displayText, 0, 0, result.color, true);
+                    net.minecraft.text.Text displayText = net.minecraft.text.Text.literal(result.text)
+                            .styled(style -> style.withBold(result.bold));
+                    context.drawText(this.client.textRenderer, displayText, 0, 0, result.color, true);
 
-                matrices.popMatrix();
+                    matrices.popMatrix();
+                }
+            }
+
+            // Item cooldown overlay (centered in slot)
+            if (cooldownActive) {
+                BetterPrisons.modid.misc.ItemCooldownOverlay.CooldownResult cooldown = BetterPrisonsClient.itemCooldownOverlay.getCooldownOverlay(stack);
+                if (cooldown != null) {
+                    float cdScale = cooldown.scale;
+
+                    net.minecraft.text.Text cdText = net.minecraft.text.Text.literal(cooldown.text)
+                            .styled(style -> style.withBold(cooldown.bold));
+                    int textWidth = this.client.textRenderer.getWidth(cdText);
+                    int textHeight = this.client.textRenderer.fontHeight;
+
+                    matrices.pushMatrix();
+                    matrices.translate(slotX + 8, slotY + 8);
+                    matrices.scale(cdScale, cdScale);
+                    context.drawText(this.client.textRenderer, cdText, -textWidth / 2, -textHeight / 2, cooldown.color, true);
+                    matrices.popMatrix();
+                }
             }
         }
     }

@@ -77,6 +77,8 @@ public class Config {
     public boolean easyViewPickaxesEnabled = true;
     public boolean easyViewDustEnabled = true;
     public boolean easyViewPagesEnabled = true;
+    public boolean easyViewPrestigeTokenEnabled = true;
+    public boolean easyViewXpBottleEnabled = true;
     public int easyViewEnergyColor = 0xFFFFFF;
     public int easyViewMoneyColor = 0x00FF00;
     public int easyViewGangPointsColor = 65535; // cyan
@@ -87,6 +89,8 @@ public class Config {
     public int easyViewPickaxesColor = 0x00FF00; // light green
     public int easyViewDustColor = 0xD2691E; // chocolate brown
     public int easyViewPagesColor = 0xF5DEB3; // wheat/parchment
+    public int easyViewPrestigeTokenColor = 0xFFD700; // gold
+    public int easyViewXpBottleColor = 0xFFFFFF; // white (default, overridden by tier color)
 
     // EasyView scale settings (70 = 0.7 scale)
     public int easyViewPickaxesScale = 70;
@@ -105,6 +109,22 @@ public class Config {
     public boolean easyViewDustBold = true;
     public boolean easyViewPagesBold = true;
     public boolean easyViewPagesTierColor = false;
+    public boolean easyViewPrestigeTokenBold = true;
+    public boolean easyViewXpBottleBold = true;
+    public boolean easyViewXpBottleTierColor = true;
+
+    // Item Cooldowns
+    public boolean itemCooldownsEnabled = true;
+    public boolean itemCooldownsPetEnabled = true;
+    public int itemCooldownsPetCooldownColor = 0xFF5555; // red — cooldown timer
+    public int itemCooldownsPetActiveColor = 0x00FF00; // green — active duration timer
+    public boolean itemCooldownsPetBold = true;
+    public boolean itemCooldownsTrinketEnabled = true;
+    public int itemCooldownsTrinketColor = 0xFF5555; // red
+    public boolean itemCooldownsTrinketBold = true;
+    public boolean itemCooldownsBanditBoxEnabled = true;
+    public int itemCooldownsBanditBoxColor = 0x00FF00; // green — unlocking timer
+    public boolean itemCooldownsBanditBoxBold = true;
 
     // HUD Scaling
     public int cooldownHudScale = 100;
@@ -249,6 +269,20 @@ public class Config {
     public int diamondMerchantHeadingColor  = 0x55FFFF; // aqua
     public int emeraldMerchantHeadingColor  = 0x55FF55; // green
 
+    // Bandit Rush settings
+    public boolean banditRushEnabled = true;
+    public int banditRushHeadingColor = 0xFFAA00; // yellow
+    public int banditRushTextColor = 0xFFAAAA; // light red
+    public boolean banditRushShowDistance = true;
+    public int banditRushTimeoutSeconds = 60; // how long a rush stays on HUD
+    public int banditRushBeamOpacity = 160;
+    public String banditRushIconItemId = "iron_sword";
+    public boolean banditRushSoundEnabled = true;
+    public String banditRushSound = "note_pling"; // "anvil", "bell", "xp_orb", "note_pling", "enchant", "level_up", "ender_eye"
+    public int banditRushSoundVolume = 100; // 0-200
+    public boolean waypointBanditRushEnabled = true;
+    public boolean waypointBanditRushEdgeEnabled = true;
+
     // Waypoint settings
     public boolean waypointsEnabled = true;
     public boolean waypointMeteorsEnabled = true;
@@ -286,6 +320,7 @@ public class Config {
     public boolean gangPingDistanceScaling = true;   // false = always use min scale
     public boolean trucePingEnabled = true;
     public int trucePingColor = 0x55AAFF;         // light blue
+    public boolean gangPingShowNonGang = false;   // show pings not from your gang/truce chat
 
     // Minimap
     public boolean minimapEnabled       = false;
@@ -527,6 +562,8 @@ public class Config {
                 this.easyViewPickaxesEnabled = loaded.easyViewPickaxesEnabled;
                 this.easyViewDustEnabled = loaded.easyViewDustEnabled;
                 this.easyViewPagesEnabled = loaded.easyViewPagesEnabled;
+                this.easyViewPrestigeTokenEnabled = loaded.easyViewPrestigeTokenEnabled;
+                this.easyViewXpBottleEnabled = loaded.easyViewXpBottleEnabled;
                 this.easyViewEnergyColor = loaded.easyViewEnergyColor;
                 this.easyViewMoneyColor = loaded.easyViewMoneyColor;
                 this.easyViewGangPointsColor = loaded.easyViewGangPointsColor;
@@ -537,6 +574,8 @@ public class Config {
                 this.easyViewPickaxesColor = loaded.easyViewPickaxesColor;
                 this.easyViewDustColor = loaded.easyViewDustColor;
                 this.easyViewPagesColor = loaded.easyViewPagesColor;
+                this.easyViewPrestigeTokenColor = loaded.easyViewPrestigeTokenColor;
+                this.easyViewXpBottleColor = loaded.easyViewXpBottleColor;
 
                 // Load EasyView scale settings
                 this.easyViewPickaxesScale = loaded.easyViewPickaxesScale;
@@ -555,6 +594,22 @@ public class Config {
                 this.easyViewDustBold = loaded.easyViewDustBold;
                 this.easyViewPagesBold = loaded.easyViewPagesBold;
                 this.easyViewPagesTierColor = loaded.easyViewPagesTierColor;
+                this.easyViewPrestigeTokenBold = loaded.easyViewPrestigeTokenBold;
+                this.easyViewXpBottleBold = loaded.easyViewXpBottleBold;
+                this.easyViewXpBottleTierColor = loaded.easyViewXpBottleTierColor;
+
+                // Load Item Cooldowns settings
+                this.itemCooldownsEnabled = loaded.itemCooldownsEnabled;
+                this.itemCooldownsPetEnabled = loaded.itemCooldownsPetEnabled;
+                this.itemCooldownsPetCooldownColor = loaded.itemCooldownsPetCooldownColor;
+                this.itemCooldownsPetActiveColor = loaded.itemCooldownsPetActiveColor;
+                this.itemCooldownsPetBold = loaded.itemCooldownsPetBold;
+                this.itemCooldownsTrinketEnabled = loaded.itemCooldownsTrinketEnabled;
+                this.itemCooldownsTrinketColor = loaded.itemCooldownsTrinketColor;
+                this.itemCooldownsTrinketBold = loaded.itemCooldownsTrinketBold;
+                this.itemCooldownsBanditBoxEnabled = loaded.itemCooldownsBanditBoxEnabled;
+                this.itemCooldownsBanditBoxColor = loaded.itemCooldownsBanditBoxColor;
+                this.itemCooldownsBanditBoxBold = loaded.itemCooldownsBanditBoxBold;
 
                 // Load HUD scaling settings
                 this.cooldownHudScale = loaded.cooldownHudScale;
@@ -625,6 +680,21 @@ public class Config {
                 this.gangPingDistanceScaling = loaded.gangPingDistanceScaling;
                 this.trucePingEnabled = loaded.trucePingEnabled;
                 this.trucePingColor = loaded.trucePingColor;
+                this.gangPingShowNonGang = loaded.gangPingShowNonGang;
+
+                // Bandit Rush
+                this.banditRushEnabled = loaded.banditRushEnabled;
+                this.banditRushHeadingColor = loaded.banditRushHeadingColor;
+                this.banditRushTextColor = loaded.banditRushTextColor;
+                this.banditRushShowDistance = loaded.banditRushShowDistance;
+                this.banditRushTimeoutSeconds = loaded.banditRushTimeoutSeconds;
+                this.banditRushBeamOpacity = loaded.banditRushBeamOpacity;
+                this.banditRushIconItemId = loaded.banditRushIconItemId;
+                this.banditRushSoundEnabled = loaded.banditRushSoundEnabled;
+                this.banditRushSound = loaded.banditRushSound;
+                this.banditRushSoundVolume = loaded.banditRushSoundVolume;
+                this.waypointBanditRushEnabled = loaded.waypointBanditRushEnabled;
+                this.waypointBanditRushEdgeEnabled = loaded.waypointBanditRushEdgeEnabled;
             }
         } catch (IOException e) {
             e.printStackTrace();

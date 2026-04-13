@@ -70,8 +70,11 @@ public class BeaconBeamRenderer {
     }
 
     private static void render(WorldRenderContext ctx) {
-        if (!BetterPrisonsClient.config.waypointsEnabled) return;
         if (!BetterPrisonsClient.config.beaconBeamsEnabled) return;
+
+        boolean waypointsEnabled = BetterPrisonsClient.config.waypointsEnabled;
+        boolean gangPingsEnabled = BetterPrisonsClient.config.gangPingEnabled || BetterPrisonsClient.config.trucePingEnabled;
+        if (!waypointsEnabled && !gangPingsEnabled) return;
 
         MinecraftClient client = MinecraftClient.getInstance();
         if (client.player == null) return;
@@ -84,10 +87,12 @@ public class BeaconBeamRenderer {
 
         Vec3d camera = client.gameRenderer.getCamera().getCameraPos();
 
-        boolean inOverworld = client.world != null
-            && "minecraft:overworld".equals(client.world.getRegistryKey().getValue().toString());
+        String worldKey = client.world != null
+            ? client.world.getRegistryKey().getValue().toString() : "";
+        boolean inOverworld = "minecraft:overworld".equals(worldKey);
+        boolean inBadlands = "minecraft:badlands".equals(worldKey);
 
-        if (inOverworld && BetterPrisonsClient.config.waypointMeteorsEnabled) {
+        if (waypointsEnabled && inOverworld && BetterPrisonsClient.config.waypointMeteorsEnabled) {
             int opacity = BetterPrisonsClient.config.meteorBeamOpacity;
             List<EventsHud.MeteorInfo> meteors = BetterPrisonsClient.eventsHud.getActiveMeteors();
             for (EventsHud.MeteorInfo m : meteors) {
@@ -98,7 +103,7 @@ public class BeaconBeamRenderer {
             }
         }
 
-        if (inOverworld && BetterPrisonsClient.config.waypointMerchantsEnabled) {
+        if (waypointsEnabled && inOverworld && BetterPrisonsClient.config.waypointMerchantsEnabled) {
             int opacity = BetterPrisonsClient.config.merchantBeamOpacity;
             List<EventsHud.MerchantInfo> merchants =
                 BetterPrisonsClient.eventsHud.getVisibleMerchantsForWaypoints();
@@ -108,9 +113,17 @@ public class BeaconBeamRenderer {
             }
         }
 
-        if (BetterPrisonsClient.config.waypointCustomEnabled) {
+        if (waypointsEnabled && BetterPrisonsClient.config.waypointCustomEnabled) {
             for (CustomWaypoint wp : BetterPrisonsClient.waypointManager.getEnabled()) {
                 submitBeam(matrices, commandQueue, client, camera, wp.x, wp.y, wp.z, wp.color, wp.opacity);
+            }
+        }
+
+        if (waypointsEnabled && inBadlands && BetterPrisonsClient.config.waypointBanditRushEnabled) {
+            int opacity = BetterPrisonsClient.config.banditRushBeamOpacity;
+            for (EventsHud.BanditRushInfo b : BetterPrisonsClient.eventsHud.getVisibleBanditRushes()) {
+                int color = BetterPrisonsClient.config.banditRushHeadingColor;
+                submitBeam(matrices, commandQueue, client, camera, b.x, b.y, b.z, color, opacity);
             }
         }
 

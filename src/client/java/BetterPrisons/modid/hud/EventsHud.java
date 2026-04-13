@@ -10,6 +10,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
+import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Vec3d;
 import org.joml.Matrix3x2fStack;
@@ -28,6 +29,9 @@ public class EventsHud extends BaseHud {
 
     // --- Merchants ---
     private final List<MerchantInfo> activeMerchants = new ArrayList<>();
+
+    // --- Bandit Rushes ---
+    private final List<BanditRushInfo> activeBanditRushes = new ArrayList<>();
 
     // -------------------------------------------------------------------------
     // Enums
@@ -95,6 +99,43 @@ public class EventsHud extends BaseHud {
                 case EMERALD:  return config.emeraldMerchantHeadingColor;
                 default:       return 0xFFFFFF;
             }
+        }
+    }
+
+    /**
+     * The four badlands sub-worlds within minecraft:badlands, identified by coordinate bounds.
+     * Each region is defined by two opposite corners (x1, z1) to (x2, z2).
+     */
+    public enum BadlandsRegion {
+        CHAIN(1073, -127, 1295, 95),
+        GOLD(641, -127, 863, 95),
+        IRON(641, 289, 863, 511),
+        DIAMOND(1073, 289, 1295, 511);
+
+        public final int minX, minZ, maxX, maxZ;
+
+        BadlandsRegion(int x1, int z1, int x2, int z2) {
+            this.minX = Math.min(x1, x2);
+            this.minZ = Math.min(z1, z2);
+            this.maxX = Math.max(x1, x2);
+            this.maxZ = Math.max(z1, z2);
+        }
+
+        public boolean contains(int x, int z) {
+            return x >= minX && x <= maxX && z >= minZ && z <= maxZ;
+        }
+
+        public static BadlandsRegion fromCoords(int x, int z) {
+            for (BadlandsRegion r : values()) {
+                if (r.contains(x, z)) return r;
+            }
+            return null;
+        }
+
+        public static BadlandsRegion getPlayerRegion() {
+            MinecraftClient client = MinecraftClient.getInstance();
+            if (client.player == null) return null;
+            return fromCoords((int) client.player.getX(), (int) client.player.getZ());
         }
     }
 
@@ -230,6 +271,120 @@ public class EventsHud extends BaseHud {
         return new ItemStack(Registries.ITEM.get(Identifier.of("minecraft", "coal")));
     }
 
+    // -------------------------------------------------------------------------
+    // Bandit Rush API
+    // -------------------------------------------------------------------------
+
+    /**
+     * Called when a bandit rush spawn message is detected.
+     * Only registers the event if the player is in the same badlands sub-world.
+     */
+    public void onBanditRushSpawned(String tier, int x, int y, int z) {
+        if (!BetterPrisonsClient.config.banditRushEnabled) return;
+
+        BadlandsRegion rushRegion = BadlandsRegion.fromCoords(x, z);
+        BadlandsRegion playerRegion = BadlandsRegion.getPlayerRegion();
+        if (rushRegion == null || playerRegion == null || rushRegion != playerRegion) {
+            BetterPrisonsClient.LOGGER.info("Bandit rush at {}, {}, {} ignored (different badlands region)", x, y, z);
+            return;
+        }
+
+        for (BanditRushInfo b : activeBanditRushes) {
+            if (b.x == x && b.y == y && b.z == z) return; // duplicate
+        }
+
+        ItemStack icon = createBanditRushIcon();
+        activeBanditRushes.add(new BanditRushInfo(x, y, z, System.currentTimeMillis(), icon, tier));
+        BetterPrisonsClient.LOGGER.info("Bandit rush detected: {} at {}, {}, {}", tier, x, y, z);
+
+        int color = BetterPrisonsClient.config.banditRushHeadingColor;
+        String name = tier + " Bandit Rush";
+        BetterPrisonsClient.waypointManager.addEventWaypoint(x, y, z, color, name, "BANDIT_RUSH_" + tier.toUpperCase());
+
+        // Play notification sound
+        if (BetterPrisonsClient.config.banditRushSoundEnabled) {
+            MinecraftClient client = MinecraftClient.getInstance();
+            if (client.player != null) {
+                float volume = BetterPrisonsClient.config.banditRushSoundVolume / 100.0f;
+                String soundType = BetterPrisonsClient.config.banditRushSound;
+                switch (soundType) {
+                    case "bell":
+                        client.player.playSound(SoundEvents.BLOCK_BELL_USE, volume, 1.0f);
+                        break;
+                    case "xp_orb":
+                        client.player.playSound(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, volume, 1.0f);
+                        break;
+                    case "note_pling":
+                        client.player.playSound(SoundEvents.BLOCK_NOTE_BLOCK_PLING.value(), volume, 1.0f);
+                        break;
+                    case "enchant":
+                        client.player.playSound(SoundEvents.BLOCK_ENCHANTMENT_TABLE_USE, volume, 1.0f);
+                        break;
+                    case "level_up":
+                        client.player.playSound(SoundEvents.ENTITY_PLAYER_LEVELUP, volume, 1.0f);
+                        break;
+                    case "ender_eye":
+                        client.player.playSound(SoundEvents.ENTITY_ENDER_EYE_DEATH, volume, 1.0f);
+                        break;
+                    default:
+                        client.player.playSound(SoundEvents.BLOCK_ANVIL_LAND, volume, 1.0f);
+                        break;
+                }
+            }
+        }
+    }
+
+    public List<BanditRushInfo> getActiveBanditRushes() {
+        return activeBanditRushes;
+    }
+
+    public List<BanditRushInfo> getVisibleBanditRushes() {
+        if (!BetterPrisonsClient.config.banditRushEnabled) return new ArrayList<>();
+        return new ArrayList<>(activeBanditRushes);
+    }
+
+    /**
+     * Called when a bandit rush is won. Removes any active rush of the same tier
+     * in the same badlands sub-world as the won coordinates.
+     */
+    public void onBanditRushWon(String tier, int x, int z) {
+        BadlandsRegion wonRegion = BadlandsRegion.fromCoords(x, z);
+        activeBanditRushes.removeIf(b -> {
+            if (b.tier.equalsIgnoreCase(tier)) {
+                BadlandsRegion rushRegion = BadlandsRegion.fromCoords(b.x, b.z);
+                if (wonRegion != null && wonRegion == rushRegion) {
+                    BetterPrisonsClient.waypointManager.removeEventWaypoint(b.x, b.y, b.z);
+                    BetterPrisonsClient.LOGGER.info("Bandit rush {} won in {} region — removed from {}, {}, {}",
+                        tier, wonRegion, b.x, b.y, b.z);
+                    return true;
+                }
+            }
+            return false;
+        });
+    }
+
+    public void clearBanditRushes() {
+        for (BanditRushInfo b : activeBanditRushes) {
+            BetterPrisonsClient.waypointManager.removeEventWaypoint(b.x, b.y, b.z);
+        }
+        activeBanditRushes.clear();
+    }
+
+    private ItemStack createBanditRushIcon() {
+        try {
+            String itemId = BetterPrisonsClient.config.banditRushIconItemId;
+            if (!itemId.contains(":")) itemId = "minecraft:" + itemId;
+            Identifier identifier = Identifier.tryParse(itemId);
+            if (identifier != null) {
+                Item item = Registries.ITEM.get(identifier);
+                if (item != null) return new ItemStack(item);
+            }
+        } catch (Exception e) {
+            BetterPrisonsClient.LOGGER.warn("Failed to create bandit rush icon: {}", e.getMessage());
+        }
+        return new ItemStack(Registries.ITEM.get(Identifier.of("minecraft", "iron_sword")));
+    }
+
     /** Returns active meteors (used by WaypointRenderer). */
     public List<MeteorInfo> getActiveMeteors() {
         return activeMeteors;
@@ -324,6 +479,16 @@ public class EventsHud extends BaseHud {
             }
             return false;
         });
+
+        long banditRushDurationMs = BetterPrisonsClient.config.banditRushTimeoutSeconds * 1000L;
+        activeBanditRushes.removeIf(b -> {
+            if (!BetterPrisonsClient.waypointManager.hasEventWaypoint(b.x, b.y, b.z)) return true;
+            if (now - b.spawnTime > banditRushDurationMs) {
+                BetterPrisonsClient.waypointManager.removeEventWaypoint(b.x, b.y, b.z);
+                return true;
+            }
+            return false;
+        });
     }
 
     // -------------------------------------------------------------------------
@@ -339,7 +504,8 @@ public class EventsHud extends BaseHud {
         Vec3d playerPos = client.player != null
             ? new Vec3d(client.player.getX(), client.player.getY(), client.player.getZ()) : null;
         List<MerchantInfo> visibleMerchants = getVisibleMerchants();
-        boolean hasContent = !activeMeteors.isEmpty() || !visibleMerchants.isEmpty();
+        List<BanditRushInfo> visibleBanditRushes = getVisibleBanditRushes();
+        boolean hasContent = !activeMeteors.isEmpty() || !visibleMerchants.isEmpty() || !visibleBanditRushes.isEmpty();
 
         if (!enabled || (!showTitle && !hasContent)) return;
 
@@ -368,10 +534,17 @@ public class EventsHud extends BaseHud {
             maxTextWidth = Math.max(maxTextWidth,
                 scaled(20) + (int) (client.textRenderer.getWidth(Text.literal(coords)) * scale));
         }
+        for (BanditRushInfo b : visibleBanditRushes) {
+            maxTextWidth = Math.max(maxTextWidth,
+                (int) (client.textRenderer.getWidth(Text.literal(b.getDisplayName())) * scale));
+            String coords = coordsWithDist(b.x, b.y, b.z, playerPos, config.banditRushShowDistance);
+            maxTextWidth = Math.max(maxTextWidth,
+                scaled(20) + (int) (client.textRenderer.getWidth(Text.literal(coords)) * scale));
+        }
 
         // --- Background & border ---
         int bgWidth = maxTextWidth;
-        int contentHeight = (activeMeteors.size() + visibleMerchants.size()) * scaled(32);
+        int contentHeight = (activeMeteors.size() + visibleMerchants.size() + visibleBanditRushes.size()) * scaled(32);
         int bgHeight = titleHeight + contentHeight;
 
         int bgColor     = (config.eventsBgOpacity << 24)     | (config.eventsBgColor & 0xFFFFFF);
@@ -469,6 +642,37 @@ public class EventsHud extends BaseHud {
             matrices.popMatrix();
             yOffset += scaled(20);
         }
+
+        // --- Bandit Rushes ---
+        int rushCoordColor = 0xFF000000 | config.banditRushTextColor;
+        for (BanditRushInfo b : visibleBanditRushes) {
+            int rushHeadingColor = 0xFF000000 | config.banditRushHeadingColor;
+            String displayName = b.getDisplayName();
+
+            matrices.pushMatrix();
+            matrices.scale(scale);
+            matrices.translate(x / scale, (y + yOffset) / scale);
+            ctx.drawTextWithShadow(client.textRenderer,
+                Text.literal(displayName).setStyle(Style.EMPTY.withItalic(true)), 0, 0, rushHeadingColor);
+            matrices.popMatrix();
+            yOffset += scaled(12);
+
+            if (b.iconStack != null) {
+                matrices.pushMatrix();
+                matrices.scale(scale);
+                matrices.translate(x / scale, (y + yOffset) / scale);
+                ctx.drawItem(b.iconStack, 0, 0);
+                matrices.popMatrix();
+            }
+
+            String rushCoords = coordsWithDist(b.x, b.y, b.z, playerPos, config.banditRushShowDistance);
+            matrices.pushMatrix();
+            matrices.scale(scale);
+            matrices.translate((x + iconSpacing) / scale, (y + yOffset + scaled(4)) / scale);
+            ctx.drawTextWithShadow(client.textRenderer, Text.literal(rushCoords), 0, 0, rushCoordColor);
+            matrices.popMatrix();
+            yOffset += scaled(20);
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -505,6 +709,13 @@ public class EventsHud extends BaseHud {
             maxTextWidth = Math.max(maxTextWidth,
                 scaled(20) + (int) (client.textRenderer.getWidth(Text.literal(coords)) * scale));
         }
+        for (BanditRushInfo b : getVisibleBanditRushes()) {
+            maxTextWidth = Math.max(maxTextWidth,
+                (int) (client.textRenderer.getWidth(Text.literal(b.getDisplayName())) * scale));
+            String coords = coordsWithDist(b.x, b.y, b.z, playerPos, config.banditRushShowDistance);
+            maxTextWidth = Math.max(maxTextWidth,
+                scaled(20) + (int) (client.textRenderer.getWidth(Text.literal(coords)) * scale));
+        }
 
         int padding = scale < 1 ? scaled(4) : 4;
         return maxTextWidth + (padding * 2);
@@ -515,7 +726,8 @@ public class EventsHud extends BaseHud {
         Config config = BetterPrisonsClient.config;
         int titleHeight = config.showEventsHudTitle ? scaled(10) : 0;
         int visibleMerchantCount = getVisibleMerchants().size();
-        return titleHeight + ((activeMeteors.size() + visibleMerchantCount) * scaled(32));
+        int visibleBanditRushCount = getVisibleBanditRushes().size();
+        return titleHeight + ((activeMeteors.size() + visibleMerchantCount + visibleBanditRushCount) * scaled(32));
     }
 
     // -------------------------------------------------------------------------
@@ -551,6 +763,25 @@ public class EventsHud extends BaseHud {
             this.slainTime = null;
             this.iconStack = iconStack;
             this.type = type;
+        }
+    }
+
+    public static class BanditRushInfo {
+        public int x, y, z;
+        public long spawnTime;
+        public ItemStack iconStack;
+        public String tier; // e.g. "DIAMOND", "IRON"
+
+        public BanditRushInfo(int x, int y, int z, long spawnTime, ItemStack iconStack, String tier) {
+            this.x = x; this.y = y; this.z = z;
+            this.spawnTime = spawnTime;
+            this.iconStack = iconStack;
+            this.tier = tier;
+        }
+
+        public String getDisplayName() {
+            String name = tier.charAt(0) + tier.substring(1).toLowerCase();
+            return name + " Bandit Rush";
         }
     }
 }

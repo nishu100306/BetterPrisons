@@ -68,20 +68,25 @@ public class WaypointRenderer {
     }
 
     private static void render(DrawContext ctx) {
-        if (!BetterPrisonsClient.config.waypointsEnabled) return;
+        boolean waypointsEnabled = BetterPrisonsClient.config.waypointsEnabled;
+        boolean gangPingsEnabled = BetterPrisonsClient.config.gangPingEnabled || BetterPrisonsClient.config.trucePingEnabled;
+        if (!waypointsEnabled && !gangPingsEnabled) return;
+
         MinecraftClient client = MinecraftClient.getInstance();
         if (client.player == null || client.currentScreen != null) return;
 
         int screenW = ctx.getScaledWindowWidth();
         int screenH = ctx.getScaledWindowHeight();
 
-        boolean inOverworld = client.world != null
-            && "minecraft:overworld".equals(client.world.getRegistryKey().getValue().toString());
+        String worldKey = client.world != null
+            ? client.world.getRegistryKey().getValue().toString() : "";
+        boolean inOverworld = "minecraft:overworld".equals(worldKey);
+        boolean inBadlands = "minecraft:badlands".equals(worldKey);
 
         // --- Collect all waypoints ---
         List<Entry> entries = new ArrayList<>();
 
-        if (inOverworld && BetterPrisonsClient.config.waypointMeteorsEnabled) {
+        if (waypointsEnabled && inOverworld && BetterPrisonsClient.config.waypointMeteorsEnabled) {
             for (EventsHud.MeteorInfo m : BetterPrisonsClient.eventsHud.getActiveMeteors()) {
                 int color = (m.type == EventsHud.MeteorType.NATURAL)
                     ? BetterPrisonsClient.config.eventsNaturalHeadingColor
@@ -92,7 +97,7 @@ public class WaypointRenderer {
             }
         }
 
-        if (inOverworld && BetterPrisonsClient.config.waypointMerchantsEnabled) {
+        if (waypointsEnabled && inOverworld && BetterPrisonsClient.config.waypointMerchantsEnabled) {
             for (EventsHud.MerchantInfo m : BetterPrisonsClient.eventsHud.getVisibleMerchantsForWaypoints()) {
                 int color = m.type.getHeadingColor(BetterPrisonsClient.config);
                 Entry e = buildEntry(client, m.x, m.y, m.z, color, m.iconStack, screenW, screenH, EntryType.MERCHANT);
@@ -101,7 +106,7 @@ public class WaypointRenderer {
             }
         }
 
-        if (BetterPrisonsClient.config.waypointCustomEnabled) {
+        if (waypointsEnabled && BetterPrisonsClient.config.waypointCustomEnabled) {
             for (CustomWaypoint wp : BetterPrisonsClient.waypointManager.getEnabled()) {
                 // Use name + distance as combined label; no item icon (colored square)
                 Entry e = buildEntry(client, wp.x, wp.y, wp.z, wp.color, null, screenW, screenH, EntryType.CUSTOM);
@@ -114,6 +119,15 @@ public class WaypointRenderer {
                     if (e.onScreen || BetterPrisonsClient.config.waypointCustomEdgeEnabled)
                         entries.add(e);
                 }
+            }
+        }
+
+        if (waypointsEnabled && inBadlands && BetterPrisonsClient.config.waypointBanditRushEnabled) {
+            for (EventsHud.BanditRushInfo b : BetterPrisonsClient.eventsHud.getVisibleBanditRushes()) {
+                int color = BetterPrisonsClient.config.banditRushHeadingColor;
+                Entry e = buildEntry(client, b.x, b.y, b.z, color, b.iconStack, screenW, screenH, EntryType.METEOR);
+                if (e != null && (e.onScreen || BetterPrisonsClient.config.waypointBanditRushEdgeEnabled))
+                    entries.add(e);
             }
         }
 

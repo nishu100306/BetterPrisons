@@ -3,6 +3,7 @@ package BetterPrisons.modid.devtools;
 import BetterPrisons.modid.BetterPrisonsClient;
 import BetterPrisons.modid.JsonLoader;
 import BetterPrisons.modid.hud.EventsHud;
+import BetterPrisons.modid.misc.EnergyCalculator;
 import BetterPrisons.modid.ui.custom.screens.WaypointsScreen;
 import BetterPrisons.modid.waypoint.CustomWaypoint;
 import com.mojang.brigadier.CommandDispatcher;
@@ -11,6 +12,7 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.LoreComponent;
@@ -229,6 +231,63 @@ public class DevCommands {
                     ctx.getSource().sendFeedback(Text.literal("§aCleared " + count + " waypoints."));
                     return 1;
                 })));
+
+        // /calc — energy calculator for pickaxes and satchels
+        dispatcher.register(ClientCommandManager.literal("calc")
+            .then(ClientCommandManager.literal("pick")
+                .then(ClientCommandManager.argument("type", StringArgumentType.word())
+                    .suggests((ctx, builder) -> {
+                        for (EnergyCalculator.PickType t : EnergyCalculator.PickType.values())
+                            builder.suggest(t.name().toLowerCase());
+                        return builder.buildFuture();
+                    })
+                    .then(ClientCommandManager.argument("startLevel", IntegerArgumentType.integer(0, 110))
+                    .then(ClientCommandManager.argument("endLevel", IntegerArgumentType.integer(1, 110))
+                        .executes(ctx -> calcPick(ctx))))))
+            .then(ClientCommandManager.literal("ore_satchel")
+                .then(ClientCommandManager.argument("type", StringArgumentType.word())
+                    .suggests((ctx, builder) -> {
+                        for (EnergyCalculator.SatchelType t : EnergyCalculator.SatchelType.values())
+                            builder.suggest(t.name().toLowerCase());
+                        return builder.buildFuture();
+                    })
+                    .then(ClientCommandManager.argument("startLevel", IntegerArgumentType.integer(0, 100))
+                    .then(ClientCommandManager.argument("endLevel", IntegerArgumentType.integer(1, 100))
+                        .executes(ctx -> calcSatchelOre(ctx))))))
+            .then(ClientCommandManager.literal("refined_satchel")
+                .then(ClientCommandManager.argument("type", StringArgumentType.word())
+                    .suggests((ctx, builder) -> {
+                        for (EnergyCalculator.SatchelType t : EnergyCalculator.SatchelType.values())
+                            builder.suggest(t.name().toLowerCase());
+                        return builder.buildFuture();
+                    })
+                    .then(ClientCommandManager.argument("startLevel", IntegerArgumentType.integer(0, 100))
+                    .then(ClientCommandManager.argument("endLevel", IntegerArgumentType.integer(1, 100))
+                        .executes(ctx -> calcSatchelRefined(ctx)))))));
+
+        // /bptest — send ping with tab characters for anti-IP filter testing
+        dispatcher.register(ClientCommandManager.literal("bptest")
+            .executes(ctx -> {
+                MinecraftClient client = ctx.getSource().getClient();
+                if (client.player == null || client.getNetworkHandler() == null) return 0;
+
+                int x = client.player.getBlockPos().getX();
+                int y = (int) Math.round(client.player.getEyeY());
+                int z = client.player.getBlockPos().getZ();
+                String world = BetterPrisons.modid.waypoint.WaypointManager.detectWorldKey();
+                float hp = client.player.getHealth();
+                float maxHp = client.player.getMaxHealth();
+                String facing = client.player.getHorizontalFacing().asString();
+                facing = facing.substring(0, 1).toUpperCase() + facing.substring(1);
+
+                String msg = String.format("[!] %s has pinged at %dx %dy %dz %s | HP:\t%.0f/%.0f | Facing:\t%s",
+                        client.player.getGameProfile().name(), x, y, z, world, hp, maxHp, facing);
+
+                client.getNetworkHandler().sendChatCommand("g c g");
+                client.getNetworkHandler().sendChatMessage(msg);
+                ctx.getSource().sendFeedback(Text.literal("§aSent test ping with tab characters"));
+                return 1;
+            }));
     }
 
     private static int inspectHeldItem(CommandContext<FabricClientCommandSource> context) {
@@ -389,6 +448,84 @@ public class DevCommands {
     private static int createDefaultCommands(CommandContext<FabricClientCommandSource> context) {
         JsonLoader.createDefaultCommands();
         context.getSource().sendFeedback(Text.literal("§aDefault commands configuration created/overwritten."));
+        return 1;
+    }
+
+    private static int calcPick(CommandContext<FabricClientCommandSource> ctx) {
+        String typeStr = StringArgumentType.getString(ctx, "type").toUpperCase();
+        int startLevel = IntegerArgumentType.getInteger(ctx, "startLevel");
+        int endLevel = IntegerArgumentType.getInteger(ctx, "endLevel");
+
+        EnergyCalculator.PickType type;
+        try {
+            type = EnergyCalculator.PickType.valueOf(typeStr);
+        } catch (IllegalArgumentException e) {
+            ctx.getSource().sendFeedback(Text.literal("§cUnknown pick type: " + typeStr.toLowerCase()
+                + ". Use: wood, stone, gold, iron, diamond"));
+            return 0;
+        }
+
+        if (endLevel <= startLevel) {
+            ctx.getSource().sendFeedback(Text.literal("§cEnd level must be greater than start level."));
+            return 0;
+        }
+
+        long energy = EnergyCalculator.calcPickEnergy(type, startLevel, endLevel);
+        ctx.getSource().sendFeedback(Text.literal(
+            "§6" + typeStr.charAt(0) + typeStr.substring(1).toLowerCase() + " Pick §elevel " + startLevel
+                + " → " + endLevel + "§7: §a" + EnergyCalculator.formatEnergy(energy) + " energy"));
+        return 1;
+    }
+
+    private static int calcSatchelOre(CommandContext<FabricClientCommandSource> ctx) {
+        String typeStr = StringArgumentType.getString(ctx, "type").toUpperCase();
+        int startLevel = IntegerArgumentType.getInteger(ctx, "startLevel");
+        int endLevel = IntegerArgumentType.getInteger(ctx, "endLevel");
+
+        EnergyCalculator.SatchelType type;
+        try {
+            type = EnergyCalculator.SatchelType.valueOf(typeStr);
+        } catch (IllegalArgumentException e) {
+            ctx.getSource().sendFeedback(Text.literal("§cUnknown satchel type: " + typeStr.toLowerCase()
+                + ". Use: coal, iron, lapis, redstone, gold, diamond, emerald"));
+            return 0;
+        }
+
+        if (endLevel <= startLevel) {
+            ctx.getSource().sendFeedback(Text.literal("§cEnd level must be greater than start level."));
+            return 0;
+        }
+
+        long energy = EnergyCalculator.calcSatchelOreEnergy(type, startLevel, endLevel);
+        ctx.getSource().sendFeedback(Text.literal(
+            "§6" + typeStr.charAt(0) + typeStr.substring(1).toLowerCase() + " Ore Satchel §elevel " + startLevel
+                + " → " + endLevel + "§7: §a" + EnergyCalculator.formatEnergy(energy) + " energy"));
+        return 1;
+    }
+
+    private static int calcSatchelRefined(CommandContext<FabricClientCommandSource> ctx) {
+        String typeStr = StringArgumentType.getString(ctx, "type").toUpperCase();
+        int startLevel = IntegerArgumentType.getInteger(ctx, "startLevel");
+        int endLevel = IntegerArgumentType.getInteger(ctx, "endLevel");
+
+        EnergyCalculator.SatchelType type;
+        try {
+            type = EnergyCalculator.SatchelType.valueOf(typeStr);
+        } catch (IllegalArgumentException e) {
+            ctx.getSource().sendFeedback(Text.literal("§cUnknown satchel type: " + typeStr.toLowerCase()
+                + ". Use: coal, iron, lapis, redstone, gold, diamond, emerald"));
+            return 0;
+        }
+
+        if (endLevel <= startLevel) {
+            ctx.getSource().sendFeedback(Text.literal("§cEnd level must be greater than start level."));
+            return 0;
+        }
+
+        long energy = EnergyCalculator.calcSatchelRefinedEnergy(type, startLevel, endLevel);
+        ctx.getSource().sendFeedback(Text.literal(
+            "§6" + typeStr.charAt(0) + typeStr.substring(1).toLowerCase() + " Refined Satchel §elevel " + startLevel
+                + " → " + endLevel + "§7: §a" + EnergyCalculator.formatEnergy(energy) + " energy"));
         return 1;
     }
 
