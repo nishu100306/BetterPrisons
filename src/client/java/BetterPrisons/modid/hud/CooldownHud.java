@@ -15,8 +15,17 @@ import net.minecraft.text.Style;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 public class CooldownHud extends BaseHud {
+    // /near success message — "(!) There are <N> player(s) to a <N> block radius of you."
+    // (variable counts, so it can't use the exact-match chatPattern flow)
+    private static final Pattern NEAR_PATTERN =
+        Pattern.compile("There are \\d+ player\\(s\\) to a \\d+ block radius of you");
+    // /pulse success — "(!) Meteorite pulse found <N> meteorites within <N> blocks:"
+    private static final Pattern PULSE_PATTERN =
+        Pattern.compile("Meteorite pulse found \\d+ meteorites? within \\d+ blocks");
+
     // Command definitions loaded from commands.json
     public List<CommandDef> definitions = new ArrayList<>();
 
@@ -45,6 +54,8 @@ public class CooldownHud extends BaseHud {
             case "Combat": return BetterPrisonsClient.config.combatEnabled;
             case "tpa": return BetterPrisonsClient.config.tpaEnabled;
             case "tpahere": return BetterPrisonsClient.config.tpahereEnabled;
+            case "Dangle": return BetterPrisonsClient.config.dangleEnabled;
+            case "Adangle": return BetterPrisonsClient.config.adangleEnabled;
             default: return true; // Default to enabled for unknown commands
         }
     }
@@ -59,6 +70,8 @@ public class CooldownHud extends BaseHud {
             case "Combat": return BetterPrisonsClient.config.combatColor;
             case "tpa": return BetterPrisonsClient.config.tpaColor;
             case "tpahere": return BetterPrisonsClient.config.tpahereColor;
+            case "Dangle": return BetterPrisonsClient.config.dangleColor;
+            case "Adangle": return BetterPrisonsClient.config.adangleColor;
             default: return 0xFFFFFF; // Default to white for unknown commands
         }
     }
@@ -171,6 +184,30 @@ public class CooldownHud extends BaseHud {
             return;
         }
 
+        // Check for adangle error messages — cancel the optimistically-applied Adangle cooldown
+        // "§cYou must wait §e<N>s §cbefore armor dangling again" or "§cYou already have items dangling!"
+        if (message.startsWith("§cYou must wait §e") && message.contains("§cbefore armor dangling again")
+                || message.equals("§cYou already have items dangling!")) {
+            if (activeCooldowns.removeIf(cd -> cd.name.equals("Adangle"))) {
+                BetterPrisonsClient.LOGGER.info("Adangle cooldown removed due to error message");
+            }
+            return;
+        }
+
+        // /near success → start its 45s cooldown (message has variable player/radius counts)
+        if (BetterPrisonsClient.config.nearEnabled
+                && NEAR_PATTERN.matcher(message.replaceAll("§.", "")).find()) {
+            addCooldown("Near", 45, "minecraft:compass", BetterPrisonsClient.config.nearColor);
+            return;
+        }
+
+        // /pulse success → start its 5-minute cooldown (variable meteorite/range counts)
+        if (BetterPrisonsClient.config.pulseEnabled
+                && PULSE_PATTERN.matcher(message.replaceAll("§.", "")).find()) {
+            addCooldown("Pulse", 300, "minecraft:redstone_torch", BetterPrisonsClient.config.pulseColor);
+            return;
+        }
+
         // Check for /tpa "Updated" message: "§a§l(!) §aUpdated your teleport request to §a§n<username>§a."
         if (message.contains("§a§l(!) §aUpdated your teleport request to §a§n") && message.endsWith("§a.")) {
             // Trigger cooldown for /tpa
@@ -199,10 +236,14 @@ public class CooldownHud extends BaseHud {
             return;
         }
 
+        // Strip §-codes for tolerant matching — server formatting can vary slightly
+        String strippedMessage = message.replaceAll("§.", "");
+
         for (CommandDef def : definitions) {
             // Only check if this command uses chat pattern detection
             if (def.chatPattern != null && !def.chatPattern.isEmpty()) {
-                if (message.equals(def.chatPattern)) {
+                String strippedPattern = def.chatPattern.replaceAll("§.", "");
+                if (strippedMessage.equals(strippedPattern)) {
                     BetterPrisonsClient.LOGGER.info("Cooldown triggered by chat pattern: " + def.displayName);
                     if (isCommandEnabled(def.displayName)) {
                         addCooldown(def.displayName, def.cooldown, def.icon, getCommandColor(def.displayName));

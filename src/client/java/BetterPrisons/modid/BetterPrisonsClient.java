@@ -15,8 +15,13 @@ import BetterPrisons.modid.hud.SatchelHud;
 import BetterPrisons.modid.hud.StatsHud;
 import BetterPrisons.modid.hud.SuperBreakerAura;
 import BetterPrisons.modid.misc.EasyView;
+import BetterPrisons.modid.misc.EnchantBookTooltip;
+import BetterPrisons.modid.api.CosmicApi;
+import BetterPrisons.modid.chestsearch.ClueScrollOverlay;
+import BetterPrisons.modid.misc.GangPointTooltip;
 import BetterPrisons.modid.misc.ItemCooldownOverlay;
 import BetterPrisons.modid.misc.PickaxeDropConfirmation;
+import BetterPrisons.modid.misc.PrisonbreakTexturePack;
 import BetterPrisons.modid.render.BeaconBeamRenderer;
 import BetterPrisons.modid.waypoint.WaypointManager;
 import BetterPrisons.modid.render.WaypointRenderer;
@@ -24,6 +29,7 @@ import BetterPrisons.modid.render.WorldSpaceTransform;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.client.MinecraftClient;
 import org.slf4j.Logger;
@@ -74,6 +80,13 @@ public class BetterPrisonsClient implements ClientModInitializer {
         // Initialize config
         config = new Config();
         config.load();
+
+        // Register the bundled PrisonBreak texture pack
+        PrisonbreakTexturePack.register();
+
+        // Cosmic Mods server API channel + handshake.
+        // Left unused for now — the server side isn't fully set up yet. Re-enable when ready.
+        // CosmicApi.register();
 
         // Initialize waypoint manager
         waypointManager = new WaypointManager();
@@ -171,8 +184,17 @@ public class BetterPrisonsClient implements ClientModInitializer {
 
         // Register callbacks
         HudRenderCallback.EVENT.register((context, counter) -> {
+            MinecraftClient mc = MinecraftClient.getInstance();
+            // Respect F1 (hide HUD) — skip all BP HUDs when vanilla HUD is hidden
+            if (mc.options.hudHidden) return;
             hudRenderer.render(context, counter);
-            superBreakerAura.render(context, MinecraftClient.getInstance());
+            superBreakerAura.render(context, mc);
+        });
+
+        ItemTooltipCallback.EVENT.register((stack, tooltipContext, tooltipType, lines) -> {
+            EnchantBookTooltip.append(stack, lines);
+            GangPointTooltip.append(stack, lines);
+            ClueScrollOverlay.appendTooltip(stack, lines);
         });
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
@@ -187,6 +209,11 @@ public class BetterPrisonsClient implements ClientModInitializer {
                     waypointManager.setCurrentWorld(worldKey);
                 }
             }
+
+            // Auto-apply / remove the bundled PrisonBreak texture pack by world
+            boolean inPrisonbreak = client.world != null
+                && "minecraft:prisonbreak".equals(client.world.getRegistryKey().getValue().toString());
+            PrisonbreakTexturePack.update(inPrisonbreak);
 
             // Register sound listener once when sound manager is available
             if (soundDebugEnabled && !soundListenerRegistered && client.getSoundManager() != null) {

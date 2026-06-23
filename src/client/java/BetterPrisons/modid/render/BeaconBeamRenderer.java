@@ -113,6 +113,14 @@ public class BeaconBeamRenderer {
             }
         }
 
+        if (waypointsEnabled && inOverworld && BetterPrisonsClient.config.waypointMeteoriteShowerEnabled) {
+            int opacity = BetterPrisonsClient.config.meteoriteShowerBeamOpacity;
+            int color = BetterPrisonsClient.config.meteoriteShowerHeadingColor;
+            for (EventsHud.MeteoriteShowerInfo s : BetterPrisonsClient.eventsHud.getVisibleMeteoriteShowers()) {
+                submitBeam(matrices, commandQueue, client, camera, s.x, s.y, s.z, color, opacity);
+            }
+        }
+
         if (waypointsEnabled && BetterPrisonsClient.config.waypointCustomEnabled) {
             for (CustomWaypoint wp : BetterPrisonsClient.waypointManager.getEnabled()) {
                 submitBeam(matrices, commandQueue, client, camera, wp.x, wp.y, wp.z, wp.color, wp.opacity);

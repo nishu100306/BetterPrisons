@@ -48,7 +48,11 @@
       "Bash(\"/c/Program Files/Java/jdk-21/bin/javap\" -c -p \"jar:file:C:/Users/Nishu/.gradle/caches/fabric-loom/minecraftMaven/net/minecraft/minecraft-clientonly/1.21.11-net.fabricmc.yarn.1_21_11.1.21.11+build.4-v2/minecraft-clientonly-1.21.11-net.fabricmc.yarn.1_21_11.1.21.11+build.4-v2.jar!/net/minecraft/client/gui/PlayerSkinDrawer.class\" 2>&1)",
       "WebFetch(domain:docs.google.com)",
       "WebFetch(domain:doc-00-7s-sheets.googleusercontent.com)",
-      "WebFetch(domain:www.curseforge.com)"
+      "WebFetch(domain:www.curseforge.com)",
+      "WebFetch(domain:chromiumembedded.github.io)",
+      "WebFetch(domain:bitbucket.org)",
+      "Bash(find \"C:/Users/Nishu/.gradle/caches/fabric-loom\" -name \"ItemTooltipCallback*\" 2>&1 | head -5)",
+      "Bash(find /c/Users/Nishu/.gradle -path \"*fabric-api*\" -name \"*.jar\" 2>/dev/null | grep -i tooltip | head -5)"
     ]
   },
   "outputStyle": "default"

@@ -1,27 +1,39 @@
-# Changelog — v1.3.2
+## BetterPrisons v1.3.7 Changelog
 
-## Gang Pings
-- Press **G** to ping your location to gang chat, or **H** for truce chat
-- Pings display as player head icons with beacon beams at the sender's location
-- Configurable info text: name, timer, coordinates + distance, HP, facing direction
-- Per-line text backgrounds, adjustable text scale (0.5x–2.0x)
-- Distance-based icon scaling with configurable min/max scale
-- Sound notification on received pings (same world only)
-- 3-second cooldown to prevent server antispam
-- Truce pings share display settings but have their own color and enable toggle
-- Dedicated config tab with collapsible sections
+### New Features
 
-## Pickaxe Drop Protection
-- New option to completely block pickaxe dropping via the drop key
-- New option to prevent dragging pickaxes out of inventory
+- **Chest Search & Book Search** — Open any chest or container to get a search bar plus a filter-rule sidebar that highlights matching items
+  - Filter rules with per-rule colors and Any/All (OR/AND) matching
+  - Search enchant books by **success rate**, **destroy rate**, or **energy cost** in addition to name
 
-## EasyView
-- New "Tier Color" toggle for pages — colors the overlay text by the page's tier (e.g. green for Uncommon) instead of using a static color
+- **Clue Scroll Sorting** — Clue scrolls now show their current step number large and centered on the item (in containers *and* the hotbar), so a chest of scrolls can be sorted at a glance. Configurable number color; optional report tooltip for any unrecognized step types
 
-## Super Breaker Aura
-- Timer now displays above the crosshair by default instead of overlapping it
-- Added X/Y offset options and an enable/disable toggle for the timer
+- **Meteorite Showers** — A new event type on the Events HUD with its own countdown, zone label, waypoint, and beacon beam. Fully configurable (timeout, colors, icon, beam opacity, sound)
 
-## Satchel HUD
-- Renamed satchels are now detected by item type, so the HUD works even after renaming
+- **New Cooldowns: /near & /pulse** — Both now appear on the Cooldown HUD (compass icon / 45s and redstone-torch icon / 5min), each with its own toggle and color
 
+- **More Satchel Types** — The Satchel HUD now recognizes Shard, Contraband, and Clue Scroll satchels, plus Block and Deepslate ore-satchel variants — with correct names (even when renamed) and fill levels
+
+- **Enchant Book Costs on Chat Hovers** — Hovering an enchant book linked in chat now shows the same upgrade-cost breakdown you get in your inventory
+
+- **PrisonBreak Texture Pack** — A bundled ore texture pack that auto-applies when you enter PrisonBreak and removes itself when you leave
+
+- **Peaceful Mining in PrisonBreak** — Peaceful mining stays active throughout the PrisonBreak world regardless of what you're holding (toggleable)
+
+- **Bold XP/Energy Popups** — Optional Misc setting to bold the on-screen `+XP` and `+Energy` title popups
+
+### Improvements
+
+- **Energy Calculator** — Now supports levels up to **750** for both pickaxes and satchels (command and GUI)
+
+- **Natural Meteor Timer** — Natural meteor landing countdown updated to **7 minutes** to match the server
+
+- **Longer Display Windows** — Max values for the meteor "crashed" display and the merchant "slain" display raised from 1 → **2 minutes**
+
+### Bug Fixes
+
+- **Meteor HUD** — Fixed meteor tracking/display issues
+
+- **Message Notifications** — Updated to the server's new direct-message format (`[realm] [player to me] message`) so DM alerts trigger again
+
+download in #mod-download   and at https://modrinth.com/mod/betterprisons

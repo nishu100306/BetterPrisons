@@ -44,8 +44,8 @@ public class Config {
     public int superBreakerBaseOpacity = 79; // 0-255 (79 = 0x4F, ~30% opacity)
     public int superBreakerLightColor = 1444602; // RGB color (blue)
     public int superBreakerLightOpacity = 191; // 0-255 (191 = 0xBF, ~75% opacity)
-    public boolean superBreakerAuraEnabled = true;
-    public boolean superBreakerTimerEnabled = true;
+    public boolean superBreakerAuraEnabled = false;
+    public boolean superBreakerTimerEnabled = false;
     public int superBreakerTimerOffsetX = 0;
     public int superBreakerTimerOffsetY = -20;
 
@@ -53,11 +53,29 @@ public class Config {
     public int peacefulMiningOpacity = 50; // 0-255
     public int peacefulMiningDistance = 8;
     public boolean peacefulMiningDisableOnCombat = false;
+    public boolean peacefulMiningPickaxe = true;
+    public boolean peacefulMiningMace = true;
+    public boolean peacefulMiningAlwaysInPrisonbreak = true;
 
     // Pickaxe drop confirmation
     public boolean pickaxeDropConfirmationEnabled = true;
     public boolean pickaxeDropBlockEnabled = false;
     public boolean pickaxeDropDragBlockEnabled = false;
+
+    // Misc
+    public boolean autoTradeEnabled = true;
+    public boolean boldXpEnergyTitles = false; // bold "+X XP" / "+X Energy" title popups
+    public boolean cosmicApiEnabled = true; // connect to the Cosmic Mods server API
+    public String cosmicApiInstallId = ""; // stable per-install id, generated once
+    public boolean chestSearchEnabled = true;
+    public boolean clueScrollSortingEnabled = true;
+    public int clueScrollNumberColor = 0x79FF7A; // step number overlay color
+    public boolean clueScrollUnmappedTooltipEnabled = true; // report-to-discord tooltip on unmapped steps
+    public boolean prisonbreakTexturePackEnabled = true;
+    public boolean enchantBookCostsEnabled = true;
+    public int enchantBookCostsColor = 0xAA55FF; // purple
+    public boolean gangPointExpiryEnabled = true;
+    public int gangPointExpiryColor = 0x55FFFF; // aqua
 
     // Held item scaling (25-150%)
     public int heldItemPickaxeScale = 100;
@@ -216,6 +234,14 @@ public class Config {
     public int tpaColor = 5636095; // light green
     public boolean tpahereEnabled = true;
     public int tpahereColor = 5636095; // light green
+    public boolean dangleEnabled = true;
+    public int dangleColor = 0xFFAA00; // orange/gold
+    public boolean adangleEnabled = true;
+    public int adangleColor = 0x55FFFF; // aqua
+    public boolean nearEnabled = true;
+    public int nearColor = 0x55FFFF; // aqua
+    public boolean pulseEnabled = true;
+    public int pulseColor = 0xFF5555; // red
 
     // HUD titles (show/hide and color for each HUD)
     public boolean showCooldownHudTitle = true;
@@ -283,6 +309,20 @@ public class Config {
     public boolean waypointBanditRushEnabled = true;
     public boolean waypointBanditRushEdgeEnabled = true;
 
+    // Meteorite Shower settings
+    public boolean meteoriteShowerEnabled = true;
+    public int meteoriteShowerHeadingColor = 0xFF5500; // orange-red
+    public int meteoriteShowerTextColor = 0xFFAA88; // light orange
+    public boolean meteoriteShowerShowDistance = true;
+    public int meteoriteShowerTimeoutSeconds = 180; // how long the "mineable" state stays on HUD
+    public int meteoriteShowerBeamOpacity = 160;
+    public String meteoriteShowerIconItemId = "magma_block";
+    public boolean meteoriteShowerSoundEnabled = true;
+    public String meteoriteShowerSound = "ender_eye";
+    public int meteoriteShowerSoundVolume = 100; // 0-200
+    public boolean waypointMeteoriteShowerEnabled = true;
+    public boolean waypointMeteoriteShowerEdgeEnabled = true;
+
     // Waypoint settings
     public boolean waypointsEnabled = true;
     public boolean waypointMeteorsEnabled = true;
@@ -341,6 +381,15 @@ public class Config {
     public boolean messageNotifsEnabled = true;
     public String messageNotifsSound = "anvil"; // "anvil", "bell", "xp_orb", "note_pling", "enchant", "level_up", "ender_eye"
     public int messageNotifsVolume = 100; // 0-200
+
+    // Powerball Alerts
+    public boolean powerballAlertEnabled = true;
+    public boolean powerballAlertTitleEnabled = true;
+    public boolean powerballAlertSoundEnabled = true;
+    public String powerballAlertSound = "level_up";
+    public int powerballAlertSoundVolume = 100; // 0-200
+    public String powerballAlertTitleText = "Powerball Ready!";
+    public int powerballAlertTitleColor = 0xFFAA00; // orange/gold
 
     // Theme colors for custom UI system
     public int themeScreenBackground = 0xFF1E1E1E;
@@ -479,6 +528,14 @@ public class Config {
                 this.tpaColor = loaded.tpaColor;
                 this.tpahereEnabled = loaded.tpahereEnabled;
                 this.tpahereColor = loaded.tpahereColor;
+                this.dangleEnabled = loaded.dangleEnabled;
+                this.dangleColor = loaded.dangleColor;
+                this.adangleEnabled = loaded.adangleEnabled;
+                this.adangleColor = loaded.adangleColor;
+                this.nearEnabled = loaded.nearEnabled;
+                this.nearColor = loaded.nearColor;
+                this.pulseEnabled = loaded.pulseEnabled;
+                this.pulseColor = loaded.pulseColor;
 
                 // Load HUD title settings
                 this.showCooldownHudTitle = loaded.showCooldownHudTitle;
@@ -540,9 +597,27 @@ public class Config {
                 this.peacefulMiningOpacity = loaded.peacefulMiningOpacity;
                 this.peacefulMiningDistance = loaded.peacefulMiningDistance;
                 this.peacefulMiningDisableOnCombat = loaded.peacefulMiningDisableOnCombat;
+                this.peacefulMiningPickaxe = loaded.peacefulMiningPickaxe;
+                this.peacefulMiningMace = loaded.peacefulMiningMace;
+                this.peacefulMiningAlwaysInPrisonbreak = loaded.peacefulMiningAlwaysInPrisonbreak;
                 this.pickaxeDropConfirmationEnabled = loaded.pickaxeDropConfirmationEnabled;
                 this.pickaxeDropBlockEnabled = loaded.pickaxeDropBlockEnabled;
                 this.pickaxeDropDragBlockEnabled = loaded.pickaxeDropDragBlockEnabled;
+
+                // Load misc settings
+                this.autoTradeEnabled = loaded.autoTradeEnabled;
+                this.boldXpEnergyTitles = loaded.boldXpEnergyTitles;
+                this.cosmicApiEnabled = loaded.cosmicApiEnabled;
+                this.cosmicApiInstallId = loaded.cosmicApiInstallId;
+                this.chestSearchEnabled = loaded.chestSearchEnabled;
+                this.clueScrollSortingEnabled = loaded.clueScrollSortingEnabled;
+                this.clueScrollNumberColor = loaded.clueScrollNumberColor;
+                this.clueScrollUnmappedTooltipEnabled = loaded.clueScrollUnmappedTooltipEnabled;
+                this.prisonbreakTexturePackEnabled = loaded.prisonbreakTexturePackEnabled;
+                this.enchantBookCostsEnabled = loaded.enchantBookCostsEnabled;
+                this.enchantBookCostsColor = loaded.enchantBookCostsColor;
+                this.gangPointExpiryEnabled = loaded.gangPointExpiryEnabled;
+                this.gangPointExpiryColor = loaded.gangPointExpiryColor;
 
                 // Load held item scaling settings
                 this.heldItemPickaxeScale = loaded.heldItemPickaxeScale;
@@ -644,6 +719,15 @@ public class Config {
                 this.messageNotifsSound = loaded.messageNotifsSound;
                 this.messageNotifsVolume = loaded.messageNotifsVolume;
 
+                // Powerball alerts
+                this.powerballAlertEnabled = loaded.powerballAlertEnabled;
+                this.powerballAlertTitleEnabled = loaded.powerballAlertTitleEnabled;
+                this.powerballAlertSoundEnabled = loaded.powerballAlertSoundEnabled;
+                this.powerballAlertSound = loaded.powerballAlertSound;
+                this.powerballAlertSoundVolume = loaded.powerballAlertSoundVolume;
+                this.powerballAlertTitleText = loaded.powerballAlertTitleText;
+                this.powerballAlertTitleColor = loaded.powerballAlertTitleColor;
+
                 // Load waypoint settings
                 this.waypointsEnabled = loaded.waypointsEnabled;
                 this.waypointMeteorsEnabled = loaded.waypointMeteorsEnabled;
@@ -695,6 +779,20 @@ public class Config {
                 this.banditRushSoundVolume = loaded.banditRushSoundVolume;
                 this.waypointBanditRushEnabled = loaded.waypointBanditRushEnabled;
                 this.waypointBanditRushEdgeEnabled = loaded.waypointBanditRushEdgeEnabled;
+
+                // Meteorite Shower
+                this.meteoriteShowerEnabled = loaded.meteoriteShowerEnabled;
+                this.meteoriteShowerHeadingColor = loaded.meteoriteShowerHeadingColor;
+                this.meteoriteShowerTextColor = loaded.meteoriteShowerTextColor;
+                this.meteoriteShowerShowDistance = loaded.meteoriteShowerShowDistance;
+                this.meteoriteShowerTimeoutSeconds = loaded.meteoriteShowerTimeoutSeconds;
+                this.meteoriteShowerBeamOpacity = loaded.meteoriteShowerBeamOpacity;
+                this.meteoriteShowerIconItemId = loaded.meteoriteShowerIconItemId;
+                this.meteoriteShowerSoundEnabled = loaded.meteoriteShowerSoundEnabled;
+                this.meteoriteShowerSound = loaded.meteoriteShowerSound;
+                this.meteoriteShowerSoundVolume = loaded.meteoriteShowerSoundVolume;
+                this.waypointMeteoriteShowerEnabled = loaded.waypointMeteoriteShowerEnabled;
+                this.waypointMeteoriteShowerEdgeEnabled = loaded.waypointMeteoriteShowerEdgeEnabled;
             }
         } catch (IOException e) {
             e.printStackTrace();

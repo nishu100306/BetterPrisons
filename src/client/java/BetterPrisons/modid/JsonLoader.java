@@ -123,6 +123,26 @@ public class JsonLoader {
         tpahere.icon = "minecraft:experience_bottle";
         defaults.add(tpahere);
 
+        CooldownHud.CommandDef dangle = new CooldownHud.CommandDef();
+        dangle.command = "/dangle";
+        dangle.matchType = "exact";
+        dangle.cooldown = 30;
+        dangle.displayName = "Dangle";
+        dangle.chatPattern = "§aDangling your item!";
+        dangle.aliases = null;
+        dangle.icon = "minecraft:fishing_rod";
+        defaults.add(dangle);
+
+        CooldownHud.CommandDef adangle = new CooldownHud.CommandDef();
+        adangle.command = "/adangle";
+        adangle.matchType = "exact";
+        adangle.cooldown = 20;
+        adangle.displayName = "Adangle";
+        adangle.chatPattern = null; // Triggered on send; cancelled by error messages
+        adangle.aliases = null;
+        adangle.icon = "minecraft:iron_chestplate";
+        defaults.add(adangle);
+
         CommandsWrapper wrapper = new CommandsWrapper();
         wrapper.commands = defaults;
 

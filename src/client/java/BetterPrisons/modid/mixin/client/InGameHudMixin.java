@@ -34,8 +34,9 @@ public class InGameHudMixin {
 
         boolean easyViewActive = BetterPrisonsClient.easyView != null && BetterPrisonsClient.easyView.enabled;
         boolean cooldownActive = BetterPrisonsClient.itemCooldownOverlay != null && BetterPrisonsClient.config.itemCooldownsEnabled;
+        boolean clueActive = BetterPrisonsClient.config.clueScrollSortingEnabled;
 
-        if (!easyViewActive && !cooldownActive) return;
+        if (!easyViewActive && !cooldownActive && !clueActive) return;
 
         PlayerEntity player = this.client.player;
         int scaledWidth = context.getScaledWindowWidth();
@@ -87,6 +88,11 @@ public class InGameHudMixin {
                     context.drawText(this.client.textRenderer, cdText, -textWidth / 2, -textHeight / 2, cooldown.color, true);
                     matrices.popMatrix();
                 }
+            }
+
+            // Clue scroll step number (centered in slot)
+            if (clueActive) {
+                BetterPrisons.modid.chestsearch.ClueScrollOverlay.render(context, slotX, slotY, this.client.textRenderer, stack);
             }
         }
     }

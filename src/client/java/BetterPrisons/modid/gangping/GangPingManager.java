@@ -4,6 +4,7 @@ import BetterPrisons.modid.BetterPrisonsClient;
 import BetterPrisons.modid.waypoint.WaypointManager;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.text.Text;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 
 import java.util.*;
@@ -55,14 +56,19 @@ public class GangPingManager {
     // ----------------------------------------------------------------
 
     public void sendPing(MinecraftClient client) {
-        sendPingInternal(client, false);
+        sendPingInternal(client, false, null);
     }
 
     public void sendTrucePing(MinecraftClient client) {
-        sendPingInternal(client, true);
+        sendPingInternal(client, true, null);
     }
 
-    private void sendPingInternal(MinecraftClient client, boolean truce) {
+    /** Sends a gang ping at the given block position instead of the player's position. */
+    public void sendPingAtBlock(MinecraftClient client, BlockPos pos) {
+        sendPingInternal(client, false, pos);
+    }
+
+    private void sendPingInternal(MinecraftClient client, boolean truce, BlockPos overridePos) {
         if (client.player == null || client.world == null || client.getNetworkHandler() == null) return;
         long now = System.currentTimeMillis();
         long remaining = SEND_COOLDOWN_MS - (now - lastSendTime);
@@ -74,9 +80,16 @@ public class GangPingManager {
         }
         lastSendTime = now;
 
-        int x = client.player.getBlockPos().getX();
-        int y = (int) Math.round(client.player.getEyeY());
-        int z = client.player.getBlockPos().getZ();
+        int x, y, z;
+        if (overridePos != null) {
+            x = overridePos.getX();
+            y = overridePos.getY();
+            z = overridePos.getZ();
+        } else {
+            x = client.player.getBlockPos().getX();
+            y = (int) Math.round(client.player.getEyeY());
+            z = client.player.getBlockPos().getZ();
+        }
         String world = WaypointManager.detectWorldKey();
         float hp = client.player.getHealth();
         float maxHp = client.player.getMaxHealth();
@@ -85,7 +98,7 @@ public class GangPingManager {
         String facing = dir.asString().substring(0, 1).toUpperCase() + dir.asString().substring(1);
 
         String prefix = truce ? "[T!]" : "[!]";
-        String msg = String.format("%s %s has pinged at %dx %dy %dz %s | HP: %.0f/%.0f | Facing: %s",
+        String msg = String.format("%s %s has pinged at %dx %dy %dz %s | HP %.0f/%.0f | Facing %s",
                 prefix, client.player.getGameProfile().name(), x, y, z, world, hp, maxHp, facing);
 
         client.getNetworkHandler().sendChatCommand(truce ? "g c t" : "g c g");

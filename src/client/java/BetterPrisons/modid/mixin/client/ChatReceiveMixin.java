@@ -21,17 +21,18 @@ import java.util.regex.Pattern;
 public class ChatReceiveMixin {
     @Shadow @Final private static Logger LOGGER;
     private String previousMessage = "";
-    // Pattern to match private messages: [any] [username -> me] message
-    private static final Pattern PM_PATTERN = Pattern.compile("\\[.*?]\\s*\\[.+?\\s*->\\s*me].*");
+    // Pattern to match private messages: "[realm] [username to me] message"
+    // (also supports the older "[username -> me]" arrow form).
+    private static final Pattern PM_PATTERN = Pattern.compile("\\[.*?]\\s*\\[.+?(?:\\s*->\\s*|\\s+to\\s+)me].*");
     // Merchant message patterns (single-line)
     private static final Pattern MERCHANT_SPAWN_PATTERN = Pattern.compile(
         "\\(!\\) A (\\w+) Ore Merchant traveled to (-?\\d+)x, (-?\\d+)y, (-?\\d+)z");
     private static final Pattern MERCHANT_SLAIN_PATTERN = Pattern.compile(
         "\\(!\\) A (\\w+) Ore Merchant has been slain by .+ at (-?\\d+)x, (-?\\d+)y, (-?\\d+)z");
     private static final Pattern GANG_PING_PATTERN = Pattern.compile(
-        "\\[!]\\s+(\\S+)\\s+has pinged at\\s+(-?\\d+)x\\s+(-?\\d+)y\\s+(-?\\d+)z\\s+(\\S+)\\s+\\|\\s+HP:\\s+([\\d.]+)/([\\d.]+)\\s+\\|\\s+Facing:\\s+(\\w+)");
+        "\\[!]\\s+(\\S+)\\s+has pinged at\\s+(-?\\d+)x\\s+(-?\\d+)y\\s+(-?\\d+)z\\s+(\\S+)\\s+\\|\\s+HP:?\\s+([\\d.]+)/([\\d.]+)\\s+\\|\\s+Facing:?\\s+(\\w+)");
     private static final Pattern TRUCE_PING_PATTERN = Pattern.compile(
-        "\\[T!]\\s+(\\S+)\\s+has pinged at\\s+(-?\\d+)x\\s+(-?\\d+)y\\s+(-?\\d+)z\\s+(\\S+)\\s+\\|\\s+HP:\\s+([\\d.]+)/([\\d.]+)\\s+\\|\\s+Facing:\\s+(\\w+)");
+        "\\[T!]\\s+(\\S+)\\s+has pinged at\\s+(-?\\d+)x\\s+(-?\\d+)y\\s+(-?\\d+)z\\s+(\\S+)\\s+\\|\\s+HP:?\\s+([\\d.]+)/([\\d.]+)\\s+\\|\\s+Facing:?\\s+(\\w+)");
     private static final Pattern BANDIT_RUSH_PATTERN = Pattern.compile(
         "(\\w+) BANDIT RUSH has spawned at (-?\\d+), (-?\\d+), (-?\\d+)");
     private static final Pattern BANDIT_RUSH_WON_PATTERN = Pattern.compile(
@@ -40,14 +41,17 @@ public class ChatReceiveMixin {
     @Inject(method = "addMessage(Lnet/minecraft/text/Text;)V", at = @At("HEAD"))
     private void onReceiveMessage(Text message, CallbackInfo ci) {
         String text = message.getString();
+        // Strip §-codes — they appear inline in coordinates and other fields
+        String strippedText = text.replaceAll("§.", "");
+
         BetterPrisonsClient.enchantTracker.onChatMessage(text);
         BetterPrisonsClient.cooldownHud.onChatReceived(text);
 
-        // Check for private messages
-        checkPrivateMessage(text);
+        // Check for private messages (use stripped text so inline §-codes don't break it)
+        checkPrivateMessage(strippedText);
 
         // Check for merchant spawn
-        Matcher merchantSpawnMatcher = MERCHANT_SPAWN_PATTERN.matcher(text);
+        Matcher merchantSpawnMatcher = MERCHANT_SPAWN_PATTERN.matcher(strippedText);
         if (merchantSpawnMatcher.find()) {
             try {
                 String tierName = merchantSpawnMatcher.group(1);
@@ -56,12 +60,12 @@ public class ChatReceiveMixin {
                 int z = Integer.parseInt(merchantSpawnMatcher.group(4));
                 BetterPrisonsClient.eventsHud.onMerchantSpawned(tierName, x, y, z);
             } catch (NumberFormatException e) {
-                LOGGER.warn("Failed to parse merchant spawn coordinates: {}", text);
+                LOGGER.warn("Failed to parse merchant spawn coordinates: {}", strippedText);
             }
         }
 
         // Check for merchant slain
-        Matcher merchantSlainMatcher = MERCHANT_SLAIN_PATTERN.matcher(text);
+        Matcher merchantSlainMatcher = MERCHANT_SLAIN_PATTERN.matcher(strippedText);
         if (merchantSlainMatcher.find()) {
             try {
                 String tierName = merchantSlainMatcher.group(1);
@@ -70,24 +74,40 @@ public class ChatReceiveMixin {
                 int z = Integer.parseInt(merchantSlainMatcher.group(4));
                 BetterPrisonsClient.eventsHud.onMerchantSlain(tierName, x, y, z);
             } catch (NumberFormatException e) {
-                LOGGER.warn("Failed to parse merchant slain coordinates: {}", text);
+                LOGGER.warn("Failed to parse merchant slain coordinates: {}", strippedText);
             }
         }
 
         // Check for meteor falling (coordinates in current message, announcement in previous)
-        if (previousMessage.startsWith("(!) A meteor is falling from the sky at:")) {
-            BetterPrisonsClient.eventsHud.onMeteorFalling(text, EventsHud.MeteorType.NATURAL);
+        // Natural format: line 1 "** A METEOR IS FALLING FROM THE SKY! **", line 2 "Go to <coords> and prepare to mine!"
+        // Summoned format: line 1 "*** A METEOR WILL CRASH IN 1 MINUTE ***", line 2 "Summoned by <player> at <coords>."
+        if (previousMessage.contains("A METEOR IS FALLING FROM THE SKY")) {
+            BetterPrisonsClient.eventsHud.onMeteorFalling(strippedText, EventsHud.MeteorType.NATURAL);
+        } else if (previousMessage.contains("A METEOR WILL CRASH")) {
+            EventsHud.MeteorType type = strippedText.contains("Summoned by")
+                ? EventsHud.MeteorType.SUMMONED : EventsHud.MeteorType.NATURAL;
+            BetterPrisonsClient.eventsHud.onMeteorFalling(strippedText, type);
+        } else if (previousMessage.startsWith("(!) A meteor is falling from the sky at:")) {
+            BetterPrisonsClient.eventsHud.onMeteorFalling(strippedText, EventsHud.MeteorType.NATURAL);
         } else if (previousMessage.startsWith("(!) A meteor summoned by") && previousMessage.contains("is falling from the sky at:")) {
-            BetterPrisonsClient.eventsHud.onMeteorFalling(text, EventsHud.MeteorType.SUMMONED);
+            BetterPrisonsClient.eventsHud.onMeteorFalling(strippedText, EventsHud.MeteorType.SUMMONED);
         }
 
         // Check for meteor crashed (coordinates in current message, announcement in previous)
-        if (previousMessage.contains("(!) A meteor has crashed at:")) {
-            BetterPrisonsClient.eventsHud.onMeteorCrashed(text);
+        // New format: line 1 "*** A METEOR HAS CRASHED! ***", line 2 "Mine it at <coords>. ..."
+        if (previousMessage.contains("(!) A meteor has crashed at:")
+                || previousMessage.contains("A METEOR HAS CRASHED")) {
+            BetterPrisonsClient.eventsHud.onMeteorCrashed(strippedText);
         }
 
-        // Strip §-codes for bandit rush matching (they can appear inline in coordinates)
-        String strippedText = text.replaceAll("§.", "");
+        // Check for meteorite shower (coords on current line, announcement on previous)
+        // Line 1: "*** A METEORITE SHOWER WILL CRASH IN 1 MINUTE ***" or "*** A METEORITE SHOWER HAS CRASHED! ***"
+        // Line 2: "Mine the comets at 220x, 108y, -794z (Iron Zone) for"
+        if (previousMessage.contains("METEORITE SHOWER WILL CRASH")) {
+            BetterPrisonsClient.eventsHud.onMeteoriteShower(strippedText, false);
+        } else if (previousMessage.contains("METEORITE SHOWER HAS CRASHED")) {
+            BetterPrisonsClient.eventsHud.onMeteoriteShower(strippedText, true);
+        }
 
         // Check for bandit rush spawn
         Matcher banditRushMatcher = BANDIT_RUSH_PATTERN.matcher(strippedText);
@@ -169,8 +189,8 @@ public class ChatReceiveMixin {
             }
         }
 
-        // Store current message for next iteration
-        previousMessage = text;
+        // Store stripped message for next iteration (used for meteor pattern matching)
+        previousMessage = strippedText;
     }
 
     private void checkPrivateMessage(String text) {

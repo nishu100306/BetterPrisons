@@ -7,10 +7,14 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.LoreComponent;
 import net.minecraft.item.ItemStack;
+import net.minecraft.sound.SoundEvents;
+import net.minecraft.text.Style;
 import net.minecraft.text.Text;
+import net.minecraft.text.TextColor;
 
 public class PowerballEnchant extends BaseEnchant {
     private long lastRightClickTime = 0;
+    private boolean wasActiveLastTick = false;
 
     public PowerballEnchant() {
         super("powerball", "Powerball");
@@ -18,8 +22,16 @@ public class PowerballEnchant extends BaseEnchant {
 
     @Override
     public void tick(MinecraftClient client) {
+        // Detect active→inactive transition (cooldown elapsed)
+        boolean wasActive = wasActiveLastTick;
+
         // Call parent tick to handle expiration
         super.tick(client);
+
+        if (wasActive && !isActive) {
+            firePowerballReadyAlert(client);
+        }
+        wasActiveLastTick = isActive;
 
         if (client.player == null) return;
 
@@ -35,6 +47,54 @@ public class PowerballEnchant extends BaseEnchant {
             long timeSinceRightClick = System.currentTimeMillis() - lastRightClickTime;
             if (heldItem.getItem().getTranslationKey().contains("pickaxe") && timeSinceRightClick <= 2000) {
                 onWitherSoundDetected(heldItem);
+            }
+        }
+    }
+
+    /** Fires the title + sound alert when the powerball cooldown has elapsed. */
+    private void firePowerballReadyAlert(MinecraftClient client) {
+        if (!BetterPrisonsClient.config.powerballAlertEnabled) return;
+        if (client.player == null) return;
+
+        // Title on screen
+        if (BetterPrisonsClient.config.powerballAlertTitleEnabled && client.inGameHud != null) {
+            int rgb = BetterPrisonsClient.config.powerballAlertTitleColor & 0xFFFFFF;
+            Text title = Text.literal(BetterPrisonsClient.config.powerballAlertTitleText)
+                .setStyle(Style.EMPTY.withColor(TextColor.fromRgb(rgb)).withBold(true));
+            client.inGameHud.setTitle(title);
+            client.inGameHud.setSubtitle(Text.empty());
+            client.inGameHud.setTitleTicks(5, 40, 10); // fadeIn, stay, fadeOut (ticks)
+        }
+
+        // Sound cue
+        if (BetterPrisonsClient.config.powerballAlertSoundEnabled) {
+            float volume = BetterPrisonsClient.config.powerballAlertSoundVolume / 100.0f;
+            String soundType = BetterPrisonsClient.config.powerballAlertSound;
+            switch (soundType) {
+                case "bell":
+                    client.player.playSound(SoundEvents.BLOCK_BELL_USE, volume, 1.0f);
+                    break;
+                case "xp_orb":
+                    client.player.playSound(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, volume, 1.0f);
+                    break;
+                case "note_pling":
+                    client.player.playSound(SoundEvents.BLOCK_NOTE_BLOCK_PLING.value(), volume, 1.0f);
+                    break;
+                case "enchant":
+                    client.player.playSound(SoundEvents.BLOCK_ENCHANTMENT_TABLE_USE, volume, 1.0f);
+                    break;
+                case "level_up":
+                    client.player.playSound(SoundEvents.ENTITY_PLAYER_LEVELUP, volume, 1.0f);
+                    break;
+                case "ender_eye":
+                    client.player.playSound(SoundEvents.ENTITY_ENDER_EYE_DEATH, volume, 1.0f);
+                    break;
+                case "anvil":
+                    client.player.playSound(SoundEvents.BLOCK_ANVIL_LAND, volume, 1.0f);
+                    break;
+                default:
+                    client.player.playSound(SoundEvents.ENTITY_PLAYER_LEVELUP, volume, 1.0f);
+                    break;
             }
         }
     }

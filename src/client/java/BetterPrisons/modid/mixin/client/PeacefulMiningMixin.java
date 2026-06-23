@@ -8,6 +8,7 @@ import net.minecraft.client.render.entity.state.PlayerEntityRenderState;
 import net.minecraft.entity.PlayerLikeEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.MaceItem;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -69,15 +70,38 @@ public class PeacefulMiningMixin {
         if (!(entity instanceof PlayerEntity) || entity.getUuid().equals(client.player.getUuid())) {
             return false;
         }
-        // Must be holding a pickaxe
-        if (!isPickaxe(client.player.getMainHandStack()) && !isPickaxe(client.player.getOffHandStack())) {
-            return false;
+        // In the prisonbreak world (if enabled), peaceful mining is always active
+        // regardless of held item; otherwise require an enabled tool type.
+        boolean alwaysActive = BetterPrisonsClient.config.peacefulMiningAlwaysInPrisonbreak && isInPrisonbreak(client);
+        if (!alwaysActive) {
+            ItemStack main = client.player.getMainHandStack();
+            ItemStack off = client.player.getOffHandStack();
+            if (!isEnabledTool(main) && !isEnabledTool(off)) {
+                return false;
+            }
         }
         return Math.sqrt(client.player.squaredDistanceTo(entity)) <= BetterPrisonsClient.config.peacefulMiningDistance;
     }
 
-    private boolean isPickaxe(ItemStack stack) {
+    private boolean isInPrisonbreak(MinecraftClient client) {
+        return client.world != null
+            && "minecraft:prisonbreak".equals(client.world.getRegistryKey().getValue().toString());
+    }
+
+    /** True if the stack is a pickaxe or mace and the corresponding config toggle is enabled. */
+    private boolean isEnabledTool(ItemStack stack) {
         if (stack.isEmpty()) return false;
-        return stack.getItem().toString().toLowerCase().contains("pickaxe");
+        if (BetterPrisonsClient.config.peacefulMiningPickaxe && isPickaxe(stack)) return true;
+        if (BetterPrisonsClient.config.peacefulMiningMace && isMace(stack)) return true;
+        return false;
+    }
+
+    private boolean isPickaxe(ItemStack stack) {
+        return stack.getItem().getTranslationKey().toLowerCase().contains("pickaxe");
+    }
+
+    private boolean isMace(ItemStack stack) {
+        if (stack.getItem() instanceof MaceItem) return true;
+        return stack.getItem().getTranslationKey().toLowerCase().contains("mace");
     }
 }

@@ -7,6 +7,8 @@ import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.LoreComponent;
+import net.minecraft.component.type.NbtComponent;
+import net.minecraft.nbt.NbtCompound;
 import net.minecraft.item.Items;
 import net.minecraft.item.Item;
 import net.minecraft.text.Text;
@@ -25,43 +27,6 @@ public class SatchelHud extends BaseHud {
     public List<SatchelInfo> foundSatchels = new ArrayList<>();
     private int lastInventoryHash = 0;
     private boolean scanning = false;
-
-    // Whitelist of valid satchel names
-    private static final List<String> VALID_SATCHELS = List.of(
-        "Coal Ore Satchel",
-        "Coal Satchel",
-        "Iron Ore Satchel",
-        "Iron Satchel",
-        "Lapis Ore Satchel",
-        "Lapis Satchel",
-        "Redstone Ore Satchel",
-        "Redstone Satchel",
-        "Gold Ore Satchel",
-        "Gold Satchel",
-        "Diamond Ore Satchel",
-        "Diamond Satchel",
-        "Emerald Ore Satchel",
-        "Emerald Satchel"
-    );
-
-    // Map Minecraft items to satchel type names (for renamed satchels)
-    private static final Map<Item, String> ITEM_TO_SATCHEL = new HashMap<>();
-    static {
-        ITEM_TO_SATCHEL.put(Items.COAL_ORE, "Coal Ore Satchel");
-        ITEM_TO_SATCHEL.put(Items.COAL, "Coal Satchel");
-        ITEM_TO_SATCHEL.put(Items.IRON_ORE, "Iron Ore Satchel");
-        ITEM_TO_SATCHEL.put(Items.IRON_INGOT, "Iron Satchel");
-        ITEM_TO_SATCHEL.put(Items.LAPIS_ORE, "Lapis Ore Satchel");
-        ITEM_TO_SATCHEL.put(Items.LAPIS_LAZULI, "Lapis Satchel");
-        ITEM_TO_SATCHEL.put(Items.REDSTONE_ORE, "Redstone Ore Satchel");
-        ITEM_TO_SATCHEL.put(Items.REDSTONE, "Redstone Satchel");
-        ITEM_TO_SATCHEL.put(Items.GOLD_ORE, "Gold Ore Satchel");
-        ITEM_TO_SATCHEL.put(Items.GOLD_INGOT, "Gold Satchel");
-        ITEM_TO_SATCHEL.put(Items.DIAMOND_ORE, "Diamond Ore Satchel");
-        ITEM_TO_SATCHEL.put(Items.DIAMOND, "Diamond Satchel");
-        ITEM_TO_SATCHEL.put(Items.EMERALD_ORE, "Emerald Ore Satchel");
-        ITEM_TO_SATCHEL.put(Items.EMERALD, "Emerald Satchel");
-    }
 
     // Default colors for each satchel type (used when custom name strips the original style)
     private static final Map<String, Formatting> SATCHEL_COLORS = new HashMap<>();
@@ -145,201 +110,152 @@ public class SatchelHud extends BaseHud {
         }
     }
 
+    /**
+     * Matches a capacity line like "(0 / 345,600 Ores)" or "(13 / 320 Drops)".
+     * The trailing unit word is required so the energy line "(0 / 50,000)" is ignored.
+     * group(1) = current, group(2) = max.
+     */
+    private static final Pattern CAPACITY_PATTERN =
+        Pattern.compile("\\((\\d[\\d,]*)\\s*/\\s*(\\d[\\d,]*)\\s*[A-Za-z]+\\)");
+
+    /** Returns the cosmicprisons PublicBukkitValues compound, or null. */
+    private NbtCompound getBukkit(ItemStack stack) {
+        NbtComponent customData = stack.get(DataComponentTypes.CUSTOM_DATA);
+        if (customData == null) return null;
+        NbtCompound bukkit = customData.copyNbt().getCompound("PublicBukkitValues").orElse(null);
+        return (bukkit == null || bukkit.isEmpty()) ? null : bukkit;
+    }
+
     private boolean isSatchel(ItemStack stack) {
         if (stack.isEmpty()) return false;
-
-        // Get the display name and parse it (remove capacity part)
-        String displayName = stack.getName().getString();
-        String satchelName = displayName.split("\\(")[0].trim();
-
-        // Check if the parsed name is in the whitelist
-        for (String validName : VALID_SATCHELS) {
-            if (satchelName.startsWith(validName)) {
-                return true;
-            }
-        }
-
-        // Fallback: check if item type matches a known satchel item AND name contains capacity pattern
-        if (ITEM_TO_SATCHEL.containsKey(stack.getItem()) && displayName.matches(".*\\(\\d[\\d,]*\\s*/\\s*\\d[\\d,]*\\).*")) {
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * Parses the style from the first sibling in the toString() representation of a Text object.
-     * Example input: "empty[siblings=[literal{Redstone Ore Satchel }[style={color=red,bold,!italic}], ...]]"
-     * Returns a Style object with the parsed formatting.
-     */
-    private Style parseStyleFromToString(String textToString) {
-        Style style = Style.EMPTY;
-
-        try {
-            // Pattern to match the first [style={...}] block
-            Pattern stylePattern = Pattern.compile("\\[style=\\{([^}]+)\\}\\]");
-            Matcher matcher = stylePattern.matcher(textToString);
-
-            if (matcher.find()) {
-                String styleString = matcher.group(1);
-
-                // Split by comma to get individual style attributes
-                String[] attributes = styleString.split(",");
-
-                for (String attr : attributes) {
-                    attr = attr.trim();
-
-                    // Handle color
-                    if (attr.startsWith("color=")) {
-                        String colorName = attr.substring(6); // Remove "color="
-                        Formatting color = parseColor(colorName);
-                        if (color != null) {
-                            style = style.withColor(color);
-                        }
-                    }
-                    // Handle bold
-                    else if (attr.equals("bold")) {
-                        style = style.withBold(true);
-                    } else if (attr.equals("!bold")) {
-                        style = style.withBold(false);
-                    }
-                    // Handle italic
-                    else if (attr.equals("italic")) {
-                        style = style.withItalic(true);
-                    } else if (attr.equals("!italic")) {
-                        style = style.withItalic(false);
-                    }
-                    // Handle underline
-                    else if (attr.equals("underlined")) {
-                        style = style.withUnderline(true);
-                    } else if (attr.equals("!underlined")) {
-                        style = style.withUnderline(false);
-                    }
-                    // Handle strikethrough
-                    else if (attr.equals("strikethrough")) {
-                        style = style.withStrikethrough(true);
-                    } else if (attr.equals("!strikethrough")) {
-                        style = style.withStrikethrough(false);
-                    }
-                    // Handle obfuscated
-                    else if (attr.equals("obfuscated")) {
-                        style = style.withObfuscated(true);
-                    } else if (attr.equals("!obfuscated")) {
-                        style = style.withObfuscated(false);
-                    }
-                }
-            }
-        } catch (Exception e) {
-            BetterPrisonsClient.LOGGER.warn("Error parsing style from toString: " + e.getMessage());
-        }
-
-        return style;
-    }
-
-    /**
-     * Parses a color name to a Formatting enum value.
-     */
-    private Formatting parseColor(String colorName) {
-        try {
-            // Try to match Minecraft formatting colors
-            switch (colorName.toLowerCase()) {
-                case "black": return Formatting.BLACK;
-                case "dark_blue": return Formatting.DARK_BLUE;
-                case "dark_green": return Formatting.DARK_GREEN;
-                case "dark_aqua": return Formatting.DARK_AQUA;
-                case "dark_red": return Formatting.DARK_RED;
-                case "dark_purple": return Formatting.DARK_PURPLE;
-                case "gold": return Formatting.GOLD;
-                case "gray": return Formatting.GRAY;
-                case "dark_gray": return Formatting.DARK_GRAY;
-                case "blue": return Formatting.BLUE;
-                case "green": return Formatting.GREEN;
-                case "aqua": return Formatting.AQUA;
-                case "red": return Formatting.RED;
-                case "light_purple": return Formatting.LIGHT_PURPLE;
-                case "yellow": return Formatting.YELLOW;
-                case "white": return Formatting.WHITE;
-                default:
-                    BetterPrisonsClient.LOGGER.warn("Unknown color: " + colorName);
-                    return null;
-            }
-        } catch (Exception e) {
-            BetterPrisonsClient.LOGGER.warn("Error parsing color: " + colorName);
-            return null;
-        }
+        NbtCompound bukkit = getBukkit(stack);
+        if (bukkit == null) return false;
+        // Detect via NBT — robust to renames and extra lore lines.
+        if (bukkit.getString("cosmicprisons:custom_item_id").orElse("").endsWith("_satchel")) return true;
+        return !bukkit.getString("cosmicprisons:satchel_ore").orElse("").isEmpty();
     }
 
     private SatchelInfo parseSatchel(ItemStack stack) {
         SatchelInfo info = new SatchelInfo();
-
-        // Get the full display name with color/formatting
-        Text fullName = stack.getName();
-        String fullNameString = fullName.getString();
-
-        // Parse the trimmed name (remove capacity part)
-        String trimmedName = fullNameString.split("\\(")[0].trim();
-
-        // Check if the name matches a known satchel type
-        String matchedType = null;
-        for (String validName : VALID_SATCHELS) {
-            if (trimmedName.startsWith(validName)) {
-                matchedType = validName;
-                break;
-            }
-        }
-
-        // If name doesn't match, fall back to item-based detection
-        if (matchedType == null) {
-            matchedType = ITEM_TO_SATCHEL.get(stack.getItem());
-        }
-
-        // If name matched whitelist, use parsed style from the Text; otherwise use fallback color
-        boolean nameMatched = matchedType != null && trimmedName.startsWith(matchedType);
-        info.name = matchedType != null ? matchedType : trimmedName;
-
-        try {
-            if (nameMatched) {
-                // Standard name — parse style from the custom name Text
-                String textToString = fullName.toString();
-                Style parsedStyle = parseStyleFromToString(textToString);
-                info.displayName = Text.literal(info.name).setStyle(parsedStyle);
-            } else {
-                // Renamed satchel — use known color for the satchel type
-                Formatting color = SATCHEL_COLORS.get(info.name);
-                Style fallbackStyle = Style.EMPTY.withBold(true);
-                if (color != null) {
-                    fallbackStyle = fallbackStyle.withColor(color);
-                }
-                info.displayName = Text.literal(info.name).setStyle(fallbackStyle);
-            }
-        } catch (Exception e) {
-            BetterPrisonsClient.LOGGER.warn("Failed to parse satchel style, using default: " + e.getMessage());
-            info.displayName = Text.literal(info.name);
-        }
-
         info.itemStack = stack.copy(); // Store the ItemStack for icon rendering
+
+        NbtCompound bukkit = getBukkit(stack);
+        String ore = bukkit != null ? bukkit.getString("cosmicprisons:satchel_ore").orElse("") : "";
+        String customId = bukkit != null ? bukkit.getString("cosmicprisons:custom_item_id").orElse("") : "";
+        // Renamed satchels carry a custom_display_name; default-named ones don't.
+        boolean renamed = bukkit != null && !bukkit.getString("cosmicprisons:custom_display_name").orElse("").isEmpty();
+
+        // Capacity "(X / Y <unit>)" — in the lore for ore satchels, in the display
+        // name for drop satchels (clue scroll / contraband / shard).
+        long[] cap = parseCapacity(stack);
+
+        // Name resolution:
+        //  1. Ore satchels: the "Automatically collects <X> while mining" lore line gives the
+        //     exact collected-block name and isn't affected by renames → "<X> Satchel".
+        //  2. Otherwise (non-ore, or that line missing): use the exact display name when not
+        //     renamed, else reconstruct from the custom_item_id.
+        String collected = ore.isEmpty() ? null : parseCollectedBlock(stack);
+        if (collected != null) {
+            info.name = collected + " Satchel";
+        } else {
+            info.name = renamed ? prettyName(customId) : stripCapacitySuffix(stack.getName().getString());
+        }
+
+        String colorKey;
+        if (!ore.isEmpty()) {
+            // Ore satchel — current count from NBT. Color is keyed by the base ore type,
+            // ignoring any variant prefix.
+            boolean refined = bukkit.getBoolean("cosmicprisons:satchel_refined").orElse(false);
+            long count = bukkit.getInt("cosmicprisons:satchel_count").orElse(0);
+            String oreName = ore.charAt(0) + ore.substring(1).toLowerCase();
+            colorKey = refined ? oreName + " Satchel" : oreName + " Ore Satchel";
+            info.current = count;
+        } else {
+            // Other satchel types (e.g. clue scroll satchel) — fill from the capacity line.
+            colorKey = info.name;
+            info.current = cap != null ? cap[0] : 0;
+        }
+
+        info.max = cap != null ? cap[1] : 1;
+        if (info.max <= 0) info.max = 1;
+
+        // Style from the known satchel color (display name comes from NBT, not the
+        // possibly-renamed custom name). Non-ore satchels use the default style.
+        Formatting color = SATCHEL_COLORS.get(colorKey);
+        Style style = Style.EMPTY.withBold(true);
+        if (color != null) style = style.withColor(color);
+        info.displayName = Text.literal(info.name).setStyle(style);
+
+        return info;
+    }
+
+    /**
+     * Parses {current, max} from a "(X / Y <unit>)" capacity string. Checks the
+     * display name first (drop satchels) then the lore (ore satchels). Null if absent.
+     */
+    private long[] parseCapacity(ItemStack stack) {
+        long[] fromName = matchCapacity(stack.getName().getString());
+        if (fromName != null) return fromName;
 
         LoreComponent lore = stack.get(DataComponentTypes.LORE);
         if (lore != null) {
-
-            try {
-                List<Text> lines = lore.lines();
-                String line = lines.get(9).getString();
-                info.current = Integer.parseInt(line.split("/")[0].replace("\\(", "")
-                        .strip().replaceAll(",", ""));
-                info.max = Integer.parseInt(line.split("/")[1].replace("\\)", "")
-                        .strip().replaceAll(",", ""));
-            } catch (NumberFormatException e) {
-                BetterPrisonsClient.LOGGER.warn("Unable to read satchel values");
+            for (Text line : lore.lines()) {
+                long[] r = matchCapacity(line.getString());
+                if (r != null) return r;
             }
         }
+        return null;
+    }
 
-        // Ensure max is at least 1 to avoid division by zero
-        if (info.max <= 0) {
-            info.max = 1;
+    private long[] matchCapacity(String s) {
+        Matcher m = CAPACITY_PATTERN.matcher(s);
+        if (m.find()) {
+            try {
+                long cur = Long.parseLong(m.group(1).replace(",", ""));
+                long max = Long.parseLong(m.group(2).replace(",", ""));
+                return new long[]{cur, max};
+            } catch (NumberFormatException e) {
+                return null;
+            }
         }
+        return null;
+    }
 
-        return info;
+    /**
+     * Extracts the collected block name from the "Automatically collects <X> while mining"
+     * lore line (rename-proof). Returns null if the line isn't present.
+     */
+    private String parseCollectedBlock(ItemStack stack) {
+        LoreComponent lore = stack.get(DataComponentTypes.LORE);
+        if (lore == null) return null;
+        String marker = "Automatically collects ";
+        for (Text line : lore.lines()) {
+            String s = line.getString();
+            int idx = s.indexOf(marker);
+            if (idx >= 0) {
+                String rest = s.substring(idx + marker.length()).replace("while mining.", "").trim();
+                if (!rest.isEmpty()) return rest;
+            }
+        }
+        return null;
+    }
+
+    /** Removes the trailing " (X / Y unit)" capacity part from a satchel's display name. */
+    private String stripCapacitySuffix(String name) {
+        int idx = name.indexOf('(');
+        return idx >= 0 ? name.substring(0, idx).trim() : name.trim();
+    }
+
+    /** Turns a custom item id like "clue_scroll_satchel" into "Clue Scroll Satchel". */
+    private String prettyName(String customId) {
+        if (customId == null || customId.isEmpty()) return "Satchel";
+        StringBuilder sb = new StringBuilder();
+        for (String part : customId.split("_")) {
+            if (part.isEmpty()) continue;
+            if (sb.length() > 0) sb.append(' ');
+            sb.append(Character.toUpperCase(part.charAt(0))).append(part.substring(1));
+        }
+        return sb.length() == 0 ? "Satchel" : sb.toString();
     }
 
     private int computeInventoryHash(PlayerInventory inv) {

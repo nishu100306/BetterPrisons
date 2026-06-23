@@ -6,6 +6,7 @@ import net.minecraft.client.network.ClientPlayerInteractionManager;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.MaceItem;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import org.spongepowered.asm.mixin.Mixin;
@@ -24,6 +25,18 @@ public class ClientPlayerInteractionMixin {
      */
     @Inject(method = "interactEntity", at = @At("HEAD"), cancellable = true)
     private void onInteractEntity(PlayerEntity player, Entity entity, Hand hand, CallbackInfoReturnable<ActionResult> cir) {
+        // Auto-trade: shift-right-click another player to send /trade <username>
+        if (BetterPrisonsClient.config.autoTradeEnabled
+                && hand == Hand.MAIN_HAND
+                && entity instanceof PlayerEntity
+                && player.isSneaking()) {
+            MinecraftClient client = MinecraftClient.getInstance();
+            if (client.getNetworkHandler() != null) {
+                String username = ((PlayerEntity) entity).getGameProfile().name();
+                client.getNetworkHandler().sendChatCommand("trade " + username);
+            }
+        }
+
         // Check if peaceful mining is active
         if (!isPeacefulMiningActive()) {
             return;
@@ -67,23 +80,38 @@ public class ClientPlayerInteractionMixin {
             return false;
         }
 
-        // Check if the player is holding a pickaxe by checking the item name
+        // In the prisonbreak world (if enabled), peaceful mining is always active
+        // regardless of held item.
+        if (BetterPrisonsClient.config.peacefulMiningAlwaysInPrisonbreak && isInPrisonbreak(client)) {
+            return true;
+        }
+
+        // Check if the player is holding an enabled tool type
         ItemStack mainHand = client.player.getMainHandStack();
         ItemStack offHand = client.player.getOffHandStack();
 
-        return isPickaxe(mainHand) || isPickaxe(offHand);
+        return isEnabledTool(mainHand) || isEnabledTool(offHand);
     }
 
-    /**
-     * Checks if an ItemStack is a pickaxe
-     */
+    private boolean isInPrisonbreak(MinecraftClient client) {
+        return client.world != null
+            && "minecraft:prisonbreak".equals(client.world.getRegistryKey().getValue().toString());
+    }
+
+    /** True if the stack is a pickaxe or mace and the corresponding config toggle is enabled. */
+    private boolean isEnabledTool(ItemStack stack) {
+        if (stack.isEmpty()) return false;
+        if (BetterPrisonsClient.config.peacefulMiningPickaxe && isPickaxe(stack)) return true;
+        if (BetterPrisonsClient.config.peacefulMiningMace && isMace(stack)) return true;
+        return false;
+    }
+
     private boolean isPickaxe(ItemStack stack) {
-        if (stack.isEmpty()) {
-            return false;
-        }
-        String itemName = stack.getItem().toString().toLowerCase();
-        return itemName.contains("pickaxe");
+        return stack.getItem().getTranslationKey().toLowerCase().contains("pickaxe");
     }
 
-
+    private boolean isMace(ItemStack stack) {
+        if (stack.getItem() instanceof MaceItem) return true;
+        return stack.getItem().getTranslationKey().toLowerCase().contains("mace");
+    }
 }

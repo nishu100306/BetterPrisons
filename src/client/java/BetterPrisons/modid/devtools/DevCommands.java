@@ -16,7 +16,13 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.LoreComponent;
+import net.minecraft.component.type.NbtComponent;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NbtCompound;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import BetterPrisons.modid.chestsearch.ClueScrollOverlay;
 import net.minecraft.scoreboard.Team;
 import net.minecraft.text.Text;
 import net.minecraft.util.hit.BlockHitResult;
@@ -241,8 +247,8 @@ public class DevCommands {
                             builder.suggest(t.name().toLowerCase());
                         return builder.buildFuture();
                     })
-                    .then(ClientCommandManager.argument("startLevel", IntegerArgumentType.integer(0, 110))
-                    .then(ClientCommandManager.argument("endLevel", IntegerArgumentType.integer(1, 110))
+                    .then(ClientCommandManager.argument("startLevel", IntegerArgumentType.integer(0, 750))
+                    .then(ClientCommandManager.argument("endLevel", IntegerArgumentType.integer(1, 750))
                         .executes(ctx -> calcPick(ctx))))))
             .then(ClientCommandManager.literal("ore_satchel")
                 .then(ClientCommandManager.argument("type", StringArgumentType.word())
@@ -251,8 +257,8 @@ public class DevCommands {
                             builder.suggest(t.name().toLowerCase());
                         return builder.buildFuture();
                     })
-                    .then(ClientCommandManager.argument("startLevel", IntegerArgumentType.integer(0, 100))
-                    .then(ClientCommandManager.argument("endLevel", IntegerArgumentType.integer(1, 100))
+                    .then(ClientCommandManager.argument("startLevel", IntegerArgumentType.integer(0, 750))
+                    .then(ClientCommandManager.argument("endLevel", IntegerArgumentType.integer(1, 750))
                         .executes(ctx -> calcSatchelOre(ctx))))))
             .then(ClientCommandManager.literal("refined_satchel")
                 .then(ClientCommandManager.argument("type", StringArgumentType.word())
@@ -261,8 +267,8 @@ public class DevCommands {
                             builder.suggest(t.name().toLowerCase());
                         return builder.buildFuture();
                     })
-                    .then(ClientCommandManager.argument("startLevel", IntegerArgumentType.integer(0, 100))
-                    .then(ClientCommandManager.argument("endLevel", IntegerArgumentType.integer(1, 100))
+                    .then(ClientCommandManager.argument("startLevel", IntegerArgumentType.integer(0, 750))
+                    .then(ClientCommandManager.argument("endLevel", IntegerArgumentType.integer(1, 750))
                         .executes(ctx -> calcSatchelRefined(ctx)))))));
 
         // /bptest — send ping with tab characters for anti-IP filter testing
@@ -288,6 +294,62 @@ public class DevCommands {
                 ctx.getSource().sendFeedback(Text.literal("§aSent test ping with tab characters"));
                 return 1;
             }));
+
+        // /bpclue — list the NBT step types of the held clue scroll
+        dispatcher.register(ClientCommandManager.literal("bpclue")
+            .executes(DevCommands::inspectClueScroll));
+    }
+
+    private static int inspectClueScroll(CommandContext<FabricClientCommandSource> context) {
+        var client = context.getSource().getClient();
+        if (client.player == null) return 0;
+
+        ItemStack stack = client.player.getMainHandStack();
+        if (stack.isEmpty()) {
+            context.getSource().sendFeedback(Text.literal("§cNo item in main hand"));
+            return 0;
+        }
+
+        try {
+            NbtComponent customData = stack.get(DataComponentTypes.CUSTOM_DATA);
+            NbtCompound bukkit = customData == null ? null
+                : customData.copyNbt().getCompound("PublicBukkitValues").orElse(null);
+            if (bukkit == null || !"clue_scroll".equals(bukkit.getString("cosmicprisons:custom_item_id").orElse(""))) {
+                context.getSource().sendFeedback(Text.literal("§cHeld item is not a clue scroll"));
+                return 0;
+            }
+
+            String json = bukkit.getString("cosmicprisons:clue_scroll_data").orElse("");
+            JsonObject root = JsonParser.parseString(json).getAsJsonObject();
+            JsonArray clues = root.getAsJsonArray("clues");
+            int currentIdx = root.has("currentClueIndex") ? root.get("currentClueIndex").getAsInt() : -1;
+            String tier = root.has("tier") ? root.get("tier").getAsString() : "?";
+
+            context.getSource().sendFeedback(Text.literal(
+                "§6===== Clue Scroll (§e" + tier + "§6) — current index §e" + currentIdx + " §6====="));
+            BetterPrisonsClient.LOGGER.info("========== CLUE SCROLL INSPECTION (tier={}, currentIndex={}) ==========", tier, currentIdx);
+
+            for (int i = 0; i < clues.size(); i++) {
+                JsonObject clue = clues.get(i).getAsJsonObject();
+                String type = clue.has("type") ? clue.get("type").getAsString() : "?";
+                boolean completed = clue.has("completed") && clue.get("completed").getAsBoolean();
+                Integer step = ClueScrollOverlay.getStep(type);
+                String stepStr = step != null ? "step " + step : "§cUNMAPPED";
+                boolean active = (i == currentIdx);
+
+                String line = String.format("§7[%d]%s §f%s §7→ %s§7%s",
+                    i, active ? " §a*" : "", type, stepStr,
+                    completed ? " §8(done)" : "");
+                context.getSource().sendFeedback(Text.literal(line));
+                BetterPrisonsClient.LOGGER.info("[{}]{} type={} -> {}{}",
+                    i, active ? " *" : "", type, stepStr.replace("§c", ""), completed ? " (done)" : "");
+            }
+            return 1;
+        } catch (Exception e) {
+            context.getSource().sendFeedback(Text.literal("§cFailed to parse clue scroll: " + e.getMessage()));
+            BetterPrisonsClient.LOGGER.warn("Failed to parse clue scroll: {}", e.getMessage());
+            return 0;
+        }
     }
 
     private static int inspectHeldItem(CommandContext<FabricClientCommandSource> context) {

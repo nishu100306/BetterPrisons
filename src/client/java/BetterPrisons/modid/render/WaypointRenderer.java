@@ -74,6 +74,7 @@ public class WaypointRenderer {
 
         MinecraftClient client = MinecraftClient.getInstance();
         if (client.player == null || client.currentScreen != null) return;
+        if (client.options.hudHidden) return; // F1 hides screen-space waypoint markers
 
         int screenW = ctx.getScaledWindowWidth();
         int screenH = ctx.getScaledWindowHeight();
@@ -102,6 +103,15 @@ public class WaypointRenderer {
                 int color = m.type.getHeadingColor(BetterPrisonsClient.config);
                 Entry e = buildEntry(client, m.x, m.y, m.z, color, m.iconStack, screenW, screenH, EntryType.MERCHANT);
                 if (e != null && (e.onScreen || BetterPrisonsClient.config.waypointMerchantsEdgeEnabled))
+                    entries.add(e);
+            }
+        }
+
+        if (waypointsEnabled && inOverworld && BetterPrisonsClient.config.waypointMeteoriteShowerEnabled) {
+            for (EventsHud.MeteoriteShowerInfo s : BetterPrisonsClient.eventsHud.getVisibleMeteoriteShowers()) {
+                int color = BetterPrisonsClient.config.meteoriteShowerHeadingColor;
+                Entry e = buildEntry(client, s.x, s.y, s.z, color, s.iconStack, screenW, screenH, EntryType.METEOR);
+                if (e != null && (e.onScreen || BetterPrisonsClient.config.waypointMeteoriteShowerEdgeEnabled))
                     entries.add(e);
             }
         }

@@ -94,11 +94,9 @@ public class CustomConfigScreen extends Screen {
         sidebar.addSeparator();
         sidebar.addTab("Super Breaker");
         sidebar.addTab("Peaceful Mining");
-        sidebar.addTab("Held Item Scaling");
         sidebar.addTab("EasyView");
         sidebar.addTab("Item Cooldowns");
-        sidebar.addTab("Pickaxe Drop");
-        sidebar.addTab("Notifications");
+        sidebar.addTab("Misc");
         sidebar.addSeparator();
         sidebar.addTab("Tools");
         sidebar.addTab("Config Settings");
@@ -119,11 +117,9 @@ public class CustomConfigScreen extends Screen {
         categories.add(createGangPingsCategory());
         categories.add(createSuperBreakerCategory());
         categories.add(createPeacefulMiningCategory());
-        categories.add(createHeldItemScalingCategory());
         categories.add(createEasyViewCategory());
         categories.add(createItemCooldownsCategory());
-        categories.add(createPickaxeDropCategory());
-        categories.add(createNotificationsCategory());
+        categories.add(createMiscCategory());
         categories.add(createToolsCategory());
         categories.add(createConfigSettingsCategory());
 
@@ -587,6 +583,26 @@ public class CustomConfigScreen extends Screen {
         tpahereGroup.addWidget(createColorPicker("Color", "tpahereColor", 5636095));
         cooldownsGroup.addWidget(tpahereGroup);
 
+        CollapsibleWidget dangleGroup = createCollapsible("/dangle", "Configure /dangle cooldown display");
+        dangleGroup.addWidget(createToggle("Enabled", "dangleEnabled", true, "Show /dangle cooldown"));
+        dangleGroup.addWidget(createColorPicker("Color", "dangleColor", 0xFFAA00));
+        cooldownsGroup.addWidget(dangleGroup);
+
+        CollapsibleWidget adangleGroup = createCollapsible("/adangle", "Configure /adangle cooldown display");
+        adangleGroup.addWidget(createToggle("Enabled", "adangleEnabled", true, "Show /adangle cooldown"));
+        adangleGroup.addWidget(createColorPicker("Color", "adangleColor", 0x55FFFF));
+        cooldownsGroup.addWidget(adangleGroup);
+
+        CollapsibleWidget nearGroup = createCollapsible("/near", "Configure /near cooldown display");
+        nearGroup.addWidget(createToggle("Enabled", "nearEnabled", true, "Show /near cooldown"));
+        nearGroup.addWidget(createColorPicker("Color", "nearColor", 0x55FFFF));
+        cooldownsGroup.addWidget(nearGroup);
+
+        CollapsibleWidget pulseGroup = createCollapsible("/pulse", "Configure /pulse cooldown display");
+        pulseGroup.addWidget(createToggle("Enabled", "pulseEnabled", true, "Show /pulse cooldown"));
+        pulseGroup.addWidget(createColorPicker("Color", "pulseColor", 0xFF5555));
+        cooldownsGroup.addWidget(pulseGroup);
+
         category.addWidget(cooldownsGroup);
 
         return category;
@@ -835,6 +851,21 @@ public class CustomConfigScreen extends Screen {
         banditRushGroup.addWidget(createIntSlider("Sound Volume", "banditRushSoundVolume", 100, 0, 200, "%", "Volume for bandit rush notification sound"));
         category.addWidget(banditRushGroup);
 
+        // Meteorite Shower settings
+        CollapsibleWidget showerGroup = createCollapsible("Meteorite Showers", "Configure meteorite shower display on the Events HUD");
+        showerGroup.addWidget(createToggle("Enabled", "meteoriteShowerEnabled", true, "Show meteorite shower events"));
+        showerGroup.addWidget(createIntSlider("Mineable Timeout", "meteoriteShowerTimeoutSeconds", 180, 10, 600, "s", "How long a crashed shower stays on the HUD before being removed"));
+        showerGroup.addWidget(createColorPicker("Heading Color", "meteoriteShowerHeadingColor", 0xFF5500));
+        showerGroup.addWidget(createColorPicker("Text Color", "meteoriteShowerTextColor", 0xFFAA88));
+        showerGroup.addWidget(createTextInput("Icon Item ID", "meteoriteShowerIconItemId", "magma_block", "Item ID for meteorite shower icon (minecraft: prefix added automatically)"));
+        showerGroup.addWidget(createToggle("Show Distance", "meteoriteShowerShowDistance", true, "Show distance to shower in the Events HUD"));
+        showerGroup.addWidget(createIntSlider("Beam Opacity", "meteoriteShowerBeamOpacity", 160, 0, 255, "", "Beacon beam opacity for showers (0=transparent, 255=opaque)"));
+        showerGroup.addWidget(createToggle("Sound Notification", "meteoriteShowerSoundEnabled", true, "Play a sound when a meteorite shower is announced"));
+        showerGroup.addWidget(createDropdown("Sound", "meteoriteShowerSound",
+            Arrays.asList("anvil", "bell", "xp_orb", "note_pling", "enchant", "level_up", "ender_eye"), "ender_eye", "Notification sound"));
+        showerGroup.addWidget(createIntSlider("Sound Volume", "meteoriteShowerSoundVolume", 100, 0, 200, "%", "Volume for meteorite shower notification sound"));
+        category.addWidget(showerGroup);
+
         return category;
     }
 
@@ -853,6 +884,8 @@ public class CustomConfigScreen extends Screen {
         screenGroup.addWidget(createToggle("Custom: Edge Indicators", "waypointCustomEdgeEnabled", false, "Show custom waypoint indicators at screen edge when off-screen"));
         screenGroup.addWidget(createToggle("Show Bandit Rushes", "waypointBanditRushEnabled", true, "Show bandit rush waypoint indicators (badlands only)"));
         screenGroup.addWidget(createToggle("Bandit Rushes: Edge Indicators", "waypointBanditRushEdgeEnabled", true, "Show bandit rush indicators at screen edge when off-screen"));
+        screenGroup.addWidget(createToggle("Show Meteorite Showers", "waypointMeteoriteShowerEnabled", true, "Show meteorite shower waypoint indicators"));
+        screenGroup.addWidget(createToggle("Meteorite Showers: Edge Indicators", "waypointMeteoriteShowerEdgeEnabled", true, "Show shower indicators at screen edge when off-screen"));
         category.addWidget(screenGroup);
 
         CollapsibleWidget beamGroup = createCollapsible("Beacon Beams", "3D vertical beam pillars in world space");
@@ -938,20 +971,13 @@ public class CustomConfigScreen extends Screen {
         category.addWidget(createIntSlider("Opacity", "peacefulMiningOpacity", 50, 0, 255, "", "0 = transparent, 255 = opaque"));
         category.addWidget(createIntSlider("Distance", "peacefulMiningDistance", 8, 4, 16, " blocks", "Distance to hide entities"));
         category.addWidget(createToggle("Disable On Combat", "peacefulMiningDisableOnCombat", false, "Disable when in combat"));
+        category.addWidget(createToggle("Triggered By Pickaxes", "peacefulMiningPickaxe", true, "Activate peaceful mining while holding a pickaxe"));
+        category.addWidget(createToggle("Triggered By Maces", "peacefulMiningMace", true, "Activate peaceful mining while holding a mace"));
+        category.addWidget(createToggle("Always On In PrisonBreak", "peacefulMiningAlwaysInPrisonbreak", true, "Always enable peaceful mining in the PrisonBreak world, regardless of held item"));
 
         return category;
     }
 
-    private CategoryContainer createHeldItemScalingCategory() {
-        CategoryContainer category = new CategoryContainer("Held Item Scaling");
-
-        category.addWidget(createIntSlider("Pickaxe Scale", "heldItemPickaxeScale", 100, 25, 150, "%", "Scale for held pickaxes"));
-        category.addWidget(createIntSlider("Sword Scale", "heldItemSwordScale", 100, 25, 150, "%", "Scale for held swords"));
-        category.addWidget(createIntSlider("Axe Scale", "heldItemAxeScale", 100, 25, 150, "%", "Scale for held axes"));
-        category.addWidget(createIntSlider("Other Items Scale", "heldItemOtherScale", 100, 25, 150, "%", "Scale for other items"));
-
-        return category;
-    }
 
     private CategoryContainer createEasyViewCategory() {
         CategoryContainer category = new CategoryContainer("EasyView");
@@ -1067,23 +1093,85 @@ public class CustomConfigScreen extends Screen {
         return category;
     }
 
-    private CategoryContainer createPickaxeDropCategory() {
-        CategoryContainer category = new CategoryContainer("Pickaxe Drop Confirmation");
+    private CategoryContainer createMiscCategory() {
+        CategoryContainer category = new CategoryContainer("Misc");
 
-        category.addWidget(createToggle("Enabled", "pickaxeDropConfirmationEnabled", true, "Require confirmation to drop pickaxes"));
-        category.addWidget(createToggle("Block Drop Entirely", "pickaxeDropBlockEnabled", false, "Completely prevent dropping pickaxes with the drop key"));
-        category.addWidget(createToggle("Block Inventory Drag", "pickaxeDropDragBlockEnabled", false, "Prevent dropping pickaxes by dragging them out of the inventory"));
+        category.addWidget(createToggle("Auto Trade", "autoTradeEnabled", true,
+            "Shift-right-click another player to automatically send /trade <username>"));
+        category.addWidget(createToggle("Bold XP/Energy Titles", "boldXpEnergyTitles", false,
+            "Bold the on-screen title popups that show +XP and +Energy gains"));
+        category.addWidget(createToggle("Chest Search", "chestSearchEnabled", true,
+            "Adds a search bar and filter-rule sidebar to chests and containers for highlighting items"));
 
-        return category;
-    }
+        // Clue Scrolls
+        CollapsibleWidget clueScrollGroup = createCollapsible("Clue Scrolls",
+            "Clue scroll sorting and helper options");
+        clueScrollGroup.addWidget(createToggle("Sorting (Step Numbers)", "clueScrollSortingEnabled", true,
+            "Shows the current clue step number large on clue scrolls in containers"));
+        clueScrollGroup.addWidget(createColorPicker("Number Color", "clueScrollNumberColor", 0xFFFFFF));
+        clueScrollGroup.addWidget(createToggle("Unmapped Report Tooltip", "clueScrollUnmappedTooltipEnabled", true,
+            "Adds a tooltip asking you to report unmapped clue step types to nishu06 on Discord"));
+        category.addWidget(clueScrollGroup);
+        category.addWidget(createToggle("PrisonBreak Texture Pack", "prisonbreakTexturePackEnabled", true,
+            "Auto-applies the bundled PrisonBreak ore texture pack while in the PrisonBreak world (causes a brief resource reload on enter/leave)"));
 
-    private CategoryContainer createNotificationsCategory() {
-        CategoryContainer category = new CategoryContainer("Message Notifications");
+        // Enchant Book Costs
+        CollapsibleWidget enchantBookGroup = createCollapsible("Enchant Book Costs",
+            "Show upgrade energy cost on enchant book tooltips");
+        enchantBookGroup.addWidget(createToggle("Enabled", "enchantBookCostsEnabled", true,
+            "Display upgrade cost breakdown on enchant book tooltips"));
+        enchantBookGroup.addWidget(createColorPicker("Text Color", "enchantBookCostsColor", 0xAA55FF));
+        category.addWidget(enchantBookGroup);
 
-        category.addWidget(createToggle("Enabled", "messageNotifsEnabled", true, "Enable/disable message notifications"));
-        category.addWidget(createDropdown("Sound", "messageNotifsSound",
+        // Gang Point Expiry
+        CollapsibleWidget gangPointGroup = createCollapsible("Gang Point Expiry",
+            "Show local-time expiry countdown on gang point tooltips");
+        gangPointGroup.addWidget(createToggle("Enabled", "gangPointExpiryEnabled", true,
+            "Display a countdown and local-timezone expiry on gang point notes"));
+        gangPointGroup.addWidget(createColorPicker("Text Color", "gangPointExpiryColor", 0x55FFFF));
+        category.addWidget(gangPointGroup);
+
+        // Held Item Scaling
+        CollapsibleWidget heldItemGroup = createCollapsible("Held Item Scaling", "Scale held items in first person view");
+        heldItemGroup.addWidget(createIntSlider("Pickaxe Scale", "heldItemPickaxeScale", 100, 25, 150, "%", "Scale for held pickaxes"));
+        heldItemGroup.addWidget(createIntSlider("Sword Scale", "heldItemSwordScale", 100, 25, 150, "%", "Scale for held swords"));
+        heldItemGroup.addWidget(createIntSlider("Axe Scale", "heldItemAxeScale", 100, 25, 150, "%", "Scale for held axes"));
+        heldItemGroup.addWidget(createIntSlider("Other Items Scale", "heldItemOtherScale", 100, 25, 150, "%", "Scale for other items"));
+        category.addWidget(heldItemGroup);
+
+        // Pickaxe Drop Confirmation
+        CollapsibleWidget pickaxeDropGroup = createCollapsible("Pickaxe Drop Confirmation", "Protect pickaxes from being dropped");
+        pickaxeDropGroup.addWidget(createToggle("Enabled", "pickaxeDropConfirmationEnabled", true, "Require confirmation to drop pickaxes"));
+        pickaxeDropGroup.addWidget(createToggle("Block Drop Entirely", "pickaxeDropBlockEnabled", false, "Completely prevent dropping pickaxes with the drop key"));
+        pickaxeDropGroup.addWidget(createToggle("Block Inventory Drag", "pickaxeDropDragBlockEnabled", false, "Prevent dropping pickaxes by dragging them out of the inventory"));
+        category.addWidget(pickaxeDropGroup);
+
+        // Message Notifications
+        CollapsibleWidget notifsGroup = createCollapsible("Message Notifications", "Sound notifications for private messages");
+        notifsGroup.addWidget(createToggle("Enabled", "messageNotifsEnabled", true, "Enable/disable message notifications"));
+        notifsGroup.addWidget(createDropdown("Sound", "messageNotifsSound",
             Arrays.asList("anvil", "bell", "xp_orb", "note_pling", "enchant", "level_up", "ender_eye"), "anvil", "Notification sound"));
-        category.addWidget(createIntSlider("Volume", "messageNotifsVolume", 100, 0, 200, "%", "Notification volume"));
+        notifsGroup.addWidget(createIntSlider("Volume", "messageNotifsVolume", 100, 0, 200, "%", "Notification volume"));
+        category.addWidget(notifsGroup);
+
+        // Powerball Alerts
+        CollapsibleWidget powerballGroup = createCollapsible("Powerball Alerts",
+            "Alert when powerball cooldown has elapsed and is ready to use again");
+        powerballGroup.addWidget(createToggle("Enabled", "powerballAlertEnabled", true,
+            "Master toggle for powerball ready alerts"));
+        powerballGroup.addWidget(createToggle("Show Title", "powerballAlertTitleEnabled", true,
+            "Display a title on screen when powerball is ready"));
+        powerballGroup.addWidget(createTextInput("Title Text", "powerballAlertTitleText", "Powerball Ready!",
+            "Title text shown when powerball is ready"));
+        powerballGroup.addWidget(createColorPicker("Title Color", "powerballAlertTitleColor", 0xFFAA00));
+        powerballGroup.addWidget(createToggle("Sound Cue", "powerballAlertSoundEnabled", true,
+            "Play a sound when powerball is ready"));
+        powerballGroup.addWidget(createDropdown("Sound", "powerballAlertSound",
+            Arrays.asList("anvil", "bell", "xp_orb", "note_pling", "enchant", "level_up", "ender_eye"),
+            "level_up", "Alert sound"));
+        powerballGroup.addWidget(createIntSlider("Sound Volume", "powerballAlertSoundVolume", 100, 0, 200, "%",
+            "Volume for powerball ready sound"));
+        category.addWidget(powerballGroup);
 
         return category;
     }
@@ -1110,9 +1198,9 @@ public class CustomConfigScreen extends Screen {
         DropdownWidget typeDropdown = new DropdownWidget("Type", pickTypes, 0);
 
         // Level sliders
-        IntSliderWidget startLevel = new IntSliderWidget("Start Level", 1, 1, 110);
+        IntSliderWidget startLevel = new IntSliderWidget("Start Level", 1, 1, 750);
         startLevel.setTooltip("Current level");
-        IntSliderWidget endLevel = new IntSliderWidget("End Level", 50, 1, 110);
+        IntSliderWidget endLevel = new IntSliderWidget("End Level", 50, 1, 750);
         endLevel.setTooltip("Target level");
 
         // Recalculate helper
